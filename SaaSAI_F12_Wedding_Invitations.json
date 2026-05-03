@@ -1,0 +1,991 @@
+{
+  "name": "SaaSAI – F12 – Wedding Invitations دعوات الزفاف الرقمية",
+  "nodes": [
+    {
+      "id": "wed-wh-001",
+      "name": "Webhook – Wedding Order Entry",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "saasai-wedding-order",
+        "responseMode": "lastNode"
+      },
+      "webhookId": "62a49a33-6208-446e-9bd7-b6ba24e437c8"
+    },
+    {
+      "id": "wed-code-001",
+      "name": "Code – Normalize Wedding Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// SaaSAI – F12 – Wedding Invitation Order Normalizer\nconst raw = $input.first()?.json || {};\nconst d = raw.body || raw;\n\n// استخراج بيانات الطلب\nconst phone   = (d.phone || d.groom_phone || d.bride_phone || '').replace(/[^\\d+]/g,'');\nconst name    = d.groom_name || d.contact_name || d.name || 'صاحب الطلب';\nconst partner = d.bride_name || d.partner_name || '';\nconst wedding_date = d.wedding_date || d.event_date || '';\nconst venue   = d.venue || d.location || '';\nconst package_type = d.package || d.package_type || 'standard';\nconst lang    = d.language || d.lang || 'ar';\nconst msg     = d.message || d.notes || d.special_requests || '';\n\n// توليد order_id فريد\nconst order_id = 'WED-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase();\n\n// تحديد السعر حسب الباقة\nconst PRICES = {\n  basic:    { price: 299, desc: 'دعوة رقمية أساسية + QR Code' },\n  standard: { price: 599, desc: 'دعوة تفاعلية + صفحة حضور + QR' },\n  premium:  { price: 999, desc: 'دعوة VIP + فيديو + موشن + صفحة كاملة' },\n  vip:      { price: 1499, desc: 'باقة مميزة شاملة + تصميم خاص + دعم مباشر' },\n};\nconst pkg = PRICES[package_type] || PRICES.standard;\n\nreturn [{ json: {\n  order_id,\n  lead_id:       d.lead_id || order_id,\n  phone:         phone.startsWith('+') ? phone : '+966' + phone.replace(/^0/,''),\n  name,\n  partner_name:  partner,\n  email:         d.email || '',\n  wedding_date,\n  venue,\n  package_type,\n  package_price: pkg.price,\n  package_desc:  pkg.desc,\n  language:      lang,\n  special_requests: msg,\n  source:        d.source || 'SaaSAI_Website',\n  platform:      d.platform || 'Website',\n  status:        'new',\n  payment_status:'pending',\n  created_at:    new Date().toISOString(),\n  flow_origin:   'SaaSAI_F12_Wedding',\n  service_type:  'wedding',\n  category:      'HOT',\n  score:         85,\n  is_wedding:    true,\n}}];\n"
+      }
+    },
+    {
+      "id": "wed-code-002",
+      "name": "Code – Validate Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// SaaSAI – F12 – Validate Wedding Order\nconst d = $input.first().json;\nconst errors = [];\n\nif (!d.phone || d.phone.length < 10) errors.push('رقم الهاتف مفقود أو غير صالح');\nif (!d.name || d.name.length < 2)    errors.push('اسم العريس/العروس مفقود');\nif (!d.wedding_date)                  errors.push('تاريخ الزفاف مفقود');\nif (!d.package_type)                  errors.push('نوع الباقة غير محدد');\n\nconst valid = errors.length === 0;\nreturn [{ json: { ...d, is_valid: valid, validation_errors: errors.join(' | ') }}];\n"
+      }
+    },
+    {
+      "id": "wed-if-001",
+      "name": "IF – Valid Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wed-tg-invalid",
+      "name": "Telegram – Invalid Order Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "=❌ <b>طلب دعوة غير مكتمل</b>\\n🆔 {{ $json.order_id }}\\n❌ {{ $json.validation_errors }}\\n📞 {{ $json.phone }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-gs-001",
+      "name": "GSheets – Save Wedding Order",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001234568,
+          "mode": "list",
+          "cachedResultName": "wedding_orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=2001234568"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{ $json.order_id }}",
+            "lead_id": "={{ $json.lead_id }}",
+            "phone": "={{ $json.phone }}",
+            "name": "={{ $json.name }}",
+            "partner_name": "={{ $json.partner_name || '' }}",
+            "email": "={{ $json.email || '' }}",
+            "wedding_date": "={{ $json.wedding_date || '' }}",
+            "venue": "={{ $json.venue || '' }}",
+            "package_type": "={{ $json.package_type }}",
+            "package_price": "={{ $json.package_price || 0 }}",
+            "package_desc": "={{ $json.package_desc || '' }}",
+            "language": "={{ $json.language || 'ar' }}",
+            "special_requests": "={{ $json.special_requests || '' }}",
+            "page_url": "={{ $json.page_url || '' }}",
+            "qr_url": "={{ $json.qr_url || '' }}",
+            "wedding_slug": "={{ $json.wedding_slug || '' }}",
+            "status": "={{ $json.status || 'new' }}",
+            "payment_status": "={{ $json.payment_status || 'pending' }}",
+            "source": "={{ $json.source || 'Website' }}",
+            "platform": "={{ $json.platform || 'Website' }}",
+            "service_type": "=wedding",
+            "created_at": "={{ $now }}",
+            "updated_at": "={{ $now }}",
+            "notes": "={{ $json.validation_errors || '' }}",
+            "flow_origin": "=SaaSAI_F12_Wedding"
+          },
+          "matchingColumns": [
+            "order_id"
+          ],
+          "schema": [
+            {
+              "id": "order_id",
+              "displayName": "order_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "partner_name",
+              "displayName": "partner_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "wedding_date",
+              "displayName": "wedding_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "venue",
+              "displayName": "venue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "package_type",
+              "displayName": "package_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "package_price",
+              "displayName": "package_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "package_desc",
+              "displayName": "package_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "special_requests",
+              "displayName": "special_requests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qr_url",
+              "displayName": "qr_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "wedding_slug",
+              "displayName": "wedding_slug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_status",
+              "displayName": "payment_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_origin",
+              "displayName": "flow_origin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-code-003",
+      "name": "Code – Generate Wedding Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// SaaSAI – F12 – Generate Wedding Page Link\nconst d = $input.first().json;\nconst slug = (d.name || 'wedding').toLowerCase()\n  .replace(/\\s+/g, '-')\n  .replace(/[^a-z0-9\\u0600-\\u06FF-]/g, '')\n  .slice(0, 30) + '-' + d.order_id.slice(-6).toLowerCase();\n\nconst page_url = `https://saasai.sa/wedding/${slug}`;\nconst qr_url   = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(page_url)}`;\nconst preview  = `https://saasai.sa/wedding/preview/${slug}`;\n\nreturn [{ json: {\n  ...d,\n  wedding_slug:  slug,\n  page_url,\n  qr_url,\n  preview_url:   preview,\n  share_message: `🎊 يسعدنا دعوتكم لحضور حفل زفاف ${d.name}${d.partner_name ? ' و' + d.partner_name : ''}\\n📅 ${d.wedding_date}\\n📍 ${d.venue || 'يُعلَن لاحقاً'}\\n\\n✨ تفاصيل الدعوة: ${page_url}\\n📲 رمز QR: ${qr_url}`,\n}}];\n"
+      }
+    },
+    {
+      "id": "wed-gs-002",
+      "name": "GSheets – Update with Page URL",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001234568,
+          "mode": "list",
+          "cachedResultName": "wedding_orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=2001234568"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{ $json.order_id }}",
+            "page_url": "={{ $json.page_url }}",
+            "qr_url": "={{ $json.qr_url }}",
+            "wedding_slug": "={{ $json.wedding_slug }}",
+            "status": "=page_created",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "order_id"
+          ],
+          "schema": [
+            {
+              "id": "order_id",
+              "displayName": "order_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qr_url",
+              "displayName": "qr_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "wedding_slug",
+              "displayName": "wedding_slug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-gs-003",
+      "name": "GSheets – Update Lead Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.lead_id }}",
+            "status": "=in_progress",
+            "service_type": "=wedding",
+            "journey_step": "=wedding_active",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "lead_id"
+          ],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-tg-001",
+      "name": "Telegram – New Order Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "=🎊 <b>طلب دعوة زفاف جديد – SaaSAI</b>\n\n💍 <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📱 <b>الهاتف:</b> <code>{{ $json.phone }}</code>\n📅 <b>تاريخ الزفاف:</b> {{ $json.wedding_date || 'غير محدد' }}\n📍 <b>المكان:</b> {{ $json.venue || 'غير محدد' }}\n\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n📋 <b>التفاصيل:</b> {{ $json.package_desc }}\n\n🆔 <b>رقم الطلب:</b> <code>{{ $json.order_id }}</code>\n🔗 <b>رابط الدعوة:</b> {{ $json.page_url || 'قيد الإنشاء' }}\n\n💬 <b>طلبات خاصة:</b> <i>{{ $json.special_requests || 'لا يوجد' }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n<a href=\"https://wa.me/{{ $json.phone.replace(/[^\\d]/g,'') }}?text=مرحباً {{ $json.name }}، استلمنا طلب دعوتك الرقمية رقم {{ $json.order_id }} وسنتواصل معك خلال 24 ساعة لتأكيد التفاصيل.\">📲 واتساب العميل</a>\n\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-http-001",
+      "name": "HTTP – Send Confirmation WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "url": "https://app.timelines.ai/integrations/api/messages",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone.replace(/[^\\\\d]/g,'') }}\",\n  \"text\": \"{{ $json.share_message || ('مرحباً ' + $json.name + '، تم إنشاء دعوتك الرقمية! رابطها: ' + $json.page_url) }}\",\n  \"chat_name\": \"{{ $json.name }}\",\n  \"label\": \"wedding_confirmation\",\n  \"metadata\": { \"order_id\": \"{{ $json.order_id }}\", \"service\": \"wedding\" }\n}"
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-tg-002",
+      "name": "Telegram – Confirm to Admin",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        200
+      ],
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "=✅ <b>تأكيد طلب الدعوة الرقمية</b>\n\n🎊 تم إنشاء صفحة دعوتك الرقمية بنجاح!\n\n💍 <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📅 <b>تاريخ الزفاف:</b> {{ $json.wedding_date || 'قريباً' }}\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n\n🔗 <b>رابط دعوتك:</b> {{ $json.page_url }}\n📱 <b>QR Code:</b> {{ $json.qr_url }}\n\n✨ <b>رسالة المشاركة جاهزة:</b>\n<i>{{ ($json.share_message || '').substring(0, 300) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n🆔 {{ $json.order_id }}\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-err-001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "wed-gs-err",
+      "name": "GSheets – Log Wedding Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        400
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1659619068,
+          "mode": "list",
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ 'ERR-WED-' + Date.now().toString(36).toUpperCase() }}",
+            "flow_name": "=SaaSAI_F12_Wedding",
+            "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
+            "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,300) }}",
+            "severity": "=high",
+            "occurred_at": "={{ $now }}",
+            "resolved_at": "=",
+            "resolved_by": "=",
+            "notes": "="
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "error_id",
+              "displayName": "error_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_msg",
+              "displayName": "error_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resolved_at",
+              "displayName": "resolved_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resolved_by",
+              "displayName": "resolved_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wed-tg-err",
+      "name": "Telegram – Wedding Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        400
+      ],
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "=❌ <b>خطأ في Flow #12 – Wedding</b>\\n\\n{{ $json.error?.message || 'خطأ غير معروف' }}\\n🔧 {{ $json.execution?.lastNodeExecuted || 'Unknown' }}\\n⏱️ {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Webhook – Wedding Order Entry": {
+      "main": [
+        [
+          {
+            "node": "Code – Normalize Wedding Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Normalize Wedding Order": {
+      "main": [
+        [
+          {
+            "node": "Code – Validate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Validate Order": {
+      "main": [
+        [
+          {
+            "node": "IF – Valid Order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF – Valid Order?": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Save Wedding Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – Invalid Order Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Save Wedding Order": {
+      "main": [
+        [
+          {
+            "node": "Code – Generate Wedding Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Generate Wedding Page": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Update with Page URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Update with Page URL": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Update Lead Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram – New Order Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram – New Order Alert": {
+      "main": [
+        [
+          {
+            "node": "HTTP – Send Confirmation WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – Send Confirmation WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Confirm to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Wedding Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Wedding Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Wedding Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all"
+  },
+  "meta": {
+    "instanceId": "saasai-system"
+  },
+  "tags": []
+}

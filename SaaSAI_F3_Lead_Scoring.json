@@ -1,0 +1,1863 @@
+{
+  "name": "SaaSAI – F3 – Lead Scoring التقييم",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-scoring-entry",
+        "options": {}
+      },
+      "name": "Webhook – From Flow #2 (Capture)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -4080,
+        80
+      ],
+      "id": "48ed841d-431a-43c4-8502-feb3d28f10aa",
+      "webhookId": "lead-scoring-entry"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "radar-hot-lead",
+        "options": {}
+      },
+      "name": "Webhook – From Flow #1 Radar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -4080,
+        240
+      ],
+      "id": "208aa851-7203-451d-9a5e-255953a01a90",
+      "webhookId": "radar-hot-lead"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Incoming Leads",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -3840,
+        160
+      ],
+      "id": "ec489031-83f4-49db-9861-5dbf526cccfa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Normalize Lead for Scoring v2 ─────────────────────────────────────────\n// Accepts leads from Flow #2 (all channels) and Flow #1 (Radar)\nconst lead = $input.first().json;\n\n// ── Identify source type ─────────────────────────────────────────────────────\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\n// ── Base score by source ──────────────────────────────────────────────────────\n// Radar already pre-scored by AI; use that as base if available\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\n// ── Extract core fields ───────────────────────────────────────────────────────\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\n// ── Radar AI data (if available) ─────────────────────────────────────────────\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst travel_group = lead.travel_group || 'unknown';\nconst stars_preference = lead.stars_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst pax_hint = lead.pax_hint || 0;\n\n\n// SaaSAI – Service Type Detection\nconst svcKeywords = {\n  automation: ['أتمتة','n8n','workflow','make','zapier','اوتوماشن'],\n  ai_solutions: ['ذكاء اصطناعي','ai','chatgpt','claude','gemini'],\n  web_dev: ['موقع','website','wordpress','تطبيق','متجر'],\n  seo: ['seo','محركات البحث','جوجل','ترتيب'],\n  design: ['تصميم','جرافيك','هوية','لوجو','شعار'],\n  video: ['فيديو','موشن','reels','مونتاج'],\n  marketing: ['تسويق','marketing','إعلان','ads','سوشيال'],\n  content: ['محتوى','مقال','كتابة','content'],\n  training: ['تدريب','كورس','دورة','training'],\n  wedding: ['زفاف','دعوة','عرس','wedding','مناسبة','invitation'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  travel_group,\n  stars_preference,\n  has_phone,\n  pax_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
+      },
+      "name": "Code – Normalize Lead for Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3392,
+        160
+      ],
+      "id": "c1131b0a-3c88-4011-811c-544bf406b150"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 862175237,
+          "mode": "list",
+          "cachedResultName": "interactions_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=862175237"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7eb6be4-0410-4ef7-8398-5fccf7b4bda7",
+      "name": "GSheets – Get Interaction History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -3152,
+        160
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Base Score + Loyalty + Radar Urgency Bonus ──────────────────────────────\nconst data = $('Code – Normalize Lead for Scoring').first().json;\nconst history = $input.all().map(i => i.json).filter(h => h && h.phone);\n\n// ── Loyalty bonus (repeat interaction) ───────────────────────────────────────\nconst interaction_count = history.length;\nconst loyalty_bonus = Math.min(interaction_count * 5, 20); // max 20 pts\n\n// ── Radar AI urgency bonus ────────────────────────────────────────────────────\nlet urgency_bonus = 0;\nif (data.radar_urgency === 'immediate') urgency_bonus = 25;\nelse if (data.radar_urgency === 'soon') urgency_bonus = 12;\nelse if (data.radar_urgency === 'planned') urgency_bonus = 5;\n\n// ── Radar intent bonus ────────────────────────────────────────────────────────\nlet intent_bonus = 0;\nif (data.radar_intent === 'booking_ready') intent_bonus = 30;\nelse if (data.radar_intent === 'complaint_competitor') intent_bonus = 20;\nelse if (data.radar_intent === 'booking_research') intent_bonus = 10;\nelse if (data.radar_intent === 'travel_planning') intent_bonus = 5;\n\n// ── Phone signal bonus ────────────────────────────────────────────────────────\nconst phone_bonus = data.has_phone ? 15 : 0;\n\n// ── Budget/Stars bonus ────────────────────────────────────────────────────────\nlet budget_bonus = 0;\nif (data.budget_signal === 'luxury') budget_bonus = 8;\nelse if (data.budget_signal === 'mid') budget_bonus = 5;\n\nlet stars_bonus = 0;\nif (data.stars_preference === '5star') stars_bonus = 8;\nelse if (data.stars_preference === '4star') stars_bonus = 5;\n\n// ── Direct inbound bonus (WhatsApp / Telegram contact) ───────────────────────\nconst inbound_bonus = data.is_direct_inbound ? 20 : 0;\n\nconst subtotal = data.base_score + loyalty_bonus + urgency_bonus + intent_bonus + phone_bonus + budget_bonus + stars_bonus + inbound_bonus;\n\nreturn [{ json: {\n  ...data,\n  interaction_count,\n  loyalty_bonus,\n  urgency_bonus,\n  intent_bonus,\n  phone_bonus,\n  budget_bonus,\n  stars_bonus,\n  inbound_bonus,\n  subtotal\n} }];"
+      },
+      "name": "Code – Calculate Base & Bonuses",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2912,
+        160
+      ],
+      "id": "89435b84-ce5f-4988-99e3-3f581c18153b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-29467",
+              "leftValue": "={{ $json.has_urgency_kw }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – Urgency Keywords in Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2464,
+        160
+      ],
+      "id": "468a9039-8915-40cd-9a64-7fac53a935e1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Add urgency keyword bonus (+15)\nreturn [{ json: { ...$json, kw_urgency_bonus: 15 } }];"
+      },
+      "name": "Code – Add Urgency KW Bonus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2224,
+        80
+      ],
+      "id": "c0447e1f-eeb0-49b6-a4ac-7c73994b109b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check for urgency keywords and set boolean flag\nconst items = $input.all();\nreturn items.map(item => {\n  const msg = (item.json.message || item.json.raw_text || '').toLowerCase();\n  const urgencyKWs = ['عاجل','حالا','الآن','اليوم','حجز فوري','متاح','فوراً','هذا الأسبوع','قريباً','سريع','urgent','now','today','asap'];\n  const has_urgency_kw = urgencyKWs.some(kw => msg.includes(kw));\n  return { json: { ...item.json, has_urgency_kw } };\n});\n"
+      },
+      "name": "Code – No Urgency KW",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2224,
+        240
+      ],
+      "id": "8e70e848-54c9-4a9e-98d2-afe015abf369"
+    },
+    {
+      "parameters": {},
+      "name": "Merge After Urgency Check",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -1984,
+        160
+      ],
+      "id": "c88e36e5-5b82-4a82-82a9-1f55a621a209"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-87583",
+              "leftValue": "={{ $json.is_b2b }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – B2B Indicators?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1536,
+        160
+      ],
+      "id": "e969cdf8-8ba0-40e3-83d6-bc2c195977ca"
+    },
+    {
+      "parameters": {
+        "jsCode": "// B2B detected: +35 pts, classify as B2B\nconst msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/حكوم|وزار|هيئة|government/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
+      },
+      "name": "Code – Add B2B Bonus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        80
+      ],
+      "id": "298f5a57-dcb9-42f9-8fc3-00b669f3e58b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Not B2B – classify as B2C, check group size\nconst pax = $json.pax_hint || 0;\nconst tg = $json.travel_group || 'unknown';\nlet lead_category = 'B2C_solo';\nif (pax >= 10 || tg === 'group') lead_category = 'B2C_large_group';\nelse if (pax >= 4 || tg === 'family') lead_category = 'B2C_family';\nelse if (pax === 2 || tg === 'couple') lead_category = 'B2C_couple';\n\nreturn [{ json: { ...$json, b2b_bonus: 0, lead_category } }];"
+      },
+      "name": "Code – Set B2C Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        240
+      ],
+      "id": "b5d21d1f-f97a-4e64-892e-174dcb5fc140"
+    },
+    {
+      "parameters": {},
+      "name": "Merge After B2B Check",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -1056,
+        160
+      ],
+      "id": "f7dc142b-c141-4ab7-bbe4-91af1380355f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-101",
+              "leftValue": "={{ $json.is_large_group }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – Large Group (Pax > 8)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        160
+      ],
+      "id": "22ab739f-5a6c-4489-857d-239b7cb114b4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Add Group Bonus if Large Group (True branch) v2.3 ────────────────────────\n// هذه العقدة تُنفذ فقط إذا مرّ الشرط في IF السابقة\n// لكن نضيف تحقق إضافي للأمان (defense in depth)\n\nconst pax = $json.pax_hint || 0;\nconst groupType = $json.travel_group || 'unknown';\n\nconst isLarge = pax > 6 || groupType === 'group' || (groupType === 'family' && pax >= 4);\n\nreturn [{\n  json: {\n    ...$json,  // نحافظ على كل الحقول الأصلية\n    group_bonus: isLarge ? 20 : 0,  // فقط إذا كانت مجموعة كبيرة فعلاً\n    // تحديث lead_category إذا لم يكن موجوداً من قبل\n    lead_category: $json.lead_category || (isLarge ? 'B2C_large_group' : 'B2C')\n  }\n}];"
+      },
+      "name": "Code – Add Group Bonus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        80
+      ],
+      "id": "7625267c-d9b4-4755-81ba-f118deb4aeed"
+    },
+    {
+      "parameters": {
+        "jsCode": "// No large group bonus\nreturn [{ json: { ...$json, group_bonus: 0 } }];"
+      },
+      "name": "Code – No Group Bonus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        272
+      ],
+      "id": "1ee5e2b2-b82b-4a37-8d94-62ac72ef7867"
+    },
+    {
+      "parameters": {},
+      "name": "Merge All Score Components",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "a8ae2218-f435-418e-9812-cd2b34c3b9c5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Final Score Calculation & Classification ─────────────────────────────\nconst d = $input.first().json;\n\nconst total = Math.min(\n  (d.base_score || 0) +\n  (d.loyalty_bonus || 0) +\n  (d.urgency_bonus || 0) +\n  (d.intent_bonus || 0) +\n  (d.phone_bonus || 0) +\n  (d.budget_bonus || 0) +\n  (d.stars_bonus || 0) +\n  (d.inbound_bonus || 0) +\n  (d.kw_urgency_bonus || 0) +\n  (d.b2b_bonus || 0) +\n  (d.group_bonus || 0),\n  100\n);\n\n// ── Status classification ─────────────────────────────────────────────────────\nlet status = 'Cold';\nlet priority = 3;\nif (total >= 80) { status = 'Hot'; priority = 1; }\nelse if (total >= 55) { status = 'Warm'; priority = 2; }\n\n// ── Next action recommendation ────────────────────────────────────────────────\nlet recommended_action = 'nurture_sequence';\nif (status === 'Hot') {\n  if (d.lead_category?.startsWith('B2B')) recommended_action = 'b2b_sales_call';\n  else recommended_action = 'immediate_sales_call';\n} else if (status === 'Warm') {\n  recommended_action = 'whatsapp_followup_24h';\n}\n\n// ── Score breakdown for transparency ─────────────────────────────────────────\nconst breakdown = {\n  base: d.base_score || 0,\n  loyalty: d.loyalty_bonus || 0,\n  urgency_ai: d.urgency_bonus || 0,\n  urgency_kw: d.kw_urgency_bonus || 0,\n  intent: d.intent_bonus || 0,\n  phone: d.phone_bonus || 0,\n  budget: d.budget_bonus || 0,\n  stars: d.stars_bonus || 0,\n  inbound: d.inbound_bonus || 0,\n  b2b: d.b2b_bonus || 0,\n  group: d.group_bonus || 0\n};\n\nreturn [{ json: {\n  ...d,\n  final_score: total,\n  status,\n  priority,\n  lead_category: d.lead_category || 'B2C_solo',\n  recommended_action,\n  score_breakdown: breakdown,\n  scored_at: new Date().toISOString()\n} }];"
+      },
+      "name": "Code – Final Score & Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        160
+      ],
+      "id": "8939179f-2a62-4623-99a2-08e9cb299598"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.lead_id }}",
+            "content_hash": "={{ $json.content_hash }}",
+            "phone": "={{ $json.phone }}",
+            "name": "={{ $json.name }}",
+            "full_name": "={{ $json.full_name || $json.name || '' }}",
+            "username": "={{ $json.username || '' }}",
+            "email": "={{ $json.email || '' }}",
+            "nationality": "={{ $json.nationality || '' }}",
+            "source": "={{ $json.source }}",
+            "platform": "={{ $json.platform }}",
+            "radar_intent": "={{ $json.radar_intent || '' }}",
+            "radar_urgency": "={{ $json.radar_urgency || '' }}",
+            "radar_quality": "={{ $json.radar_quality || 0 }}",
+            "lead_quality": "={{ $json.lead_quality || 0 }}",
+            "score": "={{ $json.score || 0 }}",
+            "final_score": "={{ $json.final_score || 0 }}",
+            "category": "={{ $json.category || 'COLD' }}",
+            "status": "={{ $json.status || 'new' }}",
+            "journey_step": "={{ $json.journey_step || '' }}",
+            "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
+            "travel_group": "={{ $json.travel_group || 'unknown' }}",
+            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
+            "pax_hint": "={{ $json.pax_hint || 0 }}",
+            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "nights_hint": "={{ $json.nights_hint || 0 }}",
+            "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
+            "raw_text": "={{ $json.raw_text || '' }}",
+            "message": "={{ $json.message || $json.last_message || '' }}",
+            "notes": "={{ $json.notes || $json.ai_reason || '' }}",
+            "ai_reason": "={{ $json.ai_reason || '' }}",
+            "profile_url": "={{ $json.profile_url || '' }}",
+            "post_url": "={{ $json.post_url || '' }}",
+            "phones_found": "={{ JSON.stringify($json.phones_found || []) }}",
+            "has_phone": "={{ $json.has_phone || false }}",
+            "phone_count": "={{ $json.phone_count || 0 }}",
+            "comment_id": "={{ $json.comment_id || '' }}",
+            "item_type": "={{ $json.item_type || 'comment' }}",
+            "consent": "={{ $json.consent || false }}",
+            "assigned_to": "={{ $json.assigned_to || '' }}",
+            "priority": "={{ $json.priority || 'normal' }}",
+            "recommended_action": "={{ $json.recommended_action || '' }}",
+            "lead_category": "={{ $json.lead_category || '' }}",
+            "lead_type": "={{ $json.lead_type || '' }}",
+            "preferred_channel": "={{ $json.preferred_channel || 'whatsapp' }}",
+            "base_score": "={{ $json.base_score || 0 }}",
+            "loyalty_bonus": "={{ $json.loyalty_bonus || 0 }}",
+            "urgency_bonus": "={{ $json.urgency_bonus || 0 }}",
+            "intent_bonus": "={{ $json.intent_bonus || 0 }}",
+            "phone_bonus": "={{ $json.phone_bonus || 0 }}",
+            "budget_bonus": "={{ $json.budget_bonus || 0 }}",
+            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
+            "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
+            "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
+            "group_bonus": "={{ $json.group_bonus || 0 }}",
+            "score_breakdown": "={{ JSON.stringify($json.score_breakdown || {}) }}",
+            "scored_at": "={{ $json.scored_at || '' }}",
+            "is_radar": "={{ $json.is_radar || false }}",
+            "is_direct_inbound": "={{ $json.is_direct_inbound || false }}",
+            "is_demo": "={{ $json.is_demo || false }}",
+            "flow_origin": "={{ $json.flow_origin || '' }}",
+            "created_at": "={{ $json.created_at || $now }}",
+            "captured_at": "={{ $json.captured_at || $now }}",
+            "updated_at": "={{ $now }}",
+            "archived_at": "={{ $json.archived_at || '' }}",
+            "task_id": "={{ $json.task_id || '' }}",
+            "task_type": "={{ $json.task_type || '' }}",
+            "sla_minutes": "={{ $json.sla_minutes || 0 }}",
+            "interaction_count": "={{ $json.interaction_count || 0 }}",
+            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "handoff_at": "={{ $json.handoff_at || '' }}"
+          },
+          "matchingColumns": [
+            "lead_id"
+          ],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_hash",
+              "displayName": "content_hash",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nationality",
+              "displayName": "nationality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_intent",
+              "displayName": "radar_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_urgency",
+              "displayName": "radar_urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_quality",
+              "displayName": "radar_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_quality",
+              "displayName": "lead_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_score",
+              "displayName": "final_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_signal",
+              "displayName": "budget_signal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "travel_group",
+              "displayName": "travel_group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_preference",
+              "displayName": "stars_preference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax_hint",
+              "displayName": "pax_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "check_in_hint",
+              "displayName": "check_in_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nights_hint",
+              "displayName": "nights_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_text",
+              "displayName": "raw_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reason",
+              "displayName": "ai_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phones_found",
+              "displayName": "phones_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_phone",
+              "displayName": "has_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_count",
+              "displayName": "phone_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comment_id",
+              "displayName": "comment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "item_type",
+              "displayName": "item_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent",
+              "displayName": "consent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_to",
+              "displayName": "assigned_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_action",
+              "displayName": "recommended_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_category",
+              "displayName": "lead_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_type",
+              "displayName": "lead_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferred_channel",
+              "displayName": "preferred_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "base_score",
+              "displayName": "base_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "loyalty_bonus",
+              "displayName": "loyalty_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency_bonus",
+              "displayName": "urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent_bonus",
+              "displayName": "intent_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_bonus",
+              "displayName": "phone_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_bonus",
+              "displayName": "budget_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_bonus",
+              "displayName": "stars_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inbound_bonus",
+              "displayName": "inbound_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kw_urgency_bonus",
+              "displayName": "kw_urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "b2b_bonus",
+              "displayName": "b2b_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "group_bonus",
+              "displayName": "group_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_breakdown",
+              "displayName": "score_breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scored_at",
+              "displayName": "scored_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_radar",
+              "displayName": "is_radar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_direct_inbound",
+              "displayName": "is_direct_inbound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_demo",
+              "displayName": "is_demo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_origin",
+              "displayName": "flow_origin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_at",
+              "displayName": "captured_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "archived_at",
+              "displayName": "archived_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_type",
+              "displayName": "task_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sla_minutes",
+              "displayName": "sla_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "interaction_count",
+              "displayName": "interaction_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax",
+              "displayName": "pax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "handoff_at",
+              "displayName": "handoff_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9fbb5f03-1404-428f-8116-5caadeba843e",
+      "name": "GSheets – Save Final Score",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        352,
+        160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-11492",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Hot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "If – Is Hot Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        592,
+        160
+      ],
+      "id": "9ab3ab16-5311-430d-9c6c-0ef496804fe7"
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "=*🔥 HOT LEAD – إجراء فوري مطلوب\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.travel_group || \"غير معروف\" }}* ({{ $json.pax_hint || \"?\" }} أفراد)\n🏨 *{{ $json.stars_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#عمرة_2026 #فنادق_مكة #hot-lead",
+        "additionalFields": {
+          "parse_mode": "MarkdownV2"
+        }
+      },
+      "name": "Telegram – Hot Lead Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "9a160017-5c5c-496b-8442-38451d8ee9e2",
+      "webhookId": "40f8ab0f-9dbf-4686-a515-f340420fd441",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/makkah-sales-handoff",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"score\": {{ $json.final_score }},\n  \"category\": \"{{ $json.lead_category }}\",\n  \"action\": \"{{ $json.recommended_action }}\",\n  \"urgency\": \"{{ $json.radar_urgency }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"priority\": {{ $json.priority }},\n  \"message\": \"{{ $json.message?.substring(0,400) }}\",\n  \"phones_found\": \"{{ $json.phones_found }}\",\n  \"source\": \"{{ $json.source }}\",\n  \"scored_at\": \"{{ $json.scored_at }}\",\n  \"budget_signal\": \"{{ $json.raw.budget_signal }}\",\n  \"travel_group\": \"{{ $json.travel_group }}\",\n  \"stars_preference\": \"{{ $json.stars_preference }}\",\n  \"pax_hint\": {{ $json.pax_hint }},\n  \"lead_id\": \"{{ $json.content_hash || '' }}\",\n  \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"profile_url\": \"{{ $json.raw.profile_url }}\",\n \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"radar_quality\": \"{{ $json.raw.radar_quality }}\",\n  \"lead_quality\": \"{{ $json.raw.lead_quality }}\",\n  \"post_url\": \"{{ $json.raw.post_url }}\",\n  \"username\": \"{{ $json.raw.username }}\",\n  \"full_name\": \"{{ $json.raw.full_name }}\",\n  \"platform\": \"{{ $json.raw.platform }}\",\n  \"bonus_breakdown\": {\n    \"budget\": {{ $json.budget_bonus }},\n    \"group\": {{ $json.group_bonus }},\n    \"b2b\": {{ $json.b2b_bonus }}\n  }\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "HTTP – Push Hot to Sales Handoff (Flow #6)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        160
+      ],
+      "id": "b0314e4c-ce55-471f-aab6-b86ba0989320",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#عمرة_2026 #فنادق_مكة\"\n}}",
+        "additionalFields": {
+          "parse_mode": "MarkdownV2"
+        }
+      },
+      "name": "Telegram – Warm/Cold Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        320
+      ],
+      "id": "ed9a0332-71c7-4ca1-96b4-7c017249e4b8",
+      "webhookId": "3cac8fa8-0231-466f-bde3-11443e420386",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/marketing-journey",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.name, score: $json.final_score, status: $json.status, category: $json.lead_category, recommended_action: $json.recommended_action, radar_intent: $json.radar_intent, budget_signal: $json.budget_signal, travel_group: $json.travel_group, stars_preference: $json.stars_preference, source: $json.source, scored_at: $json.scored_at }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "HTTP – Send to Journey (Flow #4)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        736,
+        560
+      ],
+      "id": "32444179-bb78-49a6-9b40-c92b83623271",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4080,
+        560
+      ],
+      "id": "1202f423-c6a4-493f-af88-04c813b6056b"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 1602796460,
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1602796460"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ $json.error_id }}",
+            "flow_name": "SaaSAI_F3",
+            "node_name": "={{ $json.node_name || \"Unknown\" }}",
+            "error_msg": "={{ $json.error_msg || $json.error_message || $json.message || \"\" }}",
+            "severity": "high",
+            "occurred_at": "={{ $now }}",
+            "resolved_at": "",
+            "resolved_by": "",
+            "notes": "={{ JSON.stringify($json).substring(0,300) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93b38fa6-9d1b-4b9d-962b-b50b0cfc8141",
+      "name": "GSheets – Log Flow Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -3840,
+        560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `⚠️ *خطأ في Flow #3 – Lead Scoring*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Scoring Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3600,
+        560
+      ],
+      "id": "dd365d65-aa7e-4b54-8bb2-34b7bf9f97b6",
+      "webhookId": "5d550921-9c80-4b88-aff8-08915406e066",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "55b2f9f1-a734-4ccf-94a0-3743190d0df6",
+              "name": "raw_text",
+              "value": "={{ $json.body.raw_text }}",
+              "type": "string"
+            },
+            {
+              "id": "f8130899-4de2-4c22-9ad3-8db80f907408",
+              "name": "comment_id",
+              "value": "={{ $json.body.comment_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b639f8a9-c591-4463-a9ea-c147c4c9fba2",
+              "name": "content_hash",
+              "value": "={{ $json.body.content_hash }}",
+              "type": "string"
+            },
+            {
+              "id": "58495449-908f-48fe-a768-2fc66993891a",
+              "name": "radar_intent",
+              "value": "={{ $json.body.radar_intent }}",
+              "type": "string"
+            },
+            {
+              "id": "171b5496-f32e-450f-8c81-b18e0740ef0b",
+              "name": "radar_urgency",
+              "value": "={{ $json.body.radar_urgency }}",
+              "type": "string"
+            },
+            {
+              "id": "d9d79227-c1be-4336-a3a6-c40c8d79ce5e",
+              "name": "radar_quality",
+              "value": "={{ $json.body.radar_quality }}",
+              "type": "number"
+            },
+            {
+              "id": "f0326741-fca3-415b-a219-76d5ed42d69c",
+              "name": "travel_group",
+              "value": "={{ $json.body.travel_group }}",
+              "type": "string"
+            },
+            {
+              "id": "833e6946-7054-4522-8c6e-4f18cdc9c045",
+              "name": "stars_preference",
+              "value": "={{ $json.body.stars_preference }}",
+              "type": "string"
+            },
+            {
+              "id": "7f38c01b-0c8d-45b4-a542-02ed350187a3",
+              "name": "check_in_hint",
+              "value": "={{ $json.body.check_in_hint }}",
+              "type": "string"
+            },
+            {
+              "id": "012ec3c2-f83d-4c63-8329-ce5cd2a1209c",
+              "name": "ai_reason",
+              "value": "={{ $json.body.ai_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "a29fbd13-dc9a-4c73-beaf-a06bea6e0d44",
+              "name": "archived_at",
+              "value": "={{ $json.body.archived_at }}",
+              "type": "string"
+            },
+            {
+              "id": "09476c69-0cb9-45f4-b93f-93e70a1d2058",
+              "name": "profile_url",
+              "value": "={{ $json.body.profile_url }}",
+              "type": "string"
+            },
+            {
+              "id": "8edda3d9-9168-4730-939a-f5964d1ce0fd",
+              "name": "post_url",
+              "value": "={{ $json.body.post_url }}",
+              "type": "string"
+            },
+            {
+              "id": "c747e292-6de4-4ead-93c1-89c474e78ab6",
+              "name": "username",
+              "value": "={{ $json.body.username }}",
+              "type": "string"
+            },
+            {
+              "id": "f26373a4-d6b4-43ae-810d-0075a58913b3",
+              "name": "full_name",
+              "value": "={{ $json.body.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "f151e851-f0c1-41ac-b335-48e8b6037076",
+              "name": "platform",
+              "value": "={{ $json.body.platform }}",
+              "type": "string"
+            },
+            {
+              "id": "5bdd3e81-55ef-4d47-954a-f732bf27e332",
+              "name": "phones_found",
+              "value": "={{ $json.body.phones_found }}",
+              "type": "string"
+            },
+            {
+              "id": "dbc001af-2382-421d-a108-a989c9cc881f",
+              "name": "journey_step",
+              "value": "={{ $json.body.journey_step }}",
+              "type": "string"
+            },
+            {
+              "id": "8f741bd5-e750-490f-bf4e-d1617ce84004",
+              "name": "consent",
+              "value": "={{ $json.body.consent }}",
+              "type": "string"
+            },
+            {
+              "id": "54fcc291-5bb4-4359-9ceb-01abdce57f24",
+              "name": "lead_quality",
+              "value": "={{ $json.body.lead_quality }}",
+              "type": "string"
+            },
+            {
+              "id": "4ee81964-d0b3-494e-abc4-b4a29427f93d",
+              "name": "phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "6caf2878-0075-4761-a685-324a06722a75",
+              "name": "budget_signal",
+              "value": "={{ $json.body.budget_signal }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3600,
+        160
+      ],
+      "id": "51b3236f-4fb7-422e-adea-ea6e3bd9d088",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {
+    "Webhook – From Flow #1 Radar": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.srv1332143.hstgr.cloud",
+            "user-agent": "axios/1.13.5",
+            "content-length": "1123",
+            "accept": "application/json,text/*;q=0.99",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "f81c42443d27",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "raw_text": "أريد حجز فندق فاخر في مكة قريب جداً من الكعبة، لا يهم السعر، المهم يكون 5 نجوم مع إطلالة على الحرم. هاتفي: 0534455667",
+            "comment_id": "N/A",
+            "captured_at": "2026-03-18T20:12:35.700+01:00",
+            "is_demo": false,
+            "content_hash": "glqt67",
+            "has_phone": true,
+            "phone_count": 0,
+            "_keyword_matched": false,
+            "_phone_detected": false,
+            "radar_intent": "booking_ready",
+            "radar_urgency": "immediate",
+            "radar_quality": 95,
+            "budget_signal": "luxury",
+            "travel_group": "unknown",
+            "stars_preference": "5star",
+            "check_in_hint": "",
+            "nights_hint": "",
+            "ai_reason": "المستخدم طالب حجز فندق 5 نجوم بإطلالة على الحرم وأرفق رقم جوال، يدل على استعداد فوري للحجز.",
+            "archived_at": "2026-03-18T19:12:34.802Z",
+            "profile_url": "https://tiktok.com/@faisal_luxury",
+            "post_url": "https://tiktok.com/@makkahvlog/video/111222",
+            "username": "faisal_luxury_travel",
+            "full_name": "فيصل العمري",
+            "platform": "TikTok",
+            "phones_found": "+966534455667",
+            "journey_step": "warm",
+            "consent": "TRUE",
+            "lead_quality": "95",
+            "phone": "+966534455667"
+          },
+          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook – From Flow #2 (Capture)": {
+      "main": [
+        [
+          {
+            "node": "Merge Incoming Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – From Flow #1 Radar": {
+      "main": [
+        [
+          {
+            "node": "Merge Incoming Leads",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Incoming Leads": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Normalize Lead for Scoring": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Get Interaction History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Calculate Base & Bonuses": {
+      "main": [
+        [
+          {
+            "node": "If – Urgency Keywords in Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Urgency Keywords in Message?": {
+      "main": [
+        [
+          {
+            "node": "Code – Add Urgency KW Bonus",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – No Urgency KW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Add Urgency KW Bonus": {
+      "main": [
+        [
+          {
+            "node": "Merge After Urgency Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – No Urgency KW": {
+      "main": [
+        [
+          {
+            "node": "Merge After Urgency Check",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge After Urgency Check": {
+      "main": [
+        [
+          {
+            "node": "If – B2B Indicators?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – B2B Indicators?": {
+      "main": [
+        [
+          {
+            "node": "Code – Add B2B Bonus",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – Set B2C Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Add B2B Bonus": {
+      "main": [
+        [
+          {
+            "node": "Merge After B2B Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Set B2C Category": {
+      "main": [
+        [
+          {
+            "node": "Merge After B2B Check",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge After B2B Check": {
+      "main": [
+        [
+          {
+            "node": "If – Large Group (Pax > 8)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Large Group (Pax > 8)?": {
+      "main": [
+        [
+          {
+            "node": "Code – Add Group Bonus",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – No Group Bonus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Add Group Bonus": {
+      "main": [
+        [
+          {
+            "node": "Merge All Score Components",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – No Group Bonus": {
+      "main": [
+        [
+          {
+            "node": "Merge All Score Components",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Score Components": {
+      "main": [
+        [
+          {
+            "node": "Code – Final Score & Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Final Score & Classification": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Save Final Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Is Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Hot Lead Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP – Push Hot to Sales Handoff (Flow #6)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – Warm/Cold Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP – Send to Journey (Flow #4)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Flow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Get Interaction History": {
+      "main": [
+        [
+          {
+            "node": "Code – Calculate Base & Bonuses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Save Final Score": {
+      "main": [
+        [
+          {
+            "node": "If – Is Hot Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Flow Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Scoring Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code – Normalize Lead for Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d455eaa5-feb3-492a-8b3c-40b6c60fdc41",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "z0Si8cT3gUNcEnj9",
+  "tags": []
+}

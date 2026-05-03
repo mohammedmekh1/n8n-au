@@ -1,0 +1,2769 @@
+{
+  "name": "SaaSAI – F2 – Lead Capture الاستقبال",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture-whatsapp",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook – WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        112
+      ],
+      "id": "81d2c734-1d18-4a6a-9ff1-7851e2df89de",
+      "webhookId": "lead-capture-whatsapp"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture-telegram",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook – Telegram Bot",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        240
+      ],
+      "id": "f6dd2a13-d187-4856-8096-b92a24f0e3f4",
+      "webhookId": "lead-capture-telegram"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture-instagram",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook – Instagram (Meta)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        384
+      ],
+      "id": "689b7872-466f-46d5-8f8b-402df5086d11",
+      "webhookId": "lead-capture-instagram"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture-website",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook – Website Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        528
+      ],
+      "id": "c300bb55-9724-4277-82bc-30652c820ee4",
+      "webhookId": "lead-capture-website"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-from-radar",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook – From Flow #1 Radar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        656
+      ],
+      "id": "903f188d-c6ea-44e3-90f8-6b6a1e2e0fef",
+      "webhookId": "lead-from-radar"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════════\n// Code – Normalize & Validate Lead  |  Flow #2 Lead Capture v3.0\n// يستلم من 5 مصادر: WhatsApp, Telegram Bot, Instagram Meta,\n//   Website Form, Flow #1 Radar\n// يُنتج كائناً موحداً متوافقاً مع جميع أعمدة شيت leads\n// ════════════════════════════════════════════════════════════════════\n\nconst allItems = $input.all();\n\n// ── 1. البحث عن أول عنصر يحتوي بيانات حقيقية ──────────────────\nlet d = null;\nfor (const item of allItems) {\n  const j = item.json || {};\n  if (j.name || j.phone || j.source || j.event_type || j.From ||\n      j.content_hash || j.radar_source || j.form_type) {\n    d = (j.body && typeof j.body === 'object' && !Array.isArray(j.body))\n        ? { ...j.body, _headers: j.headers } : j;\n    break;\n  }\n}\nif (!d) d = allItems[0]?.json || {};\n\n// ── 2. اكتشاف المصدر ──────────────────────────────────────────\nlet source = 'Unknown';\nif      (d.event_type === 'message:received:new') source = 'WhatsApp_TimelinesAI';\nelse if (d.From && d.Body)                        source = 'WhatsApp';\nelse if (d.message?.from && d.message?.text)      source = 'Telegram_Bot';\nelse if (d.entry?.[0]?.messaging)                 source = 'Instagram_Meta';\nelse if (d.radar_source || d.content_hash)        source = 'Radar_' + (d.platform || 'Social');\nelse if (d.source === 'Website_Form' || d.form_type) source = 'Website_Form';\n// الربط مع Flow #1: يأتي عبر webhook lead-from-radar\nelse if (d.radar_intent || d.radar_quality)       source = 'Radar_' + (d.platform || 'Social');\n\n// ── 3. استخراج وتوحيد رقم الهاتف ────────────────────────────\nlet phone = '';\nif      (source === 'WhatsApp_TimelinesAI') phone = d.chat?.phone || d.message?.sender?.phone || '';\nelse if (source === 'WhatsApp')             phone = (d.From || '').replace('whatsapp:','');\nelse if (source === 'Telegram_Bot')         phone = d.message?.contact?.phone_number || d.contact?.phone || '';\nelse if (source.startsWith('Radar_'))       phone = (d.phones_found?.[0]) || d.phone || '';\nelse                                        phone = d.phone || d.mobile || d.tel || d.whatsapp || '';\n\nphone = phone.toString().replace(/[\\s\\-().]/g,'');\nif      (phone.startsWith('00966'))              phone = '+966' + phone.slice(5);\nelse if (phone.startsWith('966') && phone.length>=12) phone = '+966' + phone.slice(3);\nelse if (phone.startsWith('05') && phone.length===10) phone = '+966' + phone.slice(1);\nelse if (phone.startsWith('5')  && phone.length===9)  phone = '+9665' + phone.slice(1);\nelse if (phone.length > 5 && !phone.startsWith('+'))  phone = '+' + phone.replace(/^0+/,'');\n\nconst phoneValid = /^\\+[0-9]{7,15}$/.test(phone);\n\n// ── 4. استخراج الاسم ─────────────────────────────────────────\nlet name = '';\nif      (source === 'WhatsApp_TimelinesAI') name = d.chat?.full_name || d.message?.sender?.full_name || '';\nelse if (source === 'WhatsApp')             name = d.ProfileName || d.name || '';\nelse if (source === 'Telegram_Bot')         name = [d.message?.from?.first_name, d.message?.from?.last_name].filter(Boolean).join(' ');\nelse if (source.startsWith('Radar_'))       name = d.full_name || d.username || '';\nelse                                        name = d.name || d.full_name || '';\nname = name.trim() || 'غير معروف';\n\n// ── 5. استخراج الرسالة ────────────────────────────────────────\nlet message = '';\nif      (source === 'WhatsApp_TimelinesAI') message = d.message?.text || '';\nelse if (source === 'WhatsApp')             message = d.Body || '';\nelse if (source === 'Telegram_Bot')         message = d.message?.text || '';\nelse if (source === 'Instagram_Meta')       message = d.entry?.[0]?.messaging?.[0]?.message?.text || '';\nelse if (source.startsWith('Radar_'))       message = d.raw_text || d.text || '';\nelse                                        message = d.message || d.inquiry || d.notes || '';\n\n// ── 6. بريد إلكتروني + pax ───────────────────────────────────\nconst email = (d.email || '').trim().toLowerCase();\nconst paxMatch = message.match(/(\\d+)\\s*(شخص|أشخاص|نفر|غرف|غرفة|pax)/i);\nconst pax_hint = paxMatch ? parseInt(paxMatch[1]) : (d.pax_hint || 0);\n\n// ── 7. الجنسية من النص ───────────────────────────────────────\nfunction detectNationality(txt) {\n  const t = (txt||'').toLowerCase();\n  if (/سعودي|الرياض|جدة|الدمام/.test(t))    return 'سعودي';\n  if (/إماراتي|دبي|أبوظبي/.test(t))          return 'إماراتي';\n  if (/كويتي|الكويت/.test(t))                return 'كويتي';\n  if (/مصري|القاهرة/.test(t))                return 'مصري';\n  if (/أردني|عمان|الأردن/.test(t))           return 'أردني';\n  if (/باكستاني|باكستان/.test(t))            return 'باكستاني';\n  if (/هندي|india/i.test(t))                 return 'هندي';\n  if (/indonesian|indonesia/i.test(t))        return 'إندونيسي';\n  return d.nationality || '';\n}\nconst nationality = detectNationality(message);\n\n// ── 8. بيانات Radar (من Flow #1) ─────────────────────────────\nconst radar_intent    = d.radar_intent    || d.intent    || '';\nconst radar_urgency   = d.radar_urgency   || d.urgency   || '';\nconst radar_quality   = Number(d.radar_quality || d.lead_quality || 0);\nconst budget_signal   = d.budget_signal   || 'unknown';\nconst travel_group    = d.travel_group    || 'unknown';\nconst stars_preference= d.stars_preference|| 'unknown';\nconst check_in_hint   = d.check_in_hint   || '';\nconst nights_hint     = Number(d.nights_hint || 0);\nconst content_hash    = d.content_hash    || '';\nconst platform        = d.platform        || source.replace('Radar_','') || '';\n\n// ── 9. توليد lead_id ─────────────────────────────────────────\nfunction genLeadId() {\n  const ts  = Date.now().toString().slice(-6);\n  const rnd = Math.floor(Math.random()*1000).toString().padStart(3,'0');\n  return `LD-${ts}${rnd}`;\n}\n\n// ── 10. تحديد category ───────────────────────────────────────\nfunction getCategory(intent, quality) {\n  if (intent === 'booking_ready')                              return 'HOT';\n  if (['booking_research','travel_planning'].includes(intent)) return 'WARM';\n  if (quality >= 50)                                           return 'WARM';\n  if (quality > 0)                                             return 'WARM';\n  // للمصادر المباشرة (WhatsApp/Form) نعتبرها WARM تلقائياً\n  return source === 'Unknown' ? 'COLD' : 'WARM';\n}\nconst category = getCategory(radar_intent, radar_quality);\n\n// ── 11. journey_step ─────────────────────────────────────────\nfunction getJourneyStep(intent, urgency, src) {\n  if (intent === 'booking_ready' && urgency === 'immediate') return 'hot_immediate';\n  if (intent === 'booking_ready')                            return 'hot';\n  if (intent === 'booking_research')                         return 'warm_research';\n  if (intent === 'travel_planning')                          return 'warm_planning';\n  if (src.startsWith('Radar_'))                              return 'warm_radar';\n  if (src === 'WhatsApp' || src === 'WhatsApp_TimelinesAI')  return 'warm_whatsapp';\n  if (src === 'Website_Form')                                return 'warm_form';\n  if (src === 'Telegram_Bot')                                return 'warm_telegram';\n  if (src === 'Instagram_Meta')                              return 'warm_instagram';\n  return 'cold_info';\n}\nconst journey_step = getJourneyStep(radar_intent, radar_urgency, source);\n\n// ── 12. المخرج النهائي الكامل ────────────────────────────────\nreturn [{ json: {\n  // ── هوية ───────────────────────────────\n  lead_id:          genLeadId(),\n  phone:            phone,\n  phone_valid:      phoneValid,\n  name:             name,\n  email:            email,\n  nationality:      nationality,\n\n  // ── مصدر ───────────────────────────────\n  source:           source,\n  platform:         platform,\n  content_hash:     content_hash,\n\n  // ── رسالة ──────────────────────────────\n  message:          message.substring(0, 500),\n  last_message:     message.substring(0, 500),\n  pax_hint:         pax_hint,\n\n  // ── رادار ──────────────────────────────\n  radar_intent:     radar_intent,\n  radar_urgency:    radar_urgency,\n  radar_quality:    radar_quality,\n  score:            radar_quality,\n  category:         category,\n  budget_signal:    budget_signal,\n  travel_group:     travel_group,\n  stars_preference: stars_preference,\n  check_in_hint:    check_in_hint,\n  nights_hint:      nights_hint,\n\n  // ── رحلة ───────────────────────────────\n  journey_step:     journey_step,\n  consent:          'TRUE',\n  status:           'new',\n\n  // ── وقت ────────────────────────────────\n  received_at:      new Date().toISOString(),\n  created_at:       new Date().toISOString(),\n  updated_at:       new Date().toISOString(),\n  assigned_to:      '',\n  notes:            d.ai_reason || d.notes || '',\n\n  // ── للتشخيص ────────────────────────────\n  _source_detected: source,\n  _items_checked:   allItems.length,\n  _phone_raw:       d.phone || d.From || ''\n}}];\n"
+      },
+      "name": "Code – Normalize & Validate Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        336
+      ],
+      "id": "d45be960-3ef7-4302-b1b6-0e8af70ee0c3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "phone-valid-cond",
+              "leftValue": "={{ $json.phone_valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": false
+        }
+      },
+      "name": "If – Valid Saudi Phone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        336
+      ],
+      "id": "543ed49d-d5b8-42e3-866d-ab6f73bf76f2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════════\n// Code – Rate Limit per Phone (GSheets-based, no env vars)\n// يتحقق من عدد التفاعلات في الساعة الأخيرة\n// ════════════════════════════════════════════════════════════════════\nconst item = $input.first().json;\nconst RATE_LIMIT_MAX = 5;\nconst RATE_WINDOW_MS = 3600000; // 1 hour\n\n// نستخدم Static Data لتخزين مؤقت خفيف (يُعاد عند restart n8n)\nconst store = $getWorkflowStaticData('node');\nconst key = 'rl_' + (item.phone || 'unknown').replace(/[^\\d]/g,'');\nconst now = Date.now();\n\nlet timestamps = store[key] || [];\ntimestamps = timestamps.filter(ts => now - ts < RATE_WINDOW_MS);\nconst rate_limited = timestamps.length >= RATE_LIMIT_MAX;\nif (!rate_limited) {\n  timestamps.push(now);\n  store[key] = timestamps;\n}\n\nreturn [{ json: {\n  ...item,\n  rate_limited,\n  request_count: timestamps.length,\n  rate_reset_at: new Date(now + RATE_WINDOW_MS).toISOString()\n}}];\n"
+      },
+      "name": "Code – Rate Limit per Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        320
+      ],
+      "id": "da67f085-f2e6-4522-8483-e04fba76078a"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-35504",
+              "leftValue": "={{ $json.rate_limited }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – Rate Limited?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        320
+      ],
+      "id": "11b1927f-dee6-4e69-8c6a-76d912bbb967"
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "a830bea3-93b4-4f9c-bc54-1e17f283d3b9",
+      "name": "GSheets – Check Existing Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2352,
+        336
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "new-lead-cond",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – New Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        336
+      ],
+      "id": "009bbe1b-f390-40e3-a977-c6dc63cf8d87"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.lead_id }}",
+            "content_hash": "={{ $json.content_hash }}",
+            "phone": "={{ $json.phone }}",
+            "name": "={{ $json.name }}",
+            "full_name": "={{ $json.full_name || $json.name || '' }}",
+            "username": "={{ $json.username || '' }}",
+            "email": "={{ $json.email || '' }}",
+            "nationality": "={{ $json.nationality || '' }}",
+            "source": "={{ $json.source }}",
+            "platform": "={{ $json.platform }}",
+            "radar_intent": "={{ $json.radar_intent || '' }}",
+            "radar_urgency": "={{ $json.radar_urgency || '' }}",
+            "radar_quality": "={{ $json.radar_quality || 0 }}",
+            "lead_quality": "={{ $json.lead_quality || 0 }}",
+            "score": "={{ $json.score || 0 }}",
+            "final_score": "={{ $json.final_score || 0 }}",
+            "category": "={{ $json.category || 'COLD' }}",
+            "status": "={{ $json.status || 'new' }}",
+            "journey_step": "={{ $json.journey_step || '' }}",
+            "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
+            "travel_group": "={{ $json.travel_group || 'unknown' }}",
+            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
+            "pax_hint": "={{ $json.pax_hint || 0 }}",
+            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "nights_hint": "={{ $json.nights_hint || 0 }}",
+            "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
+            "raw_text": "={{ $json.raw_text || '' }}",
+            "message": "={{ $json.message || $json.last_message || '' }}",
+            "notes": "={{ $json.notes || $json.ai_reason || '' }}",
+            "ai_reason": "={{ $json.ai_reason || '' }}",
+            "profile_url": "={{ $json.profile_url || '' }}",
+            "post_url": "={{ $json.post_url || '' }}",
+            "phones_found": "={{ JSON.stringify($json.phones_found || []) }}",
+            "has_phone": "={{ $json.has_phone || false }}",
+            "phone_count": "={{ $json.phone_count || 0 }}",
+            "comment_id": "={{ $json.comment_id || '' }}",
+            "item_type": "={{ $json.item_type || 'comment' }}",
+            "consent": "={{ $json.consent || false }}",
+            "assigned_to": "={{ $json.assigned_to || '' }}",
+            "priority": "={{ $json.priority || 'normal' }}",
+            "recommended_action": "={{ $json.recommended_action || '' }}",
+            "lead_category": "={{ $json.lead_category || '' }}",
+            "lead_type": "={{ $json.lead_type || '' }}",
+            "preferred_channel": "={{ $json.preferred_channel || 'whatsapp' }}",
+            "base_score": "={{ $json.base_score || 0 }}",
+            "loyalty_bonus": "={{ $json.loyalty_bonus || 0 }}",
+            "urgency_bonus": "={{ $json.urgency_bonus || 0 }}",
+            "intent_bonus": "={{ $json.intent_bonus || 0 }}",
+            "phone_bonus": "={{ $json.phone_bonus || 0 }}",
+            "budget_bonus": "={{ $json.budget_bonus || 0 }}",
+            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
+            "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
+            "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
+            "group_bonus": "={{ $json.group_bonus || 0 }}",
+            "score_breakdown": "={{ JSON.stringify($json.score_breakdown || {}) }}",
+            "scored_at": "={{ $json.scored_at || '' }}",
+            "is_radar": "={{ $json.is_radar || false }}",
+            "is_direct_inbound": "={{ $json.is_direct_inbound || false }}",
+            "is_demo": "={{ $json.is_demo || false }}",
+            "flow_origin": "={{ $json.flow_origin || '' }}",
+            "created_at": "={{ $json.created_at || $now }}",
+            "captured_at": "={{ $json.captured_at || $now }}",
+            "updated_at": "={{ $now }}",
+            "archived_at": "={{ $json.archived_at || '' }}",
+            "task_id": "={{ $json.task_id || '' }}",
+            "task_type": "={{ $json.task_type || '' }}",
+            "sla_minutes": "={{ $json.sla_minutes || 0 }}",
+            "interaction_count": "={{ $json.interaction_count || 0 }}",
+            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "handoff_at": "={{ $json.handoff_at || '' }}"
+          },
+          "matchingColumns": [
+            "content_hash"
+          ],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_hash",
+              "displayName": "content_hash",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nationality",
+              "displayName": "nationality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_intent",
+              "displayName": "radar_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_urgency",
+              "displayName": "radar_urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_quality",
+              "displayName": "radar_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_quality",
+              "displayName": "lead_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_score",
+              "displayName": "final_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_signal",
+              "displayName": "budget_signal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "travel_group",
+              "displayName": "travel_group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_preference",
+              "displayName": "stars_preference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax_hint",
+              "displayName": "pax_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "check_in_hint",
+              "displayName": "check_in_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nights_hint",
+              "displayName": "nights_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_text",
+              "displayName": "raw_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reason",
+              "displayName": "ai_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phones_found",
+              "displayName": "phones_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_phone",
+              "displayName": "has_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_count",
+              "displayName": "phone_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comment_id",
+              "displayName": "comment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "item_type",
+              "displayName": "item_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent",
+              "displayName": "consent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_to",
+              "displayName": "assigned_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_action",
+              "displayName": "recommended_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_category",
+              "displayName": "lead_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_type",
+              "displayName": "lead_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferred_channel",
+              "displayName": "preferred_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "base_score",
+              "displayName": "base_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "loyalty_bonus",
+              "displayName": "loyalty_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency_bonus",
+              "displayName": "urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent_bonus",
+              "displayName": "intent_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_bonus",
+              "displayName": "phone_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_bonus",
+              "displayName": "budget_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_bonus",
+              "displayName": "stars_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inbound_bonus",
+              "displayName": "inbound_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kw_urgency_bonus",
+              "displayName": "kw_urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "b2b_bonus",
+              "displayName": "b2b_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "group_bonus",
+              "displayName": "group_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_breakdown",
+              "displayName": "score_breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scored_at",
+              "displayName": "scored_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_radar",
+              "displayName": "is_radar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_direct_inbound",
+              "displayName": "is_direct_inbound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_demo",
+              "displayName": "is_demo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_origin",
+              "displayName": "flow_origin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_at",
+              "displayName": "captured_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "archived_at",
+              "displayName": "archived_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_type",
+              "displayName": "task_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sla_minutes",
+              "displayName": "sla_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "interaction_count",
+              "displayName": "interaction_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax",
+              "displayName": "pax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "handoff_at",
+              "displayName": "handoff_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c123751d-9fe6-4b97-a034-6a6bcf081a68",
+      "name": "GSheets – Create New Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2640,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.lead_id }}",
+            "content_hash": "={{ $json.content_hash }}",
+            "phone": "={{ $json.phone }}",
+            "name": "={{ $json.name }}",
+            "full_name": "={{ $json.full_name || $json.name || '' }}",
+            "username": "={{ $json.username || '' }}",
+            "email": "={{ $json.email || '' }}",
+            "nationality": "={{ $json.nationality || '' }}",
+            "source": "={{ $json.source }}",
+            "platform": "={{ $json.platform }}",
+            "radar_intent": "={{ $json.radar_intent || '' }}",
+            "radar_urgency": "={{ $json.radar_urgency || '' }}",
+            "radar_quality": "={{ $json.radar_quality || 0 }}",
+            "lead_quality": "={{ $json.lead_quality || 0 }}",
+            "score": "={{ $json.score || 0 }}",
+            "final_score": "={{ $json.final_score || 0 }}",
+            "category": "={{ $json.category || 'COLD' }}",
+            "status": "={{ $json.status || 'new' }}",
+            "journey_step": "={{ $json.journey_step || '' }}",
+            "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
+            "travel_group": "={{ $json.travel_group || 'unknown' }}",
+            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
+            "pax_hint": "={{ $json.pax_hint || 0 }}",
+            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "nights_hint": "={{ $json.nights_hint || 0 }}",
+            "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
+            "raw_text": "={{ $json.raw_text || '' }}",
+            "message": "={{ $json.message || $json.last_message || '' }}",
+            "notes": "={{ $json.notes || $json.ai_reason || '' }}",
+            "ai_reason": "={{ $json.ai_reason || '' }}",
+            "profile_url": "={{ $json.profile_url || '' }}",
+            "post_url": "={{ $json.post_url || '' }}",
+            "phones_found": "={{ JSON.stringify($json.phones_found || []) }}",
+            "has_phone": "={{ $json.has_phone || false }}",
+            "phone_count": "={{ $json.phone_count || 0 }}",
+            "comment_id": "={{ $json.comment_id || '' }}",
+            "item_type": "={{ $json.item_type || 'comment' }}",
+            "consent": "={{ $json.consent || false }}",
+            "assigned_to": "={{ $json.assigned_to || '' }}",
+            "priority": "={{ $json.priority || 'normal' }}",
+            "recommended_action": "={{ $json.recommended_action || '' }}",
+            "lead_category": "={{ $json.lead_category || '' }}",
+            "lead_type": "={{ $json.lead_type || '' }}",
+            "preferred_channel": "={{ $json.preferred_channel || 'whatsapp' }}",
+            "base_score": "={{ $json.base_score || 0 }}",
+            "loyalty_bonus": "={{ $json.loyalty_bonus || 0 }}",
+            "urgency_bonus": "={{ $json.urgency_bonus || 0 }}",
+            "intent_bonus": "={{ $json.intent_bonus || 0 }}",
+            "phone_bonus": "={{ $json.phone_bonus || 0 }}",
+            "budget_bonus": "={{ $json.budget_bonus || 0 }}",
+            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
+            "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
+            "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
+            "group_bonus": "={{ $json.group_bonus || 0 }}",
+            "score_breakdown": "={{ JSON.stringify($json.score_breakdown || {}) }}",
+            "scored_at": "={{ $json.scored_at || '' }}",
+            "is_radar": "={{ $json.is_radar || false }}",
+            "is_direct_inbound": "={{ $json.is_direct_inbound || false }}",
+            "is_demo": "={{ $json.is_demo || false }}",
+            "flow_origin": "={{ $json.flow_origin || '' }}",
+            "created_at": "={{ $json.created_at || $now }}",
+            "captured_at": "={{ $json.captured_at || $now }}",
+            "updated_at": "={{ $now }}",
+            "archived_at": "={{ $json.archived_at || '' }}",
+            "task_id": "={{ $json.task_id || '' }}",
+            "task_type": "={{ $json.task_type || '' }}",
+            "sla_minutes": "={{ $json.sla_minutes || 0 }}",
+            "interaction_count": "={{ $json.interaction_count || 0 }}",
+            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "handoff_at": "={{ $json.handoff_at || '' }}"
+          },
+          "matchingColumns": [
+            "lead_id"
+          ],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_hash",
+              "displayName": "content_hash",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nationality",
+              "displayName": "nationality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_intent",
+              "displayName": "radar_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_urgency",
+              "displayName": "radar_urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_quality",
+              "displayName": "radar_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_quality",
+              "displayName": "lead_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_score",
+              "displayName": "final_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_signal",
+              "displayName": "budget_signal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "travel_group",
+              "displayName": "travel_group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_preference",
+              "displayName": "stars_preference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax_hint",
+              "displayName": "pax_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "check_in_hint",
+              "displayName": "check_in_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nights_hint",
+              "displayName": "nights_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_text",
+              "displayName": "raw_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reason",
+              "displayName": "ai_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phones_found",
+              "displayName": "phones_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_phone",
+              "displayName": "has_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_count",
+              "displayName": "phone_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comment_id",
+              "displayName": "comment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "item_type",
+              "displayName": "item_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent",
+              "displayName": "consent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_to",
+              "displayName": "assigned_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_action",
+              "displayName": "recommended_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_category",
+              "displayName": "lead_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_type",
+              "displayName": "lead_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferred_channel",
+              "displayName": "preferred_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "base_score",
+              "displayName": "base_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "loyalty_bonus",
+              "displayName": "loyalty_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency_bonus",
+              "displayName": "urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent_bonus",
+              "displayName": "intent_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_bonus",
+              "displayName": "phone_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_bonus",
+              "displayName": "budget_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_bonus",
+              "displayName": "stars_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inbound_bonus",
+              "displayName": "inbound_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kw_urgency_bonus",
+              "displayName": "kw_urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "b2b_bonus",
+              "displayName": "b2b_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "group_bonus",
+              "displayName": "group_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_breakdown",
+              "displayName": "score_breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scored_at",
+              "displayName": "scored_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_radar",
+              "displayName": "is_radar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_direct_inbound",
+              "displayName": "is_direct_inbound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_demo",
+              "displayName": "is_demo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_origin",
+              "displayName": "flow_origin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_at",
+              "displayName": "captured_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "archived_at",
+              "displayName": "archived_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_type",
+              "displayName": "task_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sla_minutes",
+              "displayName": "sla_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "interaction_count",
+              "displayName": "interaction_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax",
+              "displayName": "pax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "handoff_at",
+              "displayName": "handoff_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c7f03497-606e-4718-8552-3eae460a805c",
+      "name": "GSheets – Update Existing Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2720,
+        352
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 882831808,
+          "mode": "list",
+          "cachedResultName": "consent_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=882831808"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "2fda8fb3-109c-43fd-bb1a-bd9c07be5562",
+      "name": "GSheets – Check Consent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2720,
+        624
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "consent-cond",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – Consent Granted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        608
+      ],
+      "id": "ab8bf2c3-6b37-4ac0-bf1d-3645db491e18"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 862175237,
+          "mode": "list",
+          "cachedResultName": "interactions_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=862175237"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "interaction_id": "={{ 'INT-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
+            "lead_id": "={{ $json.lead_id || '' }}",
+            "phone": "={{ $json.phone }}",
+            "channel": "={{ $json.source || 'unknown' }}",
+            "direction": "inbound",
+            "message_summary": "={{ ($json.message || $json.last_message || '').substring(0,300) }}",
+            "intent": "={{ $json.radar_intent || 'unknown' }}",
+            "urgency": "={{ $json.radar_urgency || 'unknown' }}",
+            "flow_name": "SaaSAI_F2",
+            "occurred_at": "={{ $json.received_at || $now }}",
+            "handled_by": "Flow2_Auto",
+            "outcome": "={{ $json.category === 'HOT' ? 'escalated_to_flow3' : 'logged' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "interaction_id",
+              "displayName": "interaction_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "direction",
+              "displayName": "direction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_summary",
+              "displayName": "message_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "intent",
+              "displayName": "intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "urgency",
+              "displayName": "urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "handled_by",
+              "displayName": "handled_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "outcome",
+              "displayName": "outcome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6d28462f-8ea3-4a84-822c-6e3891b14661",
+      "name": "GSheets – Log Interaction",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        592
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/lead-scoring-entry",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"lead_id\":          \"{{ $json.lead_id }}\",\n  \"phone\":            \"{{ $json.phone }}\",\n  \"name\":             \"{{ $json.name }}\",\n  \"email\":            \"{{ $json.email || '' }}\",\n  \"nationality\":      \"{{ $json.nationality || '' }}\",\n  \"source\":           \"{{ $json.source }}\",\n  \"platform\":         \"{{ $json.platform || '' }}\",\n  \"message\":          \"{{ ($json.message || '').substring(0,300) }}\",\n  \"pax_hint\":         {{ Number($json.pax_hint) || 0 }},\n  \"radar_intent\":     \"{{ $json.radar_intent || '' }}\",\n  \"radar_urgency\":    \"{{ $json.radar_urgency || '' }}\",\n  \"radar_quality\":    {{ Number($json.radar_quality) || 0 }},\n  \"score\":            {{ Number($json.score) || 0 }},\n  \"category\":         \"{{ $json.category || 'COLD' }}\",\n  \"budget_signal\":    \"{{ $json.budget_signal || 'unknown' }}\",\n  \"travel_group\":     \"{{ $json.travel_group || 'unknown' }}\",\n  \"stars_preference\": \"{{ $json.stars_preference || 'unknown' }}\",\n  \"check_in_hint\":    \"{{ $json.check_in_hint || '' }}\",\n  \"nights_hint\":      {{ Number($json.nights_hint) || 0 }},\n  \"journey_step\":     \"{{ $json.journey_step || '' }}\",\n  \"consent\":          \"TRUE\",\n  \"content_hash\":     \"{{ $json.content_hash || '' }}\",\n  \"received_at\":      \"{{ $json.received_at || $now }}\",\n  \"flow_origin\":      \"SaaSAI_F2\"\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 300
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "name": "HTTP – Send to Flow #3 (Scoring)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1968,
+        592
+      ],
+      "id": "74055b9c-772a-4cf1-aedc-c39ff60ce560",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ \n  (() => {\n    const src = $json.source || '';\n    const srcEmoji = src.startsWith('Radar') ? '📡'\n      : src.includes('WhatsApp') ? '💬'\n      : src === 'Website_Form' ? '🌐'\n      : src === 'Telegram_Bot' ? '✈️'\n      : src === 'Instagram_Meta' ? '📸' : '📲';\n\n    const category  = $json.category  || '';\n    const catEmoji  = category === 'HOT' ? '🔥' : category === 'WARM' ? '🌡️' : '❄️';\n    const phone     = $json.phone     || 'غير معروف';\n    const name      = $json.name      || 'غير معروف';\n    const msg       = ($json.message  || $json.last_message || '').substring(0, 200);\n    const quality   = $json.radar_quality ? ` | جودة: ${$json.radar_quality}/100` : '';\n    const intent    = $json.radar_intent  ? ` | نية: ${$json.radar_intent}` : '';\n    const nat       = $json.nationality   ? `\\n🌍 الجنسية: ${$json.nationality}` : '';\n    const leadId    = $json.lead_id       ? `\\n🆔 ${$json.lead_id}` : '';\n\n    return `${srcEmoji}${catEmoji} *Lead جديد – ${src}*\\n\\n👤 ${name}\\n📞 ${phone}${leadId}${nat}${quality}${intent}\\n\\n💬 ${msg}\\n\\n🗓️ ${$json.journey_step || ''}\\n⏱️ ${new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})}`;\n  })()\n}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Lead Captured Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2496,
+        592
+      ],
+      "id": "a866d64d-f51f-4c4f-bf12-78002384a50c",
+      "webhookId": "56f7c340-de55-43ac-9bb3-f04e0187b4d6",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `⚠️ *Lead بدون موافقة (Consent Missing)*\\n\\n📞 ${$json.phone}\\n👤 ${$json.name}\\n🔌 Source: ${$json.source}\\n💬 ${($json.message||'').substring(0,150)}\\n\\n→ يجب الحصول على الموافقة قبل التواصل` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – No Consent Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1744,
+        624
+      ],
+      "id": "d62f18c1-066b-4ca5-b8f4-3ce9ded0eed5",
+      "webhookId": "45dc5e5d-7022-4512-b602-77953a5cc76b",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `🚫 *Rate Limit – تم تجاهل الطلب*\\n\\n📞 ${$json.phone}\\n🔌 Source: ${$json.source}\\nعدد الطلبات: ${$json.request_count}/3 في الساعة` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Rate Limit Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2224,
+        640
+      ],
+      "id": "3a248240-8c0f-4e40-bd41-d9eaf156cc8a",
+      "webhookId": "5c5cc03a-5ef4-4f4e-9ce1-2f5ab80d4f2d",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `❌ *رقم هاتف غير صالح – تم تجاهل Lead*\\n\\n📞 القيمة المستلمة: ${$json.phone || 'فارغ'}\\n🔌 Source: ${$json.source}\\n💬 ${($json.message||'').substring(0,100)}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Invalid Phone Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        96
+      ],
+      "id": "e7c1ebe3-1d4d-4e69-af6b-0ef77bc4d53a",
+      "webhookId": "46decc87-b638-459a-aaa2-b3899dc072de",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        112
+      ],
+      "id": "c8adcac1-e7b8-4c3e-ac47-c44999d041fa"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1602796460,
+          "mode": "list",
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=1602796460"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ 'ERR2-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
+            "flow_name": "SaaSAI_F2",
+            "node_name": "={{ $json.execution?.lastNodeExecuted || $json.node?.name || $json.node_name || 'Unknown' }}",
+            "error_msg": "={{ $json.error?.message || $json.message || JSON.stringify($json).substring(0,400) }}",
+            "severity": "={{ /timeout|429|503|network/i.test($json.error?.message||'') ? 'high' : 'medium' }}",
+            "occurred_at": "={{ $now }}",
+            "resolved_at": "",
+            "resolved_by": "",
+            "notes": "={{ 'execution_id=' + ($json.execution?.id||'N/A') + ' | phone=' + ($json.phone||'N/A') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "error_id",
+              "displayName": "error_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_msg",
+              "displayName": "error_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_at",
+              "displayName": "resolved_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_by",
+              "displayName": "resolved_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "664756e1-1876-4f32-a260-c8b94a4c02a1",
+      "name": "GSheets – Log Flow Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1984,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `⚠️ *خطأ في Flow #2 – Lead Capture*\n\n🆔 ${$json.error_id || 'ERR-?'}\n❌ ${$json.error?.message || $json.error_msg || 'خطأ غير معروف'}\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || $json.node_name || 'Unknown'}\n📞 Phone: ${$json.phone || 'N/A'}\n⏱️ ${new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Flow Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        112
+      ],
+      "id": "3c50f616-5fb5-42be-853c-f29984e15b42",
+      "webhookId": "b85e8635-3b43-4f44-82da-fadedc195449",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1248,
+        288
+      ],
+      "id": "ec300543-7f81-4add-8f35-639ca96b3cf9",
+      "name": "Merge All Incoming Channels"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafii",
+        "height": 480,
+        "width": 1520,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1344,
+        48
+      ],
+      "typeVersion": 1,
+      "id": "2541838e-2985-4c47-89ed-6509612f0782",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Mohhammed almekhlafi",
+        "height": 272,
+        "width": 1520,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1344,
+        528
+      ],
+      "typeVersion": 1,
+      "id": "2a4ee8ec-9447-4a39-8c19-270ed2eb71c4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 752,
+        "width": 464,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        48
+      ],
+      "typeVersion": 1,
+      "id": "02737218-8006-407f-a81f-2042f322b77b",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook – WhatsApp": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.srv1332143.hstgr.cloud",
+            "user-agent": "python-requests/2.32.5",
+            "content-length": "4797",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "content-type": "application/json",
+            "x-forwarded-for": "51.12.60.208",
+            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "f81c42443d27",
+            "x-real-ip": "51.12.60.208"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event_type": "message:received:new",
+            "chat": {
+              "full_name": "العمل الذكي للنجاح (2)",
+              "chat_url": "https://app.timelines.ai/chat/51293657/messages/",
+              "chat_id": 51293657,
+              "is_group": true,
+              "phone": ""
+            },
+            "whatsapp_account": {
+              "full_name": "Mohammed Almakhlafi",
+              "email": "almakhlafimohammed7@gmail.com",
+              "phone": "+967772650292"
+            },
+            "message": {
+              "text": "*_`🍄 الفطر الريشي ( الجانوديرما ) :`_*\n*هو المكون الأساسي لجميع منتجات شركة DXN*\n*فطر غير سام ولا يحدث أي أثار هو جانبية حتى مع الإستخدام الطويل ويجعل وظائف الجسم العامة تعمل بصورة طبيعية 🤍*\n________________________\n\n*_`🍄 من فوائد الفطر الريشي ( الجانوديرما) :`_*\n*✅ تخليص الجسم من السموم.*\n*✅ تعزيز المناعة وتنشيط الدورة الدموية.*\n*✅ تجديد خلايا الجسم الميتة واكساب البشرة النضارة والحيوية.*\n*✅ مفيد لمرضى السكري بانه يعمل على خفض ارتفاع مستوى السكر في الدم.*\n*✅ يساعد الكبد والكلى على التخلص من السموم الموجودة بالجسم.*\n*✅ كما انه مناسب للاطفال ويعمل على زيادة التركيز وتنشيط القوة الذهنية والنمو السليم.*\n________________________\n\n*_`ملاحظه :`_*\n*هذا الفطر منتج طبيعي لا يحتوي على اي مواد كيميائية وهذا الذي يجعل منتجات شركة DXN آمنة وذات جودة عالية 🥰✨*",
+              "direction": "received",
+              "origin": "synced from WhatsApp",
+              "timestamp": "2026-03-20 21:43:43 +0300",
+              "message_uid": "8fe30bce-897d-4c36-96f9-968adf0fa548",
+              "sender": {
+                "full_name": "العمل الذكي للنجاح (2)",
+                "phone": "+967778344950"
+              },
+              "recipient": {
+                "full_name": "العمل الذكي للنجاح (2)"
+              },
+              "attachments": [
+                {
+                  "temporary_download_url": "https://tl-prod-data.s3.amazonaws.com/att/H--l3vS4IbQF8u51ud3hw1gwvcXw6CpnYAZx5G6E/attachment.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA5EIIHACXLNNCPGMF%2F20260320%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260320T184348Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=b2423cd92d4f667da10cc439cf1de16cdf8c1f136b1d71bf819ea2e9ecf8569e",
+                  "filename": "attachment.jpg",
+                  "size": 40848,
+                  "mimetype": "image/jpeg"
+                }
+              ]
+            }
+          },
+          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/lead-capture-whatsapp",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Webhook – Telegram Bot": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Webhook – Instagram (Meta)": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Webhook – Website Form": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Webhook – From Flow #1 Radar": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook – WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Merge All Incoming Channels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – Telegram Bot": {
+      "main": [
+        [
+          {
+            "node": "Merge All Incoming Channels",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code – Normalize & Validate Lead": {
+      "main": [
+        [
+          {
+            "node": "If – Valid Saudi Phone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Valid Saudi Phone?": {
+      "main": [
+        [
+          {
+            "node": "Code – Rate Limit per Phone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – Invalid Phone Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Rate Limit per Phone": {
+      "main": [
+        [
+          {
+            "node": "If – Rate Limited?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Rate Limited?": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Rate Limit Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GSheets – Check Existing Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – New Lead?": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Create New Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GSheets – Update Existing Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Consent Granted?": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – No Consent Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – Send to Flow #3 (Scoring)": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Lead Captured Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Flow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Check Existing Lead": {
+      "main": [
+        [
+          {
+            "node": "If – New Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Create New Lead": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Check Consent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Update Existing Lead": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Check Consent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Check Consent": {
+      "main": [
+        [
+          {
+            "node": "If – Consent Granted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Interaction": {
+      "main": [
+        [
+          {
+            "node": "HTTP – Send to Flow #3 (Scoring)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Flow Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Flow Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – Instagram (Meta)": {
+      "main": [
+        [
+          {
+            "node": "Merge All Incoming Channels",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Webhook – Website Form": {
+      "main": [
+        [
+          {
+            "node": "Merge All Incoming Channels",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Incoming Channels": {
+      "main": [
+        [
+          {
+            "node": "Code – Normalize & Validate Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – From Flow #1 Radar": {
+      "main": [
+        [
+          {
+            "node": "Merge All Incoming Channels",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "dynamic",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "918f8717-2a43-46f7-87c8-008328ff8bd1",
+  "meta": {
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "2opXMMBpcbnzs7xr",
+  "tags": []
+}

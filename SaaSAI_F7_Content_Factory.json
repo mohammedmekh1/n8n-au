@@ -1,0 +1,783 @@
+{
+  "name": "SaaSAI – F7 – AI Content Factory",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        320
+      ],
+      "id": "b31160b8-9e4e-436e-816a-9341ee46a296"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1659619068,
+          "mode": "list",
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "node_name": "={{ $json.node_name || \"unknown\" }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "error_id",
+              "displayName": "error_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_msg",
+              "displayName": "error_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_at",
+              "displayName": "resolved_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_by",
+              "displayName": "resolved_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "3f1af6ef-776e-4085-ba3d-79257b88e75c",
+      "name": "GSheets – Log Flow Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1664,
+        320
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `⚠️ *خطأ في Flow #7 – Content Management*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Flow Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        320
+      ],
+      "id": "3da924a0-d76c-42bd-81b2-5543e8021c90",
+      "webhookId": "9fc054d3-31c2-46f4-9fb4-52a6cbdfa608",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "af0c15ce-f71d-4d4e-9e28-e85fe2171cfc",
+      "name": "Schedule – يومي 7 صباحاً",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-content",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "ce6cc43c-0ad2-4792-8614-8a1cf77b833e",
+      "name": "Webhook – توليد يدوي",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        672,
+        320
+      ],
+      "webhookId": "makkah-content-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// SaaSAI – F7 – موضوعات المحتوى التلقائية\nconst now = new Date();\nconst day = now.getDay();\nconst month = now.getMonth() + 1;\n\nconst dayTopics = {\n  0: [ // الأحد – أتمتة الأعمال\n    { topic: 'كيف تُحوّل عملك بـ n8n والأتمتة الذكية', type: 'educational', angle: 'automation_intro' },\n    { topic: 'ربط واتساب مع CRM تلقائياً – دليل عملي', type: 'tutorial', angle: 'wa_crm' },\n  ],\n  1: [ // الاثنين – الذكاء الاصطناعي\n    { topic: 'كيف يُساعدك ChatGPT في أعمالك اليومية', type: 'educational', angle: 'ai_business' },\n    { topic: 'أدوات الذكاء الاصطناعي للشركات الصغيرة 2026', type: 'list', angle: 'ai_tools' },\n  ],\n  2: [ // الثلاثاء – التصميم والجرافيك\n    { topic: 'أهمية الهوية البصرية لنجاح علامتك التجارية', type: 'educational', angle: 'branding' },\n    { topic: 'تجارب عملائنا في التصميم – قصص نجاح حقيقية', type: 'testimonial', angle: 'design_cases' },\n  ],\n  3: [ // الأربعاء – المواقع وSEO\n    { topic: 'لماذا تحتاج موقعاً احترافياً في 2026؟', type: 'promotional', angle: 'web_importance' },\n    { topic: 'أسرار تصدر نتائج البحث في السوق السعودي', type: 'educational', angle: 'seo_ksa' },\n  ],\n  4: [ // الخميس – التسويق والمحتوى\n    { topic: 'استراتيجية المحتوى للشركات السعودية 2026', type: 'educational', angle: 'content_strategy' },\n    { topic: 'كيف تُدير حسابات السوشيال ميديا باحتراف', type: 'tutorial', angle: 'social_mgmt' },\n  ],\n  5: [ // الجمعة – دعوات الزفاف والمناسبات\n    { topic: 'ثورة دعوات الزفاف الرقمية في المملكة', type: 'promotional', angle: 'wedding_digital' },\n    { topic: 'باقات الدعوات الرقمية من SaaSAI – رقي وحداثة', type: 'showcase', angle: 'wedding_packages' },\n  ],\n  6: [ // السبت – التدريب والعروض\n    { topic: 'تعلم n8n وابدأ رحلة الأتمتة الاحترافية', type: 'training', angle: 'n8n_course' },\n    { topic: 'عرض خاص: حلول الأتمتة الشاملة لشركتك', type: 'promotional', angle: 'weekend_offer' },\n  ],\n};\n\nconst seasonalBonus = [];\nif (month >= 9 && month <= 11) { // موسم الأعراس\n  seasonalBonus.push({ topic: 'موسم الأعراس 2026 – دعوتك الرقمية تستحق التميز', type: 'seasonal', angle: 'wedding_season' });\n}\nif (month === 1) { // بداية السنة\n  seasonalBonus.push({ topic: 'خطط لعام أتمتة ناجح مع SaaSAI', type: 'seasonal', angle: 'new_year' });\n}\n\nconst todayTopics = [...(dayTopics[day] || dayTopics[0]), ...seasonalBonus];\nconst POSTS_PER_DAY = 2;\nconst selectedTopics = todayTopics.slice(0, POSTS_PER_DAY);\n\nreturn selectedTopics.map((t, i) => ({\n  json: {\n    ...t,\n    topic_id: `SAASAI-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${String(i+1).padStart(2,'0')}`,\n    company_name:  'SaaSAI',\n    company_url:   'https://saasai.sa',\n    whatsapp:      'https://wa.me/966500000000',\n    service_link:  'https://saasai.sa/services',\n    day_index:     day,\n    generated_at:  new Date().toISOString(),\n  }\n}));\n"
+      },
+      "id": "c4883953-c0f6-4b7a-867f-e5f40b4cd653",
+      "name": "Code – تحديد موضوعات اليوم",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3d1a6768-6815-4cf2-8bf9-4fdf362db378",
+      "name": "Split – موضوع واحد في المرة",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════\n// Parse Claude response → build structured posts for GSheets\n// ═══════════════════════════════════════════════════════════\nconst original = $('Split – موضوع واحد في المرة').first().json;\nconst aiRaw    = $input.first().json;\n\n// استخراج نص الرد من Claude\nlet rawText = '';\nif (typeof aiRaw === 'string') rawText = aiRaw;\nelse if (aiRaw?.text) rawText = aiRaw.text;\nelse if (aiRaw?.content?.[0]?.text) rawText = aiRaw.content[0].text;\nelse if (aiRaw?.output) rawText = aiRaw.output;\nelse rawText = JSON.stringify(aiRaw);\n\n// تنظيف وparse الـ JSON\nlet parsed = {};\ntry {\n  const cleaned = rawText\n    .replace(/```json\\s*/gi, '').replace(/```\\s*/gi, '').trim();\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (match) parsed = JSON.parse(match[0]);\n} catch(e) {\n  // Fallback\n  const topic = original.topic || 'SaaSAI للأتمتة';\n  const link = original.hotel_context?.booking_link || 'wa.me/966XXXXXXXXX';\n  parsed = {\n    ar_title: topic,\n    ar_body: `نحن متخصصون في تقديم أفضل تجارب الإقامة في مكة المكرمة. ${topic}`,\n    x_post: `🕌 ${topic} | احجز الآن! #فنادق_مكة #عمرة2026 #MakkahHotel`,\n    instagram_post: `🏨 ${topic}\\n\\n✅ قريب من الحرم\\n✅ أسعار مميزة\\n📞 احجز الآن!\\n#فنادق_مكة #مكة_المكرمة #عمرة2026 #حج2026 #MakkahHotel`,\n    facebook_post: `${topic}\\n\\nنحن هنا لمساعدتك في اختيار أفضل إقامة في مكة. اكتب لنا في التعليقات! 👇`,\n    whatsapp_broadcast: `السلام عليكم 🌙\\n\\n${topic}\\n\\nللحجز وللاستفسار:\\n${link}`,\n    telegram_post: `🕌 ${topic}\\n\\nاحجز الآن: ${link}`,\n    tiktok_caption: `${topic} 🕌 #فنادق_مكة #عمرة2026 #مكة #MakkahHotel #umrah2026`,\n    image_prompt_en: `Luxury hotel near Masjid al-Haram Makkah, golden hour, professional photography, 16:9`,\n    image_prompt_ar: 'فندق فاخر بإطلالة على الكعبة المشرفة',\n    template_text_ar: topic.substring(0, 35),\n    template_subtext_ar: link,\n    best_posting_time: '18:00',\n    content_score: 70,\n    target_emotion: 'trust',\n    cta: 'احجز الآن وتمتع بأفضل الأسعار'\n  };\n}\n\nconst now = new Date().toISOString();\nconst dateStr = now.split('T')[0];\nconst rowNum = Date.now(); // unique row ID\n\n// SEO hashtags ثابتة\nconst baseHashtags = '#فنادق_مكة #حجز_فندق_مكة #عمرة2026 #حج2026 #MakkahHotel #UmrahHotel2026 #HotelNearHaram #مكة_المكرمة';\n\n// بناء سجل واحد شامل للـ Sheet\nreturn [{\n  json: {\n    // ── معرفات ──────────────────────────────────────────────\n    row_number:          rowNum,\n    topic_id:            original.topic_id,\n    topic:               original.topic,\n    content_type:        original.content_type,\n    angle:               original.angle,\n    \n    // ── معلومات عامة ────────────────────────────────────────\n    ar_title:            parsed.ar_title    || original.topic,\n    ar_body:             parsed.ar_body     || '',\n    target_emotion:      parsed.target_emotion || 'trust',\n    cta:                 parsed.cta         || 'احجز الآن',\n    \n    // ── نصوص المنصات ────────────────────────────────────────\n    x_post:              (parsed.x_post             || '').substring(0, 270),\n    instagram_post:      parsed.instagram_post       || '',\n    facebook_post:       parsed.facebook_post        || '',\n    whatsapp_broadcast:  parsed.whatsapp_broadcast   || '',\n    telegram_post:       parsed.telegram_post        || '',\n    tiktok_caption:      (parsed.tiktok_caption      || '').substring(0, 200),\n    seo_hashtags:        baseHashtags,\n    \n    // ── الصورة ──────────────────────────────────────────────\n    image_prompt_ar:     parsed.image_prompt_ar     || '',\n    image_prompt_en:     parsed.image_prompt_en     || '',\n    template_text_ar:    parsed.template_text_ar    || '',\n    template_subtext_ar: parsed.template_subtext_ar || '',\n    image_status:        'pending',        // سيُحدَّث بـ F8 بعد توليد الصورة\n    image_url:           '',               // سيُملأ بـ F8\n    \n    // ── جدولة ────────────────────────────────────────────────\n    content_score:       parseInt(parsed.content_score || 70),\n    best_posting_time:   parsed.best_posting_time || '18:00',\n    platforms:           (original.platforms || []).join(','),\n    \n    // ── حالة النشر ──────────────────────────────────────────\n    status:              'ready_to_publish',  // F8 يسحب هذه الحالة\n    generated_at:        now,\n    published_at:        '',\n    published_on:        '',\n    publish_attempts:    0,\n    \n    // ── معلومات الفندق ────────────────────────────────────────\n    company_name:    original.hotel_context?.name    || '',\n    booking_link:  original.hotel_context?.booking_link || '',\n    company_phone:   original.hotel_context?.phone   || '',\n  }\n}];\n"
+      },
+      "id": "d06f75f8-6460-4839-b200-164dad68d686",
+      "name": "Code – تحليل رد Claude وبناء المنشورات",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 966952321,
+          "mode": "list",
+          "cachedResultName": "social_posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "content_type": "={{ $json.content_type }}",
+            "x_post": "={{ $json.x_post }}",
+            "instagram_post": "={{ $json.instagram_post }}",
+            "whatsapp_broadcast": "={{ $json.whatsapp_broadcast }}",
+            "image_prompt_en": "={{ $json.image_prompt_en }}",
+            "content_score": "={{ $json.content_score }}",
+            "best_posting_time": "={{ $json.best_posting_time }}",
+            "status": "={{ $json.status }}",
+            "generated_at": "={{ $json.generated_at }}",
+            "image_prompt": "={{ $json.image_prompt_ar }}",
+            "published_at": "={{ $json.published_at }}",
+            "published_on": "={{ $json.published_on }}",
+            "success_rate": "={{ $json.publish_attempts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "x_post",
+              "displayName": "x_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_post",
+              "displayName": "instagram_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp_broadcast",
+              "displayName": "whatsapp_broadcast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_score",
+              "displayName": "content_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "best_posting_time",
+              "displayName": "best_posting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_prompt",
+              "displayName": "image_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_prompt_en",
+              "displayName": "image_prompt_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_title",
+              "displayName": "source_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generated_at",
+              "displayName": "generated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_on",
+              "displayName": "published_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_rate",
+              "displayName": "success_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "61c3d138-d634-4fcc-8fc1-a80e1fabc5d3",
+      "name": "GSheets – حفظ المنشور في social_posts",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        16
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `📝 *محتوى جديد جاهز – Flow #7*\n\n📌 *الموضوع:* ${$json.ar_title}\n🎯 *النوع:* ${$json.content_type} | ${$json.angle}\n⭐ *النقاط:* ${$json.content_score}/100\n⏰ *أفضل وقت للنشر:* ${$json.best_posting_time}\n\n📱 *منشور X:*\n${$json.x_post}\n\n🖼 *وصف الصورة المطلوبة:*\n${$json.image_prompt_ar}\n\n📝 *نص القالب:* ${$json.template_text_ar}\n\n✅ الحالة: ready_to_publish – سيتم النشر غداً عبر Flow #8\n_لتعديل الحالة افتح Google Sheets > social_posts_` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "af3b7628-64e3-43ec-9c5b-e584ad43364b",
+      "name": "Telegram – إشعار مراجعة المحتوى",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        16
+      ],
+      "webhookId": "38d5925a-3948-45bc-ba26-39c79427cd1c",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// تجميع إحصائيات توليد المحتوى اليومي\nconst items = $input.all();\nconst totalGenerated = items.length;\nconst avgScore = items.length > 0\n  ? Math.round(items.reduce((s, i) => s + (i.json.content_score || 0), 0) / items.length)\n  : 0;\n\nreturn [{\n  json: {\n    total_generated: totalGenerated,\n    avg_score: avgScore,\n    generated_date: new Date().toISOString().split('T')[0],\n    summary: `تم توليد ${totalGenerated} منشور بمتوسط نقاط ${avgScore}/100`,\n    ready_for_f8: true\n  }\n}];\n"
+      },
+      "id": "99e5b2a3-8e55-4c77-8fc4-ef482d99dd61",
+      "name": "Code – إعداد تقرير اليوم",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `✅ *Flow #7 – تقرير التوليد اليومي*\n\n📊 المنشورات المولَّدة: ${$json.total_generated}\n⭐ متوسط النقاط: ${$json.avg_score}/100\n📅 التاريخ: ${$json.generated_date}\n\n🔄 Flow #8 سيسحب المنشورات غداً للنشر التلقائي\n📋 راجع الشيت لمراجعة أو تعديل المحتوى قبل النشر` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e94ea6d2-fa73-4fb0-b518-4baff534e967",
+      "name": "Telegram – تقرير توليد المحتوى",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        336
+      ],
+      "webhookId": "a7cdf760-7650-48a5-82cf-03903dba74be",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "content": "## توليد المحتوى النصي",
+        "height": 304,
+        "width": 1460,
+        "color": 4
+      },
+      "id": "c73f5e5c-516d-4068-a679-967c8f883e60",
+      "name": "📌 دليل Flow #7 v2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"{{ `أنت مسوّق رقمي خبير متخصص في SaaSAI للأتمتة.\\n\\nالفندق: ${$json.hotel_context.name}\\nالموقع: ${$json.hotel_context.location_desc}\\nالنجوم: ${$json.hotel_context.stars}\\nميزة التنافسية: ${$json.hotel_context.usp}\\nرابط الحجز: ${$json.hotel_context.booking_link}\\n\\nالموضوع المطلوب: ${$json.topic}\\nنوع المحتوى: ${$json.content_type}\\nالزاوية التسويقية: ${$json.angle}\\n\\nأنشئ محتوى تسويقياً احترافياً لـ 6 منصات. أجب بـ JSON فقط بدون أي نص خارجه:\\n\\n{\\n  \\\"ar_title\\\": \\\"عنوان عربي جذاب للمحتوى (10-15 كلمة)\\\",\\n  \\\"ar_body\\\": \\\"وصف تفصيلي بالعربية (30-50 كلمة) يصف قيمة الفندق والعرض\\\",\\n  \\\"x_post\\\": \\\"منشور تويتر ≤ 265 حرف – جذاب + 3 هاشتاجات: #فنادق_مكة #عمرة2026 #MakkahHotel\\\",\\n  \\\"instagram_post\\\": \\\"منشور انستغرام 150-200 حرف + 3 إيموجي + 10 هاشتاجات عربية وإنجليزية\\\",\\n  \\\"facebook_post\\\": \\\"منشور فيسبوك 200-300 حرف – ودود ومقنع + دعوة للتعليق\\\",\\n  \\\"whatsapp_broadcast\\\": \\\"رسالة واتساب 200-350 حرف – شخصية ودافئة + رابط الحجز بدون هاشتاجات\\\",\\n  \\\"telegram_post\\\": \\\"منشور تيليغرام 150-250 حرف – رسمي قليلاً + رابط\\\",\\n  \\\"tiktok_caption\\\": \\\"كابشن تيكتوك ≤ 150 حرف + 5 هاشتاجات ترند\\\",\\n  \\\"image_prompt_ar\\\": \\\"وصف الصورة المطلوبة بالعربية لفريق التصميم\\\",\\n  \\\"image_prompt_en\\\": \\\"Detailed English prompt for AI image generation: luxury hotel exterior near Masjid al-Haram, golden hour lighting, professional photography, 16:9 ratio, photorealistic\\\",\\n  \\\"template_text_ar\\\": \\\"النص الذي سيُكتب فوق قالب الصورة (سطر واحد، 5-8 كلمات كحد أقصى، مؤثر)\\\",\\n  \\\"template_subtext_ar\\\": \\\"نص ثانوي للقالب (رابط أو هاتف أو شعار، ≤ 30 حرف)\\\",\\n  \\\"best_posting_time\\\": \\\"HH:MM\\\",\\n  \\\"content_score\\\": 85,\\n  \\\"target_emotion\\\": \\\"excitement|trust|urgency|inspiration|curiosity\\\",\\n  \\\"cta\\\": \\\"دعوة للإجراء مباشرة (5-8 كلمات)\\\"\\n}` }}\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1104,
+        16
+      ],
+      "id": "3cbf9877-4105-4d71-be90-8364ef1d993b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -128
+      ],
+      "id": "457e959f-d1f8-4fd2-a256-f92894fb20dc",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "CwNqqeK8sLL7mLN4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 272,
+        "width": 1460,
+        "color": 3
+      },
+      "id": "ef5553bb-d72b-45b9-9258-f2593c08ea9a",
+      "name": "📌 دليل Flow #7 v",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        224
+      ]
+    }
+  ],
+  "pinData": {
+    "AI Agent": [
+      {
+        "json": {
+          "output": "```json\n{\n  \"ar_title\": \"عروض حصرية لوكالات السفر: إقامة فاخرة بإطلالة الكعبة المشرفة بمكة المكرمة\",\n  \"ar_body\": \"اكتشفوا تجربة لا مثيل لها لضيوفكم في فنادق مكة المكرمة. نقدم لشركائنا من وكالات السفر باقات حجز جماعي مميزة، تجمع بين الفخامة، قرب المسجد الحرام، وإطلالات مباشرة على الكعبة المشرفة، لرحلات عمرة لا تُنسى.\",\n  \"x_post\": \"لوكالات السفر ومنظمي الرحلات: هل تبحثون عن تجربة إقامة فاخرة لضيوفكم بمكة؟ فنادقنا ذات الـ 5 نجوم تطل مباشرة على الكعبة المشرفة، مع عروض حصرية للحجوزات الجماعية. تواصلوا معنا الآن! #فنادق_مكة #عمرة2026 #MakkahHotel\",\n  \"instagram_post\": \"شركاء النجاح من وكالات السفر! 🚀 ارتقوا برحلات ضيوفكم في مكة المكرمة. فنادقنا 5 نجوم بإطلالة مباشرة على الكعبة المشرفة وخدمات راقية. باقات حجز جماعي حصرية بانتظاركم. ✨ احجزوا لضيوفكم تجربة لا تُنسى. 🕋\\n#فنادق_مكة #مكة_المكرمة #عمرة #وكالات_سفر #حجوزات_فنادق #KaabaView #MakkahHotels #LuxuryTravel #Umrah2026 #TravelAgency\",\n  \"facebook_post\": \"إلى جميع وكالات السفر ومنظمي الرحلات الكرام! 🌟 هل تتطلعون لتقديم أفضل تجربة إقامة لضيوفكم في مكة المكرمة؟ فنادقنا من فئة الـ 5 نجوم، على بُعد خطوات من المسجد الحرام، وتوفر إطلالات مباشرة ساحرة على الكعبة المشرفة، بالإضافة لخدمات فندقية عالمية. لدينا عروض حصرية وباقات حجز جماعي مصممة خصيصاً لكم لضمان رحلات عمرة فاخرة ومريحة. شاركونا في التعليقات: ما هي أهم متطلباتكم في الحجوزات الجماعية؟\",\n  \"whatsapp_broadcast\": \"تحية طيبة، شريكنا العزيز! 👋\\nنحن في فنادق مكة المكرمة (5 نجوم) نود أن نقدم لكم عروضنا الخاصة بالحجوزات الجماعية. امنحوا ضيوفكم تجربة إقامة لا تُنسى على بعد خطوات من المسجد الحرام، مع إطلالة مباشرة ومميزة على الكعبة المشرفة. نوفر خدمات فندقية راقية تليق بضيوفكم الكرام. دعونا نساعدكم في تنظيم رحلات العمرة القادمة بأسعار تنافسية وخدمة لا تضاهى. تواصلوا معنا الآن للاستفسار وحجز باقاتكم الحصرية:\\nwa.me/966XXXXXXXXX\\nنتطلع للتعاون معكم!\",\n  \"telegram_post\": \"إلى وكالات السفر ومنظمي رحلات العمرة: نقدم لكم فنادق مكة المكرمة من فئة 5 نجوم، تقع على بُعد خطوات من المسجد الحرام، وتتميز بإطلالات مباشرة على الكعبة المشرفة. استفيدوا من عروض الحجز الجماعي الحصرية والخدمات الفندقية الراقية لضمان تجربة مميزة لضيوفكم. للمزيد من التفاصيل والاستفسار عن الأسعار الخاصة: [wa.me/966XXXXXXXXX](wa.me/966XXXXXXXXX)\",\n  \"tiktok_caption\": \"وكالات السفر، جهزوا لضيوفكم إقامة 5 نجوم بمكة! إطلالة مباشرة على الكعبة، فخامة وخدمات راقية. عروض جماعية حصرية تنتظركم! تواصلوا معنا الآن. ✨ #Makkah #Umrah #LuxuryHotel #TravelAgency #SaudiArabia\",\n  \"image_prompt_ar\": \"صورة احترافية لجناح فندقي فاخر 5 نجوم في مكة المكرمة، يطل مباشرة من الشرفة على الكعبة المشرفة والمسجد الحرام. الإضاءة وقت الغروب، تعكس الفخامة والسكينة والقدسية. يجب أن توحي الصورة بتجربة إقامة راقية ومميزة للضيوف.\",\n  \"image_prompt_en\": \"Photorealistic image of a luxurious 5-star hotel suite in Makkah, featuring a direct, breathtaking view of the Kaaba from a private balcony. The Grand Mosque should also be visible in the background. The scene is illuminated by golden hour lighting, conveying warmth, serenity, and exclusivity. Emphasize refined elegance, high-end services, and a sense of sacred comfort. Professional photography style, 16:9 aspect ratio.\",\n  \"template_text_ar\": \"عروض حصرية لوكالات السفر: إطلالة الكعبة من فندق 5 نجوم\",\n  \"template_subtext_ar\": \"للحجز الجماعي: wa.me/966XXXXXXXXX\",\n  \"best_posting_time\": \"10:30\",\n  \"content_score\": 92,\n  \"target_emotion\": \"excitement|trust|urgency|inspiration|curiosity|exclusivity\",\n  \"cta\": \"تواصلوا معنا لحجز باقاتكم الحصرية الآن!\"\n}\n```"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Flow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Flow Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Flow Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule – يومي 7 صباحاً": {
+      "main": [
+        [
+          {
+            "node": "Code – تحديد موضوعات اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – توليد يدوي": {
+      "main": [
+        [
+          {
+            "node": "Code – تحديد موضوعات اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – تحديد موضوعات اليوم": {
+      "main": [
+        [
+          {
+            "node": "Split – موضوع واحد في المرة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – تحليل رد Claude وبناء المنشورات": {
+      "main": [
+        [
+          {
+            "node": "GSheets – حفظ المنشور في social_posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – حفظ المنشور في social_posts": {
+      "main": [
+        [
+          {
+            "node": "Telegram – إشعار مراجعة المحتوى",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split – موضوع واحد في المرة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram – إشعار مراجعة المحتوى": {
+      "main": [
+        [
+          {
+            "node": "Code – إعداد تقرير اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – إعداد تقرير اليوم": {
+      "main": [
+        [
+          {
+            "node": "Telegram – تقرير توليد المحتوى",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split – موضوع واحد في المرة": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code – تحليل رد Claude وبناء المنشورات",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "364bf6a5-ab75-4b2b-97d7-cf562cb09c75",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "GdQCCT3xhUwrPQGY",
+  "tags": []
+}

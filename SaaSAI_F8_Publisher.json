@@ -1,0 +1,2148 @@
+{
+  "name": "SaaSAI – F8 – Publisher النشر",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "d9eae7d2-1750-4dc3-9477-77ff988333b4",
+      "name": "Schedule – نشر يومي 9 صباحاً",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1376,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6dae4332-a140-4325-b9d7-c895d159eb74",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "0195c2fe-04b3-4887-bea2-1b56b6690d3f",
+      "name": "Webhook – نشر يدوي فوري",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        -240
+      ],
+      "webhookId": "6dae4332-a140-4325-b9d7-c895d159eb74"
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 966952321,
+          "mode": "list",
+          "cachedResultName": "social_posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "ready_to_publish"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "da43f711-843c-4452-9598-492effd28321",
+      "name": "GSheets – سحب منشور ready_to_publish",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -1184,
+        -336
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.topic_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "bbbc80f3-4b17-4b85-91e0-9f0abe2c362b",
+      "name": "IF – هل توجد منشورات؟",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        -336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Prepare Post for Publishing – B2B AWARE v3 ───────────────────────────\nconst d = $input.first().json;\nconst baseHashtags = '#فنادق_مكة #حجز_فندق_مكة #عمرة2026 #حج2026 #MakkahHotel #HotelNearHaram';\nconst b2bHashtags = '#وكالات_سفر #حجوزات_فنادق #KaabaView #MakkahHotels #LuxuryTravel #Umrah2026';\n\n// ═══════════════════════════════════════════════════════════════════════\n// 🔍 تحديد المنصات المستهدفة — مع دعم B2B\n// ═══════════════════════════════════════════════════════════════════════\nlet platformsStr = '';\n\n// الأولوية 1: حقل platforms لو موجود (للمنشورات المتعددة المنصات)\nif (d.platforms) {\n  platformsStr = d.platforms;\n}\n// الأولوية 2: تحويل platform + channel إلى اسم معياري\nelse if (d.platform && d.channel) {\n  const p = (d.platform || '').toLowerCase().trim();\n  const c = (d.channel || '').toLowerCase().trim();\n  \n  if (p === 'x' || p === 'twitter' || c === 'twitter') platformsStr = 'x_twitter';\n  else if (p === 'instagram' || c === 'instagram') platformsStr = 'instagram';\n  else if (p === 'facebook' || c === 'facebook') platformsStr = 'facebook';\n  else if (p === 'whatsapp' || c === 'whatsapp') platformsStr = 'whatsapp';\n  else if (p === 'telegram' || c === 'telegram') platformsStr = 'telegram';\n  else if (p === 'tiktok' || c === 'tiktok') platformsStr = 'tiktok';\n  else if (p === 'linkedin' || c === 'linkedin') platformsStr = 'linkedin';\n}\n// الأولوية 3: إذا كان المحتوى B2B، استهدف قنوات B2B فقط\nelse if (d.content_type === 'b2b' || d.نوع_المحتوى === 'b2b') {\n  platformsStr = 'linkedin,facebook,whatsapp,telegram';\n}\n// الأولوية 4: fallback عام (كل المنصات)\nelse {\n  platformsStr = 'x_twitter,instagram,facebook,whatsapp,telegram,tiktok';\n}\n\nconst platforms = platformsStr.split(',').map(p => p.trim()).filter(p => p);\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📝 تجهيز النصوص — مع fallback متعدد المستويات\n// ═══════════════════════════════════════════════════════════════════════\n\n// استخراج العنوان العربي من أي حقل متاح (أولوية متعددة)\nconst arTitle = d.ar_title \n  || d.source_title \n  || d.post_text?.split('\\n')[0]?.substring(0, 60) \n  || d.x_post?.split('#')[0]?.trim()\n  || d.instagram_post?.split('\\n')[0]?.substring(0, 60)\n  || 'منشور خدمات SaaSAI';\n\n// استخراج النص الرئيسي (للجسم)\nconst arBody = d.ar_body \n  || d.post_text \n  || d.whatsapp_broadcast \n  || d.instagram_post \n  || d.x_post \n  || '';\n\n// اختيار الهاشتاجات حسب نوع المحتوى\nconst hashtags = d.content_type === 'b2b' ? b2bHashtags : baseHashtags;\n\nreturn [{\n  json: {\n    ...d,\n    \n    // نصوص جاهزة مع ضمان عدم تجاوز حدود المنصات\n    x_final:        (d.x_post || arTitle || '').substring(0, 270),\n    ig_final:       (d.instagram_post || arTitle || '') + '\\n\\n' + hashtags,\n    fb_final:       d.facebook_post || d.post_text || arTitle || '',\n    wa_final:       d.whatsapp_broadcast || arBody || '',\n    tg_final:       (d.telegram_post || arTitle || '') + '\\n\\n' + hashtags,\n    tt_final:       (d.tiktok_caption || d.instagram_post || arTitle || '').substring(0, 200),\n    li_final:       d.linkedin_post || d.facebook_post || arBody || '',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 🖼 بيانات الصورة — fallback ذكي للنصوص العربية\n    // ═══════════════════════════════════════════════════════════════════\n    \n    // النص الرئيسي بالعربية (للصورة) — استخراج من أي نص متاح\n    img_text_ar: d.template_text_ar \n      || d.ar_title \n      || d.source_title \n      || (d.post_text || '').split('\\n')[0]?.substring(0, 40)\n      || (d.x_post || '').split('#')[0]?.trim()?.substring(0, 40)\n      || 'SaaSAI للأتمتة',\n    \n    // النص الثانوي (رابط الحجز أو عرض) \n    img_subtext_ar: d.template_subtext_ar \n      || d.booking_link \n      || (d.source_url || '').replace('https://', '').split('/')[0]\n      || (d.whatsapp_broadcast || '').match(/wa\\.me\\/(\\d+)/)?.[1]\n      || '',\n    \n    // وصف الصورة بالإنجليزي لتوليد AI\n    img_prompt_en: d.image_prompt_en \n      || d.image_prompt \n      || 'Luxury hotel near Masjid al-Haram Makkah, golden hour, photorealistic, 16:9',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 📊 بيانات التتبع والحالة\n    // ═══════════════════════════════════════════════════════════════════\n    post_row_number: d.row_number,\n    platforms: platforms,\n    publish_start: new Date().toISOString(),\n    \n    // Debug info\n    _debug: {\n      content_type: d.content_type,\n      original_platform: d.platform,\n      original_channel: d.channel,\n      detected_platforms: platforms,\n      ar_title_used: arTitle.substring(0, 30) + '...',\n      hashtags_used: hashtags.substring(0, 20) + '...'\n    }\n  }\n}];"
+      },
+      "id": "bf82cb54-5e03-4e87-b18f-3e5ca46ba544",
+      "name": "Code – تحضير المنشور للنشر",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════\n// استخراج رابط الصورة المباشر للنشر (lh3.googleusercontent.com)\n// ═══════════════════════════════════════════════════════════\n\ntry {\n  // الحصول على البيانات من العقد السابقة\n  const uploadNode = $('Upload file');\n  const prepareNode = $('Code – تحضير المنشور للنشر');\n  \n  const postData = prepareNode?.first()?.json || {};\n  const uploadData = uploadNode?.first()?.json || {};\n  \n  // معرف الملف من جوجل درايف\n  const fileId = uploadData.id || postData.image_file_id;\n  \n  if (!fileId) {\n    console.error('❌ File ID not found');\n    return [{\n      json: {\n        ...postData,\n        image_url: '',\n        image_source: 'error',\n        image_ready: false,\n        image_error: 'File ID not found'\n      }\n    }];\n  }\n  \n  // روابط بصيغ مختلفة\n  const links = {\n    // رابط مباشر عالي الجودة (لإنستغرام، فيسبوك، تليجرام)\n    direct: `https://lh3.googleusercontent.com/d/${fileId}=w1920-h1080`,\n    \n    // رابط مصغر للعرض السريع\n    thumbnail: `https://lh3.googleusercontent.com/d/${fileId}=w800-h600`,\n    \n    // رابط أصلي للمشاركة اليدوية\n    original: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`,\n    \n    // رابط للتضمين في المواقع\n    embed: `https://drive.google.com/uc?export=view&id=${fileId}`\n  };\n  \n  console.log('✅ Image URLs generated successfully');\n  console.log('Direct URL:', links.direct);\n  \n  return [{\n    json: {\n      ...postData,\n      // الروابط النهائية\n      image_url: links.direct,\n      image_url_thumbnail: links.thumbnail,\n      image_url_original: links.original,\n      image_url_embed: links.embed,\n      image_file_id: fileId,\n      drive_file_id: fileId,\n      drive_web_link: uploadData.webViewLink || links.original,\n      image_uploaded_at: new Date().toISOString(),\n      image_status: 'ready',\n      image_source: 'google_drive',\n      image_ready: true,\n      post_row_number: postData.post_row_number || postData.row_number || ''\n    }\n  }];\n  \n} catch(e) {\n  console.error('❌ Error extracting image URL:', e.message);\n  \n  const postData = $('Code – تحضير المنشور للنشر')?.first()?.json || {};\n  \n  return [{\n    json: {\n      ...postData,\n      image_url: '',\n      image_source: 'fallback',\n      image_ready: false,\n      image_error: e.message,\n      post_row_number: postData.post_row_number || ''\n    }\n  }];\n}"
+      },
+      "id": "1f045ffe-1350-4436-aedb-771040091383",
+      "name": "Code – استخراج URL الصورة النهائية",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 966952321,
+          "mode": "list",
+          "cachedResultName": "social_posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "topic_id": "={{ $json.topic_id }}"
+          },
+          "matchingColumns": [
+            "topic_id"
+          ],
+          "schema": [
+            {
+              "id": "topic_id",
+              "displayName": "topic_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "angle",
+              "displayName": "angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ar_title",
+              "displayName": "ar_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ar_body",
+              "displayName": "ar_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_emotion",
+              "displayName": "target_emotion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cta",
+              "displayName": "cta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "x_post",
+              "displayName": "x_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "instagram_post",
+              "displayName": "instagram_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "facebook_post",
+              "displayName": "facebook_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp_broadcast",
+              "displayName": "whatsapp_broadcast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telegram_post",
+              "displayName": "telegram_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tiktok_caption",
+              "displayName": "tiktok_caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "seo_hashtags",
+              "displayName": "seo_hashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_prompt_ar",
+              "displayName": "image_prompt_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_prompt_en",
+              "displayName": "image_prompt_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "template_text_ar",
+              "displayName": "template_text_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "template_subtext_ar",
+              "displayName": "template_subtext_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_status",
+              "displayName": "image_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_score",
+              "displayName": "content_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "best_posting_time",
+              "displayName": "best_posting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platforms",
+              "displayName": "platforms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generated_at",
+              "displayName": "generated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_on",
+              "displayName": "published_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "publish_attempts",
+              "displayName": "publish_attempts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "booking_link",
+              "displayName": "booking_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_phone",
+              "displayName": "company_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "snapchat_caption",
+              "displayName": "snapchat_caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "video_concept_ar",
+              "displayName": "video_concept_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "x_final",
+              "displayName": "x_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ig_final",
+              "displayName": "ig_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fb_final",
+              "displayName": "fb_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "wa_final",
+              "displayName": "wa_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tg_final",
+              "displayName": "tg_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tt_final",
+              "displayName": "tt_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "li_final",
+              "displayName": "li_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "img_text_ar",
+              "displayName": "img_text_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "img_subtext_ar",
+              "displayName": "img_subtext_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "img_prompt_en",
+              "displayName": "img_prompt_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "post_row_number",
+              "displayName": "post_row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "publish_start",
+              "displayName": "publish_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "_debug",
+              "displayName": "_debug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url_thumbnail",
+              "displayName": "image_url_thumbnail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url_original",
+              "displayName": "image_url_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url_embed",
+              "displayName": "image_url_embed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_file_id",
+              "displayName": "image_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_file_id",
+              "displayName": "drive_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_web_link",
+              "displayName": "drive_web_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_uploaded_at",
+              "displayName": "image_uploaded_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_source",
+              "displayName": "image_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_ready",
+              "displayName": "image_ready",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ea5dcac1-50c4-4b7c-bded-db2137796244",
+      "name": "GSheets – تحديث URL الصورة",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        352,
+        -400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.bufferapp.com/1/updates/create.json",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.tt_final }}"
+            },
+            {
+              "name": "profile_ids[]",
+              "value": "={{ '' }}"
+            },
+            {
+              "name": "media[photo]",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ '' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "54165593-3580-4e1c-bde0-595851e899c1",
+      "name": "HTTP – نشر على TikTok (Buffer)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -416,
+        96
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "id": "8ca40bfe-97c8-4bf5-8ed7-180c25fb91d3",
+      "name": "Merge – تجميع نتائج النشر",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        144,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all();\nconst postData = $('Code – تحضير المنشور للنشر').first().json;\n\nconst published = [];\nconst failed    = [];\nconst errors    = [];\n\nfor (const r of results) {\n  const d = r.json;\n  // Twitter\n  if (d.id || d.data?.id) published.push('X/Twitter');\n  // Buffer (Instagram/Facebook/TikTok)\n  else if (d.success && d.updates) {\n    const svc = d.updates?.[0]?.profile_service || 'Buffer';\n    published.push(svc.charAt(0).toUpperCase() + svc.slice(1));\n  }\n  // WhatsApp\n  else if (d.messages || d.message_id) published.push('WhatsApp');\n  // Telegram\n  else if (d.ok && d.result) published.push('Telegram');\n  // Snapchat\n  else if (d.story_id || d.snapchat_id) published.push('Snapchat');\n  else {\n    const errMsg = d.error || d.message || JSON.stringify(d).substring(0,100);\n    if (errMsg && errMsg.length > 5) {\n      failed.push('Unknown');\n      errors.push(errMsg);\n    }\n  }\n}\n\n// إضافة تاريخ الأفضل للنشر\nconst nowRiyadh = new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'});\nconst total   = published.length + failed.length;\nconst success = total > 0 ? Math.round((published.length / total) * 100) : 0;\n\nreturn [{\n  json: {\n    post_row_number: postData.post_row_number,\n    ar_title:        postData.ar_title,\n    image_url:       postData.image_url,\n    published_on:    published.join(', '),\n    failed_on:       failed.join(', '),\n    success_count:   published.length,\n    failed_count:    failed.length,\n    success_rate:    success,\n    errors:          errors.join(' | '),\n    published_at:    new Date().toISOString()\n  }\n}];\n"
+      },
+      "id": "60255f6d-0372-40e0-81fb-8dd21ce8a8ec",
+      "name": "Code – تقييم النشر وبناء التقرير",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 966952321,
+          "mode": "list",
+          "cachedResultName": "social_posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "published",
+            "published_at": "={{ $json.published_at }}",
+            "published_on": "={{ $json.published_on }}",
+            "row_number": "={{ $json.post_row_number || $json.row_number }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "post_text",
+              "displayName": "post_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "x_post",
+              "displayName": "x_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "instagram_post",
+              "displayName": "instagram_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "whatsapp_broadcast",
+              "displayName": "whatsapp_broadcast",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "content_score",
+              "displayName": "content_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "best_posting_time",
+              "displayName": "best_posting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_prompt",
+              "displayName": "image_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_prompt_en",
+              "displayName": "image_prompt_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_title",
+              "displayName": "source_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generated_at",
+              "displayName": "generated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_on",
+              "displayName": "published_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_rate",
+              "displayName": "success_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "30fa6a2b-17cb-40b2-99c3-261cdc5e93d9",
+      "name": "GSheets – تحديث حالة المنشور إلى published",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        -192
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1848411495,
+          "mode": "list",
+          "cachedResultName": "publish_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1848411495"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_id": "={{ 'LOG-' + Date.now().toString(36).toUpperCase() }}",
+            "post_id": "={{ $json.post_row_number || $json.row_number || '' }}",
+            "published_on": "={{ $json.published_on || '' }}",
+            "failed_on": "={{ $json.failed_on || '' }}",
+            "success_count": "={{ $json.success_count || 0 }}",
+            "failed_count": "={{ $json.failed_count || 0 }}",
+            "success_rate": "={{ $json.success_rate || 0 }}",
+            "published_at": "={{ $json.published_at || $now }}",
+            "errors": "={{ $json.errors || '' }}",
+            "notes": "={{ $json.ar_title || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "log_id",
+              "displayName": "log_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_on",
+              "displayName": "published_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "failed_on",
+              "displayName": "failed_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_count",
+              "displayName": "success_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "failed_count",
+              "displayName": "failed_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_rate",
+              "displayName": "success_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "errors",
+              "displayName": "errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "eb56bd9d-ead4-4290-bbcc-da1b6405b1f8",
+      "name": "GSheets – تسجيل في publish_log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        16
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `📣 *تقرير النشر اليومي – Flow #8*\n\n📌 *المنشور:* ${$json.ar_title}\n🖼 *الصورة:* ${$json.image_url ? '✅ تم التوليد (NanoBanana)' : '❌ فشل التوليد'}\n${$json.drive_web_link ? '📁 *Drive:* ' + $json.drive_web_link : ''}\n\n✅ *نُشر على:* ${$json.published_on || 'لا شيء'}\n${$json.failed_on ? '❌ *فشل في:* ' + $json.failed_on : ''}\n\n📊 *معدل النجاح:* ${$json.success_rate}%\n⏰ *وقت النشر:* ${new Date($json.published_at).toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}\n${$json.image_url ? '🔗 ' + $json.image_url : ''}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "b63cea07-3587-4c61-ad2c-32e70d184cb3",
+      "name": "Telegram – تقرير النشر اليومي",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        128
+      ],
+      "webhookId": "62e9c8cc-8c29-4492-93ae-d6bd79be18d4",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "ℹ️ *Flow #8 – Publisher*\nلا توجد منشورات بحالة `ready_to_publish` اليوم.\n\n_تأكد من تشغيل Flow #7 أولاً لتوليد المحتوى._",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f8769d26-b3a4-4adf-ae72-1575cc79610e",
+      "name": "Telegram – لا توجد منشورات اليوم",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -848,
+        -256
+      ],
+      "webhookId": "f284ccd0-d3a9-4b6b-8006-88eeba6521d3",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1659619068,
+          "mode": "list",
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "error_id": "={{ 'ERR8-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
+            "flow_name": "SaaSAI_F8",
+            "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
+            "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,400) }}",
+            "severity": "high",
+            "occurred_at": "={{ $now }}",
+            "notes": "={{ 'post_id=' + ($json.post_row_number||'N/A') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "error_id",
+              "displayName": "error_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_msg",
+              "displayName": "error_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resolved_at",
+              "displayName": "resolved_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resolved_by",
+              "displayName": "resolved_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "1117edad-ae81-496d-af34-e66f5fd8961c",
+      "name": "GSheets – تسجيل خطأ F8",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -1120,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `❌ *خطأ في Flow #8 – Publisher*\n\n🔴 ${$json.error?.message || 'خطأ غير معروف'}\n📍 ${$json.execution?.lastNodeExecuted || 'Unknown'}\n⏰ ${new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "aedcb0db-ef2c-4b4c-b3ff-5562ace2b886",
+      "name": "Telegram – تنبيه خطأ F8",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -832,
+        -32
+      ],
+      "webhookId": "d0f6df28-4def-46c3-850d-f74349d2fc29",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "text": "{{ $json.tw_final || $json.x_post || '' }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -128
+      ],
+      "id": "8ed2fa93-f944-4052-948e-1c3e0104467c",
+      "name": "Create Tweet",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "KercgOjqXwUnO5rj",
+          "name": "X account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "hostUrl": "=graph.facebook.com",
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v23.0",
+        "node": "=951932744670773/photos",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "url",
+                "value": "={{ $json.image_url }}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $json.facebook_post }}"
+              },
+              {
+                "name": "published",
+                "value": "true"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        16,
+        160
+      ],
+      "id": "e6bf4a09-70f5-44d4-9350-d9ae5e51200c",
+      "name": "Facebook Graph API",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "ZzUQctjyXIq7QpKR",
+          "name": "Facebook Graph account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "jmpIKeP7an",
+        "text": "={{ $json.linkedin_post || $json.facebook_post }}",
+        "shareMediaCategory": "IMAGE",
+        "binaryPropertyName": "=linkedin_image",
+        "additionalFields": {
+          "visibility": "PUBLIC"
+        }
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        112
+      ],
+      "id": "7147a0b1-b67e-4d9a-a259-775e18e9b994",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "UMtFiyHd0vVobHTp",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "node": "bbbbbbbb",
+        "imageUrl": "={{ $json.image_url }}",
+        "caption": "={{ $json.ig_final || $json.instagram_post || '' }}",
+        "additionalFields": {}
+      },
+      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -400
+      ],
+      "id": "896a8084-7907-4005-ad3c-aaf226565d6b",
+      "name": "Publish",
+      "credentials": {
+        "instagramApi": {
+          "id": "pjX3a6Dh7EyvtuX6",
+          "name": "Instagram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://adsapi.snapchat.com/v1/me/stories",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"story_type\": \"STORY\",\n  \"media_type\": \"IMAGE\",\n  \"media_url\": \"{{ $json.image_url }}\",\n  \"caption\": \"{{ $json.snap_final || '' }}\",\n  \"publish_to_timeline\": true\n}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "86dddc50-ae6c-4424-b27f-ac6de19f655c",
+      "name": "HTTP – Snapchat Story + Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -992,
+        160
+      ],
+      "disabled": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://queue.fal.run/fal-ai/kling-video/v1.6/pro/image-to-video",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Key ' + '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"prompt\": \"{{ $json.video_concept_ar || 'فندق فاخر في مكة المكرمة، حركة بطيئة ناعمة، إضاءة ذهبية، تصوير سينمائي احترافي' }}\",\n  \"duration\": \"5\",\n  \"aspect_ratio\": \"16:9\",\n  \"negative_prompt\": \"blur, distortion, low quality, text, watermark\",\n  \"cfg_scale\": 7.5\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "bc9e0f18-292e-484c-9529-0e5d0ad1791a",
+      "name": "HTTP – Video Generation (fal.ai)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1200,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "VMMO2p7Hn6D57NSE",
+          "name": "Header Auth account"
+        }
+      },
+      "disabled": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-pro-image-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-pro-image-preview (Nano Banana Pro)"
+        },
+        "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Luxury hotel near Masjid al-Haram Makkah, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"SaaSAI_F8\"\n  }\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        -400
+      ],
+      "id": "18918b4e-d835-4417-9585-f7b425745557",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ntA5hFSwHxgA18IL",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Code – تحضير المنشور للنشر').item.json.topic_id }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -432,
+        -400
+      ],
+      "id": "d9e18bec-a351-47d3-a518-51d44e03e254",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HHZgCP72IBpznepO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "newUpdatedFileName": "=",
+        "options": {
+          "propertiesUi": {
+            "propertyValues": [
+              {
+                "key": "role",
+                "value": "reader"
+              },
+              {
+                "key": "type",
+                "value": "anyone"
+              },
+              {
+                "key": "allowFileDiscovery",
+                "value": "false"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        -400
+      ],
+      "id": "ff07e501-06a7-4136-abcd-82044faaa159",
+      "name": "Update file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HHZgCP72IBpznepO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "=5292626260",
+        "file": "={{ $json.image_url_thumbnail }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        160
+      ],
+      "id": "4289bcfe-46a1-4219-8634-901bf996fe01",
+      "name": "Send a photo message",
+      "webhookId": "f000f51c-367e-4278-90b9-2e8e94067079",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://app.timelines.ai/integrations/api/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"🧪 *رسالة اختبار من نظام SaaSAI*\\n\\nمرحباً! هذه رسالة تجريبية للتأكد من أن نظام البث عبر واتساب يعمل بشكل صحيح.\\n\\n✅ إذا وصلت هذه الرسالة، فالنظام جاهز للإرسال!\\n\\n🔗 للحجز: wa.me/966XXXXXXXXX\\n🏨 SaaSAI للأتمتة\",\n  \"chat_name\": \"اختبار النظام\",\n  \"label\": \"test_broadcast\",\n  \"metadata\": {\n    \"lead_id\": \"TEST-{{ $now.format('YYYYMMDDHHmm') }}\",\n    \"journey_step\": \"test\",\n    \"campaign\": \"system_check\",\n    \"priority\": \"high\",\n    \"content_score\": 100,\n    \"platform_source\": \"n8n_manual_test\",\n    \"image_url\": \"\",\n    \"booking_link\": \"wa.me/966XXXXXXXXX\"\n  }\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – WhatsApp صورة + نص1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        -128
+      ],
+      "id": "6fe0b1b1-8d6f-4599-bb19-5e21c9af7d7b",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "VMMO2p7Hn6D57NSE",
+          "name": "Header Auth account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تنظيف وتوحيد أرقام الهواتف دولياً لواتساب\n// يدعم: اليمن (+967)، السعودية (+966)، مصر (+20)، الإمارات (+971)، إلخ.\n// ═══════════════════════════════════════════════════════════\n\nconst items = $input.all();\n\n// دالة تنظيف الرقم\nfunction normalizePhone(phone, defaultCountry = '966') {\n  if (!phone) return null;\n  \n  // إزالة كل ما عدا الأرقام و+\n  let clean = String(phone).replace(/[^\\d+]/g, '');\n  \n  // إزالة البادئات الشائعة\n  if (clean.startsWith('00')) clean = '+' + clean.slice(2);\n  if (clean.startsWith('0') && !clean.startsWith('+')) clean = '+' + defaultCountry + clean.slice(1);\n  \n  // إضافة + إذا لم توجد\n  if (!clean.startsWith('+')) clean = '+' + clean;\n  \n  // إزالة + وتحويل للصيغة الدولية الصرفة لواتساب\n  return clean.replace('+', '');\n}\n\n// دالة اكتشاف الدولة من الرقم\nfunction detectCountry(phone) {\n  const p = String(phone).replace(/[^\\d]/g, '');\n  if (p.startsWith('967')) return { code: 'YE', name: 'اليمن', prefix: '967' };\n  if (p.startsWith('966')) return { code: 'SA', name: 'السعودية', prefix: '966' };\n  if (p.startsWith('20')) return { code: 'EG', name: 'مصر', prefix: '20' };\n  if (p.startsWith('971')) return { code: 'AE', name: 'الإمارات', prefix: '971' };\n  if (p.startsWith('965')) return { code: 'KW', name: 'الكويت', prefix: '965' };\n  if (p.startsWith('974')) return { code: 'QA', name: 'قطر', prefix: '974' };\n  if (p.startsWith('973')) return { code: 'BH', name: 'البحرين', prefix: '973' };\n  if (p.startsWith('968')) return { code: 'OM', name: 'عُمان', prefix: '968' };\n  if (p.startsWith('962')) return { code: 'JO', name: 'الأردن', prefix: '962' };\n  if (p.startsWith('961')) return { code: 'LB', name: 'لبنان', prefix: '961' };\n  return { code: 'UNKNOWN', name: 'أخرى', prefix: null };\n}\n\nreturn items.map(item => {\n  const phone = item.json.phone || item.json.phone_normalized || '';\n  const country = detectPhone(phone);\n  const normalized = normalizePhone(phone, country.prefix || '966');\n  \n  return {\n    json: {\n      ...item.json,\n      phone_normalized: normalized,\n      phone_original: phone,\n      country_code: country.code,\n      country_name: country.name,\n      country_prefix: country.prefix,\n      is_valid_phone: normalized && normalized.length >= 10 && normalized.length <= 15\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        -128
+      ],
+      "id": "bc5bf498-ef9c-4b7a-96e0-837d39576b08",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تحويل رابط الصورة إلى Binary Data لـ n8n\n// ═══════════════════════════════════════════════════════════\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `makkah_post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -400
+      ],
+      "id": "cb3c07d0-3289-42a8-b801-f724a3aa752f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ════════════════════════════════════════════════════════════════════\n// ⏸️ Canva Template Node — للتفعيل لاحقاً\n// هذه العقدة معطلة حتى يتم ربط Canva API\n// عند التفعيل: ستُنشئ تصميماً من قالب Canva وتضيف النص عليه\n// ════════════════════════════════════════════════════════════════════\n\n// TODO: تفعيل عند توفر Canva API credentials\n// الـ API: https://www.canva.com/developers/docs/api/\n\nconst d = $input.first().json;\nreturn [{ json: {\n  ...d,\n  canva_status: 'paused',\n  canva_note: 'Canva integration pending — will use template_text_ar: ' + (d.template_text_ar || ''),\n  canva_template_id: 'not_set_yet'\n}}];\n"
+      },
+      "id": "46b6c0ce-3875-434b-89af-5e3be75d9b6b",
+      "name": "Canva Template (للتفعيل لاحقاً)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        176
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed ALmekhlafi",
+        "height": 368,
+        "width": 784,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "5cf503c5-ab9b-4c3a-a5d1-b3574a3ef069",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 736,
+        "width": 752,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "4a6768c6-9f0a-481e-a3ee-7e31e8dfc09e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 224,
+        "width": 624,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        96,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "61fd0633-30fc-4fd8-b614-eb99dcd8300f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 512,
+        "width": 624,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        96,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "c7df94ec-ff0b-4af3-aaaa-33343ae7dd80",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        -32
+      ],
+      "id": "63269539-04f0-4e72-be5e-24f6a003a809"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 192,
+        "width": 784,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "1eb819ad-4900-4c91-95d2-e640a347efc5",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "##  للتفعيل لاحقا",
+        "height": 240,
+        "width": 784,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "c81d58e5-3bb6-4225-934a-fd099157e905",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule – نشر يومي 9 صباحاً": {
+      "main": [
+        [
+          {
+            "node": "GSheets – سحب منشور ready_to_publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – نشر يدوي فوري": {
+      "main": [
+        [
+          {
+            "node": "GSheets – سحب منشور ready_to_publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – سحب منشور ready_to_publish": {
+      "main": [
+        [
+          {
+            "node": "IF – هل توجد منشورات؟",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF – هل توجد منشورات؟": {
+      "main": [
+        [
+          {
+            "node": "Code – تحضير المنشور للنشر",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – لا توجد منشورات اليوم",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – استخراج URL الصورة النهائية": {
+      "main": [
+        [
+          {
+            "node": "GSheets – تحديث URL الصورة",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP – نشر على TikTok (Buffer)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Tweet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Facebook Graph API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge – تجميع نتائج النشر": {
+      "main": [
+        [
+          {
+            "node": "Code – تقييم النشر وبناء التقرير",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – تقييم النشر وبناء التقرير": {
+      "main": [
+        [
+          {
+            "node": "GSheets – تحديث حالة المنشور إلى published",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GSheets – تسجيل في publish_log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram – تقرير النشر اليومي",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – تسجيل خطأ F8": {
+      "main": [
+        [
+          {
+            "node": "Telegram – تنبيه خطأ F8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tweet": {
+      "main": [
+        [
+          {
+            "node": "Merge – تجميع نتائج النشر",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish": {
+      "main": [
+        [
+          {
+            "node": "Merge – تجميع نتائج النشر",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code – تحضير المنشور للنشر": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Update file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update file": {
+      "main": [
+        [
+          {
+            "node": "Code – استخراج URL الصورة النهائية",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "HTTP – WhatsApp صورة + نص1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – WhatsApp صورة + نص1": {
+      "main": [
+        [
+          {
+            "node": "Merge – تجميع نتائج النشر",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        []
+      ]
+    },
+    "Canva Template (للتفعيل لاحقاً)": {
+      "main": [
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – تسجيل خطأ F8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a2cfa6af-717c-474e-a54e-ffea69a021f1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "eZwXrDS2VYa53F4R",
+  "tags": []
+}

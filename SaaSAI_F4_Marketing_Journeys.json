@@ -1,0 +1,2282 @@
+{
+  "name": "SaaSAI – F4 – Marketing Journeys",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-journey",
+        "options": {}
+      },
+      "name": "Webhook – From Flow #3 (Scoring)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        160
+      ],
+      "id": "25c98cff-1760-4483-96f9-87a05f53fb66",
+      "webhookId": "marketing-journey"
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.phone || $json.body?.phone || \"\" }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "67662620-0f6d-4dac-8e01-0c0a9a7b3744",
+      "name": "GSheets – Get Lead Profile",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -208,
+        160
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── Normalize Journey Data v4 — Fixed Webhook Structure ───────────────────\nconst webhook = $('Webhook – From Flow #3 (Scoring)')?.first()?.json || {};\n\n// ✅ استخراج البيانات الفعلية من داخل body\nconst incoming = webhook.body || webhook;\n\n// ✅ جلب الملف الشخصي من جوجل شيت (إن وُجد)\nconst profileItems = $input.all();\nconst profile = (profileItems?.[0]?.json?.phone) ? profileItems[0].json : {};\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 1️⃣ استخراج الهوية والبيانات الأساسية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phone = incoming.phone || incoming.lead_phone || profile.phone || profile.lead_phone || '';\nconst name = incoming.name || incoming.lead_name || incoming.full_name || profile.name || profile.lead_name || 'عميل جديد';\nconst email = incoming.email || incoming.lead_email || profile.email || '';\nconst source = incoming.source || profile.source || 'unknown';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 2️⃣ الدرجة والحالة\n// ═══════════════════════════════════════════════════════════════════════════\nconst final_score = incoming.score || incoming.final_score || profile.final_score || profile.score || 0;\nconst status = incoming.status || incoming.lead_status || profile.status || 'New';\nconst lead_category = incoming.category || incoming.lead_category || profile.category || profile.lead_category || 'B2C_solo';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 3️⃣ نية العميل والأولوية\n// ═══════════════════════════════════════════════════════════════════════════\nconst radar_intent = incoming.radar_intent || profile.radar_intent || 'general_inquiry';\nconst radar_urgency = incoming.radar_urgency || profile.radar_urgency || 'normal';\nconst budget_signal = incoming.budget_signal || profile.budget_signal || 'unknown';\nconst travel_group = incoming.travel_group || profile.travel_group || 'unknown';\nconst stars_preference = incoming.stars_preference || profile.stars_preference || 'any';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 4️⃣ بيانات الاتصال الإضافية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phones_found = incoming.phones_found || profile.phones_found || (phone ? [phone] : []);\nconst pax_hint = incoming.pax || incoming.pax_hint || profile.pax || profile.pax_hint || 0;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 5️⃣ منطق خطوة الرحلة (Journey Step)\n// ═══════════════════════════════════════════════════════════════════════════\nconst storedStep = profile.journey_step || 'new';\nconst isHot = status === 'Hot' || final_score >= 85;\nconst isB2B = lead_category.toUpperCase().startsWith('B2B');\nconst isFamily = lead_category.toLowerCase().includes('family') || travel_group === 'family';\n\nlet journey_step;\nif (isHot) {\n  journey_step = 'hot_contacted';\n} else if (isB2B) {\n  journey_step = 'b2b_nurturing';\n} else if (status === 'Warm' && final_score >= 60) {\n  journey_step = 'warm_followup';\n} else if (status === 'Cold' || final_score < 40) {\n  journey_step = 'cold_archive';\n} else {\n  journey_step = storedStep !== 'new' ? storedStep : 'new_lead';\n}\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 6️⃣ القناة المفضلة + توقيت المتابعة\n// ═══════════════════════════════════════════════════════════════════════════\nconst preferred_channel = incoming.preferred_channel || profile.preferred_channel || \n  (phone ? 'whatsapp' : email ? 'email' : 'telegram');\n\nconst lastContact = profile.last_contacted_at ? new Date(profile.last_contacted_at) : null;\nconst now = new Date();\nconst hours_since_last = lastContact ? Math.round((now - lastContact) / 36e5) : 999;\nconst tooSoon = hours_since_last < 24 && status !== 'Hot';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 7️⃣ الإجراء الموصى به\n// ═══════════════════════════════════════════════════════════════════════════\nconst recommended_action = incoming.recommended_action || \n  (isHot ? 'immediate_call' : \n   status === 'Warm' ? 'whatsapp_followup_24h' : \n   'email_nurture');\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═══════════════════════════════════════════════════════════════════════════\nreturn [{\n  json: {\n    // === الهوية ===\n    phone,\n    name,\n    email,\n    source,\n    \n    // === التقييم ===\n    final_score: Number(final_score),\n    status,\n    lead_category,\n    \n    // === النية والأولوية ===\n    radar_intent,\n    radar_urgency,\n    budget_signal,\n    travel_group,\n    stars_preference,\n    \n    // === الاتصال ===\n    pax_hint: Number(pax_hint),\n    phones_found: Array.isArray(phones_found) ? phones_found : [phones_found].filter(Boolean),\n    preferred_channel,\n    \n    // === الرحلة ===\n    journey_step,\n    recommended_action,\n    \n    // === التوقيت ===\n    tooSoon,\n    hours_since_last,\n    now_iso: now.toISOString(),\n    \n    // === للتدقيق ===\n    _debug: {\n      incoming_keys: Object.keys(incoming),\n      profile_keys: Object.keys(profile),\n      score_used: final_score,\n      category_used: lead_category,\n      using_body_wrapper: !!(webhook.body)\n    }\n  }\n}];"
+      },
+      "name": "Code – Normalize Journey Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        160
+      ],
+      "id": "31bb4bab-ddab-426d-8f2d-c95b38a6a6c8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-25451",
+              "leftValue": "={{ $json.tooSoon }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "name": "If – Too Soon to Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        272,
+        160
+      ],
+      "id": "b9114304-d877-46d5-9199-5591b7beb78e"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1417386966,
+          "mode": "list",
+          "cachedResultName": "journey_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=1417386966"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $json.phone }}",
+            "journey_step": "={{ $json.journey_step || \"\" }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "journey_id",
+              "displayName": "journey_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_template",
+              "displayName": "message_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivery_status",
+              "displayName": "delivery_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "response_received",
+              "displayName": "response_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score_at_time",
+              "displayName": "score_at_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "triggered_at",
+              "displayName": "triggered_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivered_at",
+              "displayName": "delivered_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "next_step",
+              "displayName": "next_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "57fbb9ac-3084-43c6-be95-bacc6c066e02",
+      "name": "GSheets – Log Skip (Too Soon)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        512,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "63b2c492-8d8b-4dce-ae64-9715098c606a",
+                    "leftValue": "={{ $json.journey_step }}",
+                    "rightValue": "hot_contacted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "عميل مهم "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "cd48d49e-bb71-46d1-9273-1d297afed0d1",
+                    "leftValue": "={{ $json.journey_step }}",
+                    "rightValue": "warm_followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "عميل دافئ"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "748f6ade-9ed6-4d8f-a64c-31199aa3961f",
+                    "leftValue": "={{ $json.journey_step }}",
+                    "rightValue": "b2b_nurturing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "شراكات"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "ba82d158-0bba-4f2e-a0e4-b6d12a89111d",
+                    "leftValue": "={{ $json.journey_step }}",
+                    "rightValue": "cold_archive",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "عميل بارد"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "0918cad2-dd97-4c6c-8546-d4416b77fb6d",
+                    "leftValue": "={{ $json.journey_step }}",
+                    "rightValue": "new_lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "عميل جديد"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "name": "Switch – Journey Step Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        448,
+        288
+      ],
+      "id": "4c14fbf1-528b-4956-a8ac-fd005e8e1f27"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── HOT LEAD – إجراء فوري وتحويل مباشر ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst phone = d.phone_normalized || d.phone || d.lead_phone || '';\n\n// 🚨 خط الاستعجال\nconst urgencyLine = d.radar_urgency === 'immediate' \n  ? '🔴 نفهم أنك تحتاج للحجز *الآن* — وسنساعدك فورًا!' \n  : '⚡ طلبك مهم بالنسبة لنا، وسنبدأ المعالجة فورًا.';\n\n// 💰 خط الميزانية المخصص\nconst budgetLine = d.budget_signal === 'luxury' \n  ? '✨ نعرض لك أفضل فنادق 5 نجوم بإطلالة مباشرة على الحرم.' \n  : d.budget_signal === 'mid'\n  ? '💎 نوفر لك خيارات 4 نجوم متميزة بأفضل قيمة.'\n  : d.budget_signal === 'budget'\n  ? '🎯 لدينا عروض توفير ممتازة بأسعار تنافسية.'\n  : '💰 نملك خيارات متنوعة تناسب جميع الميزانيات.';\n\n// 👥 خط عدد الأشخاص\nconst paxLine = d.pax_hint && d.pax_hint > 1 \n  ? `\\n👨‍👩‍👧‍👦 نخصص لك غرفًا مناسبة لمجموعتك (${d.pax_hint} أشخاص).` \n  : d.pax_hint === 1\n  ? '\\n👤 نوفر لك إقامة مريحة ومناسبة لفرد واحد.'\n  : '';\n\n// 🕌 خط تفضيل النجوم\nconst starsLine = d.stars_preference === '5star'\n  ? '\\n⭐ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n⭐ خيارات 4 نجوم مريحة وبموقع ممتاز.'\n  : '';\n\n// 🎯 دعوة للإجراء عاجلة ومباشرة (تحويل فوري)\nconst cta = `\n🚀 *لتأكيد حجزك خلال دقائق*، اختر واحدًا:\n\n1️⃣ 📞 أريد اتصالاً فوريًا من مستشار الحجوزات\n2️⃣ 💬 أريد عرضًا سريعًا مع الأسعار عبر واتساب\n3️⃣ 🗓️ أريد حجزًا مباشرًا (أرسل تواريخي)\n\n_فقط أرسل الرقم (1 أو 2 أو 3) وسنبدأ فورًا!_ ⏱️`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🏨 أهلاً وسهلاً بك يا ${customerName}!\n\n${urgencyLine}\n\n${budgetLine}${starsLine}${paxLine}\n\nنحن متخصصون في حجوزات SaaSAI للأتمتة 2026، وجاهزون لخدمتك الآن.\n\n${cta}\n\n🆔 مرجع الطلب العاجل: ${leadId}\n📞 للطوارئ: اضغط هنا للاتصال مباشرة: https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}\n\nفريق الحجوزات العاجلة — SaaSAI للأتمتة 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'hot_immediate',\n  next_journey_step: 'hot_contacted',\n  priority: 'urgent',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  hot_lead_type: d.radar_urgency === 'immediate' ? 'urgent_booking' : 'high_interest',\n  expected_response_window_minutes: 15,  // نتوقع ردًا خلال 15 دقيقة\n  escalate_if_no_reply_minutes: 30,      // تصعيد لمسؤول إذا لم يرد خلال 30د\n  cta_options: ['1', '2', '3'],          // خيارات الاستجابة الفورية\n  conversion_goal: 'immediate_booking',   // هدف التحويل: حجز فوري\n  whatsapp_click_to_call_url: `https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}`,\n  whatsapp_ready: true,                   // جاهز للإرسال عبر واتساب\n  auto_escalate: true                     // تفعيل التصعيد التلقائي عند عدم الرد\n} }];"
+      },
+      "name": "Code – Hot Immediate Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        0
+      ],
+      "id": "9061ddfe-3d28-41fa-9f86-44ce7fba12ef"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── B2B – شراكة تجارية احترافية ────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || d.company_name || 'شركتنا الكريمة';\nconst companyName = d.company_name || 'شركتكم الموقرة';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'قناتنا الرسمية';\n\n// 🏢 تخصيص خطاب الفئة\nconst catLine = d.lead_category === 'B2B_government' \n  ? 'للجهات الحكومية والوزارات الموقرة' \n  : d.lead_category === 'B2B_conference'\n  ? 'لتنظيم المؤتمرات والفعاليات الاحترافية'\n  : d.lead_category === 'B2B_travel_agency'\n  ? 'لشركات السياحة ووكالات السفر المعتمدة'\n  : 'لشركائنا الاستراتيجيين في قطاع الضيافة';\n\n// 💼 مزايا مخصصة حسب نوع الشراكة\nconst benefits = {\n  'B2B_government': [\n    'عقود سنوية معتمدة وفق الأنظمة الحكومية',\n    'فواتير رسمية وضريبية موحدة',\n    'مدير حساب متخصص للجهات الحكومية',\n    'أولوية قصوى في مواسم الذروة والحج'\n  ],\n  'B2B_conference': [\n    'باقات مؤتمرات شاملة (قاعات + إقامة + خدمة)',\n    'تنسيق لوجستي كامل للوفود والمشاركين',\n    'خصومات حجمية حسب عدد الحضور',\n    'دعم فني 24/7 خلال فترة الفعالية'\n  ],\n  'B2B_travel_agency': [\n    'عمولات تنافسية على كل حجز مؤكد',\n    'لوحة تحكم خاصة لمتابعة الحجوزات',\n    'تأكيد فوري وتذاكر إلكترونية',\n    'دعم متعدد اللغات لعملائكم الدوليين'\n  ],\n  'default': [\n    'عقود مرنة بأسعار شراكة حصرية',\n    'أولوية في التخصيص خلال المواسم',\n    'مدير حساب مخصص لمتابعة احتياجاتكم',\n    'تقارير أداء شهرية وفواتير احترافية'\n  ]\n};\n\nconst benefitList = benefits[d.lead_category] || benefits['default'];\n\n// 📅 اقتراح مواعيد ذكي (اختياري)\nconst suggestedTimes = [\n  'الأحد - الثلاثاء 10ص-2م',\n  'الأربعاء - الخميس 4م-8م',\n  'موعد مخصص يناسب جدولكم'\n];\n\n// 🎯 دعوة للإجراء احترافية لقطاع الأعمال\nconst cta = `📋 *لبدء شراكة مثمرة*، يسعدنا تحديد موعد قصير (15 دقيقة) لمناقشة:\n\n• احتياجاتكم الخاصة لموسم 2026\n• الباقات الأنسب لنوع نشاطكم\n• آلية التعاون والتكامل الفني\n\n🗓️ *مواعيد مقترحة*: ${suggestedTimes.join(' | ')}\n\n_أو ردوا بـ \"موعد\" وسنتواصل معكم لتنسيق الوقت الأنسب_ 🤝`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🤝 أهلاً وسهلاً بكم في ${companyName}،\n\nنرحب بكم ${catLine} في منظومة SaaSAI للأتمتة 2026.\n\n✨ *مزايا الشراكة معنا:*\n${benefitList.map(b => `• ${b}`).join('\\n')}\n\n${cta}\n\n🆔 مرجع الشراكة: ${leadId}\n📧 للتواصل المباشر: partnerships@makkah-hotels.com\n\nمع خالص التقدير،  \nفريق شراكات الأعمال — SaaSAI للأتمتة 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'b2b_partnership',\n  next_journey_step: 'b2b_meeting_requested',\n  priority: 'high',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  partnership_type: d.lead_category || 'general_b2b',\n  expected_response_window_hours: 48,  // نتوقع ردًا خلال يومين عمل\n  follow_up_if_no_reply: true,          // إرسال تذكير احترافي إذا لم يردوا\n  meeting_duration_minutes: 15,         // مدة المكالمة المقترحة\n  cta_keyword: 'موعد',                  // كلمة الاستجابة المتوقعة\n  contact_email: 'partnerships@makkah-hotels.com', // بديل للتواصل\n  whatsapp_ready: true,                 // جاهز للإرسال عبر واتساب\n  b2b_priority_score: d.final_score || 80 // درجة أولوية الشراكة\n} }];"
+      },
+      "name": "Code – B2B Partnership Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        160
+      ],
+      "id": "13031ece-7fda-46e3-8b77-74e1a8c7a53b"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── WARM NEW – ترحيب أولي ذكي ───────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'موقعنا';\n\n// 🏨 تخصيص خط النجوم\nconst starsLine = d.stars_preference === '5star' \n  ? 'فنادق 5 نجوم فاخرة قريبة من الحرم 🌟' \n  : d.stars_preference === '4star'\n  ? 'فنادق 4 نجوم مريحة بموقع ممتاز ✨'\n  : 'أفضل خدمات SaaSAI بمختلف الفئات لتناسب احتياجاتك 💰';\n\n// 👥 تخصيص خط المجموعة\nconst groupLine = d.travel_group === 'family' \n  ? 'مع خيارات غرف عائلية واسعة 🧒👧' \n  : d.travel_group === 'couple'\n  ? 'مع خصوصية وهدوء يناسبكما 💑'\n  : d.travel_group === 'group'\n  ? 'مع تنسيق خاص للمجموعات 👥'\n  : '';\n\n// 💎 ملاحظة الميزانية (اختياري)\nconst budgetNote = d.budget_signal === 'luxury'\n  ? '\\n🎁 نضمن لك أفضل قيمة مقابل الفخامة التي تبحث عنها.'\n  : d.budget_signal === 'mid'\n  ? '\\n🎁 نوفر لك التوازن المثالي بين الجودة والسعر.'\n  : '';\n\n// 🎯 دعوة للإجراء مبسطة وتفاعلية\nconst cta = `📌 *للحصول على عرضك المخصص خلال دقائق*، اختر رقمًا:\n\n1️⃣ 🗓️ أريد تحديد تواريخ إقامتي\n2️⃣ 👥 أريد معرفة الأسعار حسب عدد الأشخاص  \n3️⃣ 🕌 أريد فندقًا قريبًا جدًا من الحرم\n4️⃣ 💬 أريد التحدث مع مستشار حجوزات\n\n_فقط أرسل الرقم المطلوب وسنبدأ فورًا!_ 😊`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🕌 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لاهتمامك بحجوزات SaaSAI للأتمتة عبر ${source}! 🙏\n\n✨ نخصص لك ${starsLine} ${groupLine} بأفضل الأسعار لموسم 2026.${budgetNote}\n\n${cta}\n\n🆔 مرجع طلبك: ${leadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🤲`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_welcome',\n  next_journey_step: 'warm_followup',\n  priority: d.final_score >= 70 ? 'high' : 'normal', // رفع الأولوية للدرجات الجيدة\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  welcome_type: 'interactive_menu',  // نوع الترحيب: قائمة تفاعلية\n  expected_response_window_hours: 24, // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,        // إرسال تذكير إذا لم يرد\n  cta_options: ['1', '2', '3', '4'],  // خيارات الاستجابة المتوقعة\n  collection_fields: ['dates', 'pax', 'preferences'], // البيانات التي نجمعها\n  whatsapp_ready: true                // جاهز للإرسال عبر واتساب\n} }];"
+      },
+      "name": "Code – Warm Welcome Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        336
+      ],
+      "id": "649ef6a2-aa34-4c78-872c-ea905cd80fd8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── WARM FOLLOWUP – متابعة دافئة مخصصة ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب الميزانية\nconst offerLine = d.budget_signal === 'luxury' \n  ? 'عرض VIP خاص على فنادق 5 نجوم بإطلالة على الحرم 🌟' \n  : d.budget_signal === 'mid'\n  ? 'عرض حصري بخصم يصل 30% على فنادق 4 نجوم مميزة 💎'\n  : 'عرض توفير بخصم حتى 40% على خيارات مريحة ومناسبة 💰';\n\n// 🏨 ملاحظة حسب تفضيل النجوم\nconst starsNote = d.stars_preference === '5star'\n  ? '\\n✨ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n✨ خيارات 4 نجوم مريحة وبأسعار منافسة.'\n  : '';\n\n// 🧒 ملاحظة للعائلات\nconst familyNote = (d.travel_group === 'family' || d.lead_category?.includes('family'))\n  ? '\\n👨‍👩‍👧‍👦 نوفر غرفًا عائلية واسعة وخدمات مناسبة للأطفال.'\n  : '';\n\n// 📝 إصلاح عرض \"عدد الأشخاص\" عندما يكون 0 أو فارغ\nconst displayPax = d.travel_group === 'family' \n  ? 'عائلتك' \n  : d.pax_hint && d.pax_hint > 1 \n  ? `${d.pax_hint} أشخاص` \n  : 'إقامتك';\n\n// 🆔 مرجع بديل إذا فُقد lead_id\nconst displayLeadId = leadId !== 'غير متاح' ? leadId : 'J-' + Date.now().toString(36).toUpperCase();\n\n// 📝 بناء الرسالة النهائية\nconst message = `🌟 مرحباً ${customerName}،\n\nنتمنى أن تكونوا بخير وعافية!\n\nلدينا ${offerLine} في مكة المكرمة 2026 محجوز خصيصاً لـ ${displayPax}.${starsNote}${familyNote}\n\n⏰ *العرض متاح لفترة محدودة فقط* (48 ساعة).\n\n🎁 *مزايا الحجز الآن:*\n• تأكيد فوري للحجز\n• إلغاء مجاني قبل 24 ساعة\n• دعم 24/7 عبر واتساب\n\nهل تريد التفاصيل الكاملة والأسعار؟ \n📲 فقط أرسل \"نعم\" أو تواصل معنا مباشرة 🏨\n\n🆔 مرجع العرض: ${displayLeadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_followup',\n  next_journey_step: 'warm_offer_sent',\n  priority: d.final_score >= 75 ? 'high' : 'normal',\n  text: message,\n  \n  // === بيانات إضافية للتحليل ===\n  offer_type: d.budget_signal || 'standard',\n  expected_response_window_hours: 48,\n  follow_up_if_no_reply: true,\n  offer_expiry_iso: new Date(Date.now() + 48 * 36e5).toISOString(),\n  cta_keyword: 'نعم',\n  whatsapp_ready: true\n} }];"
+      },
+      "name": "Code – Warm Followup Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        480
+      ],
+      "id": "fc1c13b0-a770-4810-b248-9efe70b91ecf"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── COLD RE-ENGAGE – إعادة تفعيل (مُحسّن) ─────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج الاسم بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب بيانات العميل (اختياري)\nconst offerText = d.budget_signal === 'luxury'\n  ? 'باقات فاخرة بأسعار حصرية للموسم القادم 🌟'\n  : d.stars_preference === '5star'\n  ? 'غرف 5 نجوم بإطلالة على الحرم بخصم ترحيبي 🕌'\n  : 'عروض موسمية تناسب جميع الميزانيات 💰';\n\n// 📝 بناء الرسالة النهائية\nconst message = `👋 مرحباً ${customerName}،\n\nمنذ فترة لم نتواصل – نأمل أن تكون رحلتك لمكة المكرمة ما زالت ضمن خططك!\n\n🎁 ${offerText}\n\nإذا كنت لا تزال مهتماً بالحجز، نسعد بمساعدتك في أي وقت.\n\n📲 أرسل \"مهتم\" وسنتواصل معك فوراً 🕌\n\n🆔 مرجع: ${leadId}`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'cold_reengage',\n  next_journey_step: 'cold_reengaged',\n  priority: 'low',\n  text: message,  // ✅ الرسالة جاهزة للإرسال الفعلي\n  // === بيانات إضافية للتحليل ===\n  reengage_reason: 'long_no_contact',\n  offer_type: d.budget_signal || 'general',\n  expected_response_window_hours: 72,  // نتوقع ردًا خلال 3 أيام\n  follow_up_if_no_reply: true  // إذا لم يرد، نرسل تذكيرًا لاحقًا\n} }];"
+      },
+      "name": "Code – Cold Re-engagement Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        640
+      ],
+      "id": "882cf86b-fa98-413a-b605-fc5f9b8de627"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── FALLBACK – مسار غير معروف (رسالة آمنة + إعادة توجيه) ───────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst journeyStep = d.journey_step || 'unknown';\nconst source = d.source || 'قناتنا';\n\n// 📝 رسالة عامة آمنة وموجهة لجمع البيانات\nconst message = `🏨 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لتواصلك معنا بخصوص SaaSAI للأتمتة 2026 عبر ${source}. 🙏\n\nنحن هنا لمساعدتك في العثور على أفضل إقامة قريبة من الحرم المكي، بأسعار تناسب احتياجاتك.\n\n✨ *لنبدأ معًا*، أخبرنا قليلاً عن رحلتك:\n\n🗓️ ما هو تاريخ وصولك المتوقع؟\n👥 كم عدد الأشخاص في مجموعتك؟\n⭐ هل تفضل فنادق 5 نجوم، 4 نجوم، أو خيارات اقتصادية؟\n\n_فقط أرسل إجاباتك وسنجهّز لك عرضًا مخصصًا خلال دقائق!_ 😊\n\n🆔 مرجع استفسارك: ${leadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'generic_intro',\n  next_journey_step: 'warm_new',  // إعادة توجيه آمن لمسار الترحيب وجمع البيانات\n  priority: 'normal',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  fallback_reason: 'unknown_journey_step',  // سبب استخدام المسار الاحتياطي\n  original_journey_step: journeyStep,       // حفظ القيمة الأصلية للتدقيق\n  auto_reroute_to: 'warm_new',              // المسار الذي سيُعاد التوجيه إليه\n  data_collection_mode: true,               // تفعيل وضع جمع البيانات\n  expected_response_window_hours: 24,       // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,              // إرسال تذكير إذا لم يرد\n  whatsapp_ready: true,                     // جاهز للإرسال عبر واتساب\n  \n  // === للتدقيق الفني ===\n  _debug: {\n    fallback_triggered_at: new Date().toISOString(),\n    missing_journey_mapping: journeyStep,\n    safe_mode_enabled: true\n  }\n} }];"
+      },
+      "name": "Code – Fallback Generic Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        800
+      ],
+      "id": "e5179e04-ec54-4ed9-b688-0e4b16f4c7a8"
+    },
+    {
+      "parameters": {},
+      "name": "Merge All Message Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        992,
+        400
+      ],
+      "id": "44f548d8-d56d-4d20-a0b2-927f51df2c13"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "96e34404-5cce-45eb-b031-7dfc0a3e4ea0",
+                    "leftValue": "={{ $json.preferred_channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "d48223fc-7ff1-4bf0-a9f6-5bac74c51688",
+                    "leftValue": "={{ $json.preferred_channel }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "d6b80205-b4d2-4e21-9ec8-a2d9a8abf408",
+                    "leftValue": "={{ $json.preferred_channel }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "af1e59a1-2a81-481d-bc15-1c3b81bfd6f0",
+                    "leftValue": "={{ $json.preferred_channel }}",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "email"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "name": "Switch – Preferred Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1392,
+        352
+      ],
+      "id": "460af137-f8ab-43fc-88d3-85ba39df0503"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://app.timelines.ai/integrations/api/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone_normalized || $json.phone }}\",\n  \"text\": \"{{ $json.text || $json.message || 'رسالة تجريبية من نظام حجوزات مكة ✅' }}\",\n  \"chat_name\": \"{{ $json.name || $json.lead_name || 'عميل' }}\",\n  \"label\": \"{{ $json.message_template || $json.journey_step || 'test_label' }}\",\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id || 'test_' + Date.now() }}\",\n    \"journey_step\": \"{{ $json.journey_step || 'unknown' }}\",\n    \"campaign\": \"test_yemen\",\n    \"priority\": \"{{ $json.priority || 'normal' }}\",\n    \"debug_source\": \"n8n_work4\"\n  }\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – Deliver via WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        240
+      ],
+      "id": "9c0fcb2e-b227-4f79-9b48-1ea848ce46a6",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "VMMO2p7Hn6D57NSE",
+          "name": "Header Auth account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, lead_email: $json.email, channel: 'telegram', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name, pax: $json.pax_hint, company_name: 'SaaSAI للأتمتة', offer_code: 'MAKKAH2026' }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – Deliver via Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        400
+      ],
+      "id": "92dab2ce-0820-4326-98dd-b1956a163fdf",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, channel: 'sms', custom_message: $json.text.substring(0,160), template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – Deliver via SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        560
+      ],
+      "id": "fa3d7748-27be-441d-8199-3dd1f507e05c",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead_email: $json.email, channel: 'email', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – Deliver via Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        720
+      ],
+      "id": "2fdb8fd8-463d-4211-8077-fc777998b15a",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, channel: 'whatsapp', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "name": "HTTP – Deliver Fallback (WhatsApp)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1680,
+        880
+      ],
+      "id": "165d8547-4b1f-4901-94e7-73c852df26d8",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "name": "Merge Delivery Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        1952,
+        384
+      ],
+      "id": "25be7b26-1ab4-45f7-80e7-e09092fe5af9"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1136316584,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $json.lead_id }}",
+            "content_hash": "={{ $json.content_hash }}",
+            "phone": "={{ $json.phone }}",
+            "name": "={{ $json.name }}",
+            "full_name": "={{ $json.full_name || $json.name || '' }}",
+            "username": "={{ $json.username || '' }}",
+            "email": "={{ $json.email || '' }}",
+            "nationality": "={{ $json.nationality || '' }}",
+            "source": "={{ $json.source }}",
+            "platform": "={{ $json.platform }}",
+            "radar_intent": "={{ $json.radar_intent || '' }}",
+            "radar_urgency": "={{ $json.radar_urgency || '' }}",
+            "radar_quality": "={{ $json.radar_quality || 0 }}",
+            "lead_quality": "={{ $json.lead_quality || 0 }}",
+            "score": "={{ $json.score || 0 }}",
+            "final_score": "={{ $json.final_score || 0 }}",
+            "category": "={{ $json.category || 'COLD' }}",
+            "status": "={{ $json.status || 'new' }}",
+            "journey_step": "={{ $json.journey_step || '' }}",
+            "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
+            "travel_group": "={{ $json.travel_group || 'unknown' }}",
+            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
+            "pax_hint": "={{ $json.pax_hint || 0 }}",
+            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "nights_hint": "={{ $json.nights_hint || 0 }}",
+            "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
+            "raw_text": "={{ $json.raw_text || '' }}",
+            "message": "={{ $json.message || $json.last_message || '' }}",
+            "notes": "={{ $json.notes || $json.ai_reason || '' }}",
+            "ai_reason": "={{ $json.ai_reason || '' }}",
+            "profile_url": "={{ $json.profile_url || '' }}",
+            "post_url": "={{ $json.post_url || '' }}",
+            "phones_found": "={{ JSON.stringify($json.phones_found || []) }}",
+            "has_phone": "={{ $json.has_phone || false }}",
+            "phone_count": "={{ $json.phone_count || 0 }}",
+            "comment_id": "={{ $json.comment_id || '' }}",
+            "item_type": "={{ $json.item_type || 'comment' }}",
+            "consent": "={{ $json.consent || false }}",
+            "assigned_to": "={{ $json.assigned_to || '' }}",
+            "priority": "={{ $json.priority || 'normal' }}",
+            "recommended_action": "={{ $json.recommended_action || '' }}",
+            "lead_category": "={{ $json.lead_category || '' }}",
+            "lead_type": "={{ $json.lead_type || '' }}",
+            "preferred_channel": "={{ $json.preferred_channel || 'whatsapp' }}",
+            "base_score": "={{ $json.base_score || 0 }}",
+            "loyalty_bonus": "={{ $json.loyalty_bonus || 0 }}",
+            "urgency_bonus": "={{ $json.urgency_bonus || 0 }}",
+            "intent_bonus": "={{ $json.intent_bonus || 0 }}",
+            "phone_bonus": "={{ $json.phone_bonus || 0 }}",
+            "budget_bonus": "={{ $json.budget_bonus || 0 }}",
+            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
+            "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
+            "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
+            "group_bonus": "={{ $json.group_bonus || 0 }}",
+            "score_breakdown": "={{ JSON.stringify($json.score_breakdown || {}) }}",
+            "scored_at": "={{ $json.scored_at || '' }}",
+            "is_radar": "={{ $json.is_radar || false }}",
+            "is_direct_inbound": "={{ $json.is_direct_inbound || false }}",
+            "is_demo": "={{ $json.is_demo || false }}",
+            "flow_origin": "={{ $json.flow_origin || '' }}",
+            "created_at": "={{ $json.created_at || $now }}",
+            "captured_at": "={{ $json.captured_at || $now }}",
+            "updated_at": "={{ $now }}",
+            "archived_at": "={{ $json.archived_at || '' }}",
+            "task_id": "={{ $json.task_id || '' }}",
+            "task_type": "={{ $json.task_type || '' }}",
+            "sla_minutes": "={{ $json.sla_minutes || 0 }}",
+            "interaction_count": "={{ $json.interaction_count || 0 }}",
+            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "handoff_at": "={{ $json.handoff_at || '' }}"
+          },
+          "matchingColumns": [
+            "lead_id"
+          ],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_hash",
+              "displayName": "content_hash",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nationality",
+              "displayName": "nationality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_intent",
+              "displayName": "radar_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_urgency",
+              "displayName": "radar_urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "radar_quality",
+              "displayName": "radar_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_quality",
+              "displayName": "lead_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_score",
+              "displayName": "final_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_signal",
+              "displayName": "budget_signal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "travel_group",
+              "displayName": "travel_group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_preference",
+              "displayName": "stars_preference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax_hint",
+              "displayName": "pax_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "check_in_hint",
+              "displayName": "check_in_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nights_hint",
+              "displayName": "nights_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_text",
+              "displayName": "raw_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reason",
+              "displayName": "ai_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_url",
+              "displayName": "profile_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phones_found",
+              "displayName": "phones_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_phone",
+              "displayName": "has_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_count",
+              "displayName": "phone_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comment_id",
+              "displayName": "comment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "item_type",
+              "displayName": "item_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent",
+              "displayName": "consent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_to",
+              "displayName": "assigned_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recommended_action",
+              "displayName": "recommended_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_category",
+              "displayName": "lead_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_type",
+              "displayName": "lead_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "preferred_channel",
+              "displayName": "preferred_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "base_score",
+              "displayName": "base_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "loyalty_bonus",
+              "displayName": "loyalty_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency_bonus",
+              "displayName": "urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intent_bonus",
+              "displayName": "intent_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_bonus",
+              "displayName": "phone_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_bonus",
+              "displayName": "budget_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stars_bonus",
+              "displayName": "stars_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inbound_bonus",
+              "displayName": "inbound_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kw_urgency_bonus",
+              "displayName": "kw_urgency_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "b2b_bonus",
+              "displayName": "b2b_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "group_bonus",
+              "displayName": "group_bonus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_breakdown",
+              "displayName": "score_breakdown",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scored_at",
+              "displayName": "scored_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_radar",
+              "displayName": "is_radar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_direct_inbound",
+              "displayName": "is_direct_inbound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_demo",
+              "displayName": "is_demo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "flow_origin",
+              "displayName": "flow_origin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "captured_at",
+              "displayName": "captured_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "archived_at",
+              "displayName": "archived_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_type",
+              "displayName": "task_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sla_minutes",
+              "displayName": "sla_minutes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "interaction_count",
+              "displayName": "interaction_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pax",
+              "displayName": "pax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "handoff_at",
+              "displayName": "handoff_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6b74f82b-b42f-4d0d-a5e4-e522e3c22247",
+      "name": "GSheets – Update Journey Step",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2160,
+        480
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1417386966,
+          "mode": "list",
+          "cachedResultName": "journey_log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=1417386966"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $json.phone }}",
+            "journey_step": "={{ $json.journey_step || \"\" }}",
+            "next_step": "={{ $json.next_step || \"\" }}",
+            "message_template": "={{ $json.message_template || \"\" }}",
+            "channel": "={{ $json.channel || \"\" }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "journey_id",
+              "displayName": "journey_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "journey_step",
+              "displayName": "journey_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_template",
+              "displayName": "message_template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_status",
+              "displayName": "delivery_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "response_received",
+              "displayName": "response_received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score_at_time",
+              "displayName": "score_at_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "triggered_at",
+              "displayName": "triggered_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "delivered_at",
+              "displayName": "delivered_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "next_step",
+              "displayName": "next_step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ff39f9b1-e9d0-436e-a982-33bf08e2362a",
+      "name": "GSheets – Log Journey Event",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2160,
+        640
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ \n  (() => {\n    const stepEmoji = { hot: '🔥', b2b: '🏢', warm_new: '🌱', warm_followup: '🌿', cold_reengage: '❄️', hot_contacted: '✅' };\n    const chanEmoji = { whatsapp: '💬', telegram: '✈️', sms: '📱', email: '📧' };\n    const step = $json.journey_step || '';\n    const cat = $json.lead_category || '';\n    return `${stepEmoji[step]||'📩'} *Journey Message Sent*\\n\\n` +\n      `👤 ${$json.name} | 📞 ${$json.phone}\\n` +\n      `${chanEmoji[$json.preferred_channel]||'📨'} Channel: ${$json.preferred_channel}\\n` +\n      `🗺️ Step: ${step} → ${$json.next_journey_step}\\n` +\n      `📂 Category: ${cat}\\n` +\n      `📊 Score: ${$json.final_score}/100\\n\\n` +\n      `💬 _${($json.text||'').substring(0,120)}_`;\n  })()\n}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Journey Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2400,
+        560
+      ],
+      "id": "5ab2d739-dcaf-4f2e-9361-fb621ee31481",
+      "webhookId": "a0799643-fe61-4058-baff-9fd13ee2fba6",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        560
+      ],
+      "id": "2ad79681-fe7a-4ad5-a593-3f441a25cb16"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1602796460,
+          "mode": "list",
+          "cachedResultName": "workflow_errors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16574Ut6tU3Jcjp1YXKOgH4oNWWIr242oqfH9doaxUio/edit#gid=1602796460"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "node_name": "={{ $json.node_name || \"unknown\" }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "error_id",
+              "displayName": "error_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flow_name",
+              "displayName": "flow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "node_name",
+              "displayName": "node_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_msg",
+              "displayName": "error_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "occurred_at",
+              "displayName": "occurred_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_at",
+              "displayName": "resolved_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolved_by",
+              "displayName": "resolved_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "0fd0c4de-64fe-4639-8531-d67cc53180d8",
+      "name": "GSheets – Log Flow Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -208,
+        560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `⚠️ *خطأ في Flow #4 – Marketing Journeys*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Telegram – Flow Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        560
+      ],
+      "id": "4bb2aee1-516c-40ec-9dab-5a0eb8d011bc",
+      "webhookId": "5a235e6c-62d8-407c-a940-f35a1c53b279",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "pinData": {
+    "Webhook – From Flow #3 (Scoring)": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.srv1332143.hstgr.cloud",
+            "user-agent": "axios/1.13.5",
+            "content-length": "311",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "f81c42443d27",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "phone": "+966559876543",
+            "name": "أم عبدالله",
+            "score": 65,
+            "status": "Warm",
+            "category": "B2C_family",
+            "recommended_action": "whatsapp_followup_24h",
+            "radar_intent": "booking_ready",
+            "budget_signal": "unknown",
+            "travel_group": "family",
+            "stars_preference": "any",
+            "source": "Form",
+            "scored_at": "2026-03-18T19:12:39.030Z"
+          },
+          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/marketing-journey",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook – From Flow #3 (Scoring)": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Get Lead Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Normalize Journey Data": {
+      "main": [
+        [
+          {
+            "node": "If – Too Soon to Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If – Too Soon to Send?": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Skip (Too Soon)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch – Journey Step Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch – Journey Step Router": {
+      "main": [
+        [
+          {
+            "node": "Code – Hot Immediate Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – Warm Followup Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – B2B Partnership Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – Cold Re-engagement Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – Warm Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code – Fallback Generic Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Hot Immediate Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – B2B Partnership Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Message Branches": {
+      "main": [
+        [
+          {
+            "node": "Switch – Preferred Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch – Preferred Channel": {
+      "main": [
+        [
+          {
+            "node": "HTTP – Deliver via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP – Deliver via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP – Deliver via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP – Deliver via Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP – Deliver Fallback (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – Deliver via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Merge Delivery Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – Deliver via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Merge Delivery Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Delivery Responses": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Update Journey Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Flow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Get Lead Profile": {
+      "main": [
+        [
+          {
+            "node": "Code – Normalize Journey Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Update Journey Step": {
+      "main": [
+        [
+          {
+            "node": "GSheets – Log Journey Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Journey Event": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Journey Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – Log Flow Error": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Flow Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Warm Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Warm Followup Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code – Cold Re-engagement Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – Fallback Generic Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Message Branches",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP – Deliver via SMS": {
+      "main": [
+        [
+          {
+            "node": "Merge Delivery Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP – Deliver via Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Delivery Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP – Deliver Fallback (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Merge Delivery Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2c83073f-fd81-4b03-a3d9-fc7d5cf484af",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "bWS2fmt3L9WyDD5t",
+  "tags": []
+}

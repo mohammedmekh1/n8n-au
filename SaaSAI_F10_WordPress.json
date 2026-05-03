@@ -1,0 +1,1127 @@
+{
+  "name": "SaaSAI – F10 – WordPress Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "5f602f23-2f48-4f6f-aaba-643b91af4bbd",
+      "name": "Schedule – 6 صباحاً توليد أفكار",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2336,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wp-pipeline",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "6bb31908-2318-45ae-8040-97b907199906",
+      "name": "Webhook – تشغيل يدوي",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2336,
+        -160
+      ],
+      "webhookId": "makkah-wp-pipeline"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now=new Date(),day=now.getDay(),month=now.getMonth()+1;\nconst dayThemes={0:{theme:'عروض وخصومات',type:'promotional'},1:{theme:'دليل وتعليم',type:'educational'},2:{theme:'تجارب ومراجعات',type:'review'},3:{theme:'موسمي وحج/عمرة',type:'seasonal'},4:{theme:'B2B ووكالات سفر',type:'b2b'},5:{theme:'روحاني وإلهامي',type:'inspirational'},6:{theme:'عروض نهاية أسبوع',type:'offer'}};\nconst dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];\nconst ctx=dayThemes[day]||dayThemes[0];\nconst seasonBonus=month>=3&&month<=5?'رمضان والعمرة':month>=4&&month<=7?'موسم الحج 2026':'';\nconst hotel={name:'SaaSAI للأتمتة'||'SaaSAI للأتمتة',stars:'5',location:'قريب من المسجد الحرام',booking:'https://wa.me/966500000000',usp:'إطلالة على الكعبة المشرفة وخدمات راقية'};\nconst count=parseInt('3');\nconst manualTopics=$input.first().json?.topics||[];\nreturn [{json:{day_theme:ctx.theme,content_type:ctx.type,season_bonus:seasonBonus,hotel,articles_count:manualTopics.length||count,manual_topics:manualTopics,day_name:dayNames[day],today:now.toISOString().split('T')[0],run_at:now.toISOString()}}];\n"
+      },
+      "id": "4ee6d9f9-5c29-4bbf-ad30-bbf908ab75a3",
+      "name": "Code – إعداد سياق التوليد",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx=$('Code – إعداد سياق التوليد').first().json;\nconst aiRaw=$input.first().json;\nlet ideas=[];\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\[[\\s\\S]*\\]/);if(m)ideas=JSON.parse(m[0]);}catch(e){ideas=[];}\nif(!ideas.length)ideas=[{title_ar:'أفضل SaaSAI للأتمتة 2026',title_en:'best-hotels-makkah-2026',slug:'best-hotels-makkah-2026',excerpt_ar:'دليل شامل لأفضل خدمات SaaSAI 2026.',category:'خدمات SaaSAI',tags:'خدمات SaaSAI,عمرة 2026',meta_title:'أفضل خدمات SaaSAI 2026 | احجز الآن',meta_description:'اكتشف أفضل SaaSAI للأتمتة 2026 بأسعار مميزة قريبة من الحرم.',focus_keyword:'SaaSAI للأتمتة 2026',content_outline:['مقدمة','معايير الاختيار','أفضل الفنادق','الأسعار','الحجز','خلاصة'],target_word_count:1000,search_intent:'transactional',priority:'high'}];\nconst now=new Date().toISOString();\nreturn ideas.map((idea,i)=>({json:{article_id:`ART-${ctx.today.replace(/-/g,'')}-${String(i+1).padStart(2,'0')}`,title_ar:idea.title_ar||'',title_en:idea.title_en||'',slug:(idea.slug||idea.title_en||'').toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''),excerpt_ar:idea.excerpt_ar||'',category:idea.category||'خدمات SaaSAI',tags:idea.tags||'',meta_title:idea.meta_title||'',meta_description:idea.meta_description||'',focus_keyword:idea.focus_keyword||'',content_outline:JSON.stringify(idea.content_outline||[]),target_word_count:idea.target_word_count||1000,search_intent:idea.search_intent||'informational',priority:idea.priority||'medium',content_type:ctx.content_type,author:'AI – Claude Sonnet',status:'idea',content_ar:'',featured_image_url:'',site_post_id:'',page_url:'',views:'0',publish_date:'',published_at:'',created_at:now,notes:`مولَّد تلقائياً | ${ctx.day_name} | ${ctx.day_theme}`}}));\n"
+      },
+      "id": "bd9e01d1-2ac7-4f90-b96b-78886254f7e0",
+      "name": "Code – تحليل أفكار Claude للشيت",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2976,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1427001239,
+          "mode": "list",
+          "cachedResultName": "articles",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1427001239"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "article_id": "={{ $json.article_id }}",
+            "title_ar": "={{ $json.title_ar }}",
+            "title_en": "={{ $json.title_en }}",
+            "slug": "={{ $json.slug }}",
+            "excerpt_ar": "={{ $json.excerpt_ar }}",
+            "category": "={{ $json.category }}",
+            "tags": "={{ $json.tags }}",
+            "meta_title": "={{ $json.meta_title }}",
+            "meta_description": "={{ $json.meta_description }}",
+            "author": "={{ $json.author }}",
+            "status": "idea",
+            "views": "0",
+            "created_at": "={{ $json.created_at }}",
+            "notes": "={{ $json.notes }}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title_ar",
+              "displayName": "title_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title_en",
+              "displayName": "title_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slug",
+              "displayName": "slug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_ar",
+              "displayName": "content_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "excerpt_ar",
+              "displayName": "excerpt_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "featured_image_url",
+              "displayName": "featured_image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_title",
+              "displayName": "meta_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_description",
+              "displayName": "meta_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "author",
+              "displayName": "author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "site_post_id",
+              "displayName": "site_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "views",
+              "displayName": "views",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "60b68620-d146-496c-aaca-a18fe9c98479",
+      "name": "GSheets – حفظ الأفكار (status=idea)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        3152,
+        -240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "=5292626260",
+        "text": "={{ `💡 *أفكار جديدة – Flow #10*\\n\\n📅 ${$('Code – إعداد سياق التوليد').first().json.day_name} | ${$('Code – إعداد سياق التوليد').first().json.day_theme}\\n📌 آخر فكرة: ${$json.title_ar}\\n🔑 KW: ${$json.focus_keyword}\\n📊 أولوية: ${$json.priority}\\n\\n✅ محفوظة في الشيت بحالة idea` }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f3966ced-c455-4d45-b21a-b45d8d812257",
+      "name": "Telegram – إشعار الأفكار الجديدة",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3328,
+        -240
+      ],
+      "webhookId": "f460cccb-d77c-4eb4-8be4-a67a248b1099",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "898f90fd-fff2-46cc-8ce2-37f8af4b816a",
+      "name": "Schedule – 7 صباحاً كتابة المحتوى",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2352,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1427001239,
+          "mode": "list",
+          "cachedResultName": "articles",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1427001239"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "idea"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "id": "1324f660-4f25-4b90-86e5-8a6c131fdbb5",
+      "name": "GSheets – سحب الأفكار status=idea",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2544,
+        144
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.article_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5b9618cb-251b-4d0c-bd0b-6e6fd0d7a12e",
+      "name": "IF – توجد أفكار للكتابة",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f0d8695d-99f8-40df-aa8c-5d9cb22e3303",
+      "name": "Split – مقالة واحدة للكتابة",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2960,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idea=$('Split – مقالة واحدة للكتابة').first().json;\nconst aiRaw=$input.first().json;\nlet result={};\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\{[\\s\\S]*\\}/);if(m)result=JSON.parse(m[0]);}catch(e){result={};}\nconst content=result.content_html||'<p>المحتوى قيد الإنشاء</p>';\nreturn [{json:{...idea,content_ar:content,word_count:result.word_count||0,readability_score:result.readability_score||0,featured_image_prompt_en:result.featured_image_prompt_en||'Luxury hotel near Masjid al-Haram Makkah, golden hour, professional photography, 16:9',status:'ready',content_ready_at:new Date().toISOString()}}];\n"
+      },
+      "id": "8436d0a3-f34d-4d63-b318-0ed6ac87b210",
+      "name": "Code – تحليل رد كتابة المحتوى",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "mode": "list",
+          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1427001239,
+          "mode": "list",
+          "cachedResultName": "articles",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1427001239"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "content_ar": "={{ $json.content_ar }}",
+            "status": "ready",
+            "publish_date": "={{ new Date(Date.now()+3*60*60*1000).toISOString() }}",
+            "notes": "={{ '✍️ جاهز | '+$json.word_count+' كلمة | Readability: '+$json.readability_score }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "article_id"
+          ],
+          "schema": [
+            {
+              "id": "article_id",
+              "displayName": "article_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title_ar",
+              "displayName": "title_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title_en",
+              "displayName": "title_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "slug",
+              "displayName": "slug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "content_ar",
+              "displayName": "content_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "excerpt_ar",
+              "displayName": "excerpt_ar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "featured_image_url",
+              "displayName": "featured_image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meta_title",
+              "displayName": "meta_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meta_description",
+              "displayName": "meta_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "author",
+              "displayName": "author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "site_post_id",
+              "displayName": "site_post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "page_url",
+              "displayName": "page_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "views",
+              "displayName": "views",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "word_count",
+              "displayName": "word_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "readability_score",
+              "displayName": "readability_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "featured_image_prompt_en",
+              "displayName": "featured_image_prompt_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "content_ready_at",
+              "displayName": "content_ready_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f0e45071-2716-4d13-aaca-dc7766959c93",
+      "name": "GSheets – تحديث المحتوى status=ready",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        3536,
+        64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VVGkLBpsDGYO7TD4",
+          "name": "Google Sheets account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [$input.first()];"
+      },
+      "id": "c73c4d71-01b4-412e-8554-8af577e145e1",
+      "name": "Split Loop – back",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3168,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=5555555555",
+        "text": "ℹ️ *Flow #10*\\nلا أفكار بحالة `idea`. سيتم توليدها الساعة 6 صباحاً.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "97022a11-bf0c-4d0a-b24b-fb83e151f0bf",
+      "name": "Telegram – لا أفكار للكتابة",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2944,
+        240
+      ],
+      "webhookId": "a06dd82f-1f9b-4398-b4e9-2492cc9754bc",
+      "credentials": {
+        "telegramApi": {
+          "id": "SC8kCvyi53FmnO2O",
+          "name": "Telegram account 2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=={{ `أنت استراتيجي محتوى SEO متخصص في SaaSAI للأتمتة.\\\\n\\\\nالفندق: ${$json.hotel.name} – ${$json.hotel.stars} نجوم – ${$json.hotel.usp}\\\\nرابط الحجز: ${$json.hotel.booking}\\\\nيوم اليوم: ${$json.day_name} | موضوع اليوم: ${$json.day_theme}\\\\nالموسم: ${$json.season_bonus || 'عادي'}\\\\n\\\\nأنشئ ${$json.articles_count} أفكار مقالات SEO مختلفة تماماً.\\\\n\\\\nلكل فكرة:\\\\n- title_ar: عنوان عربي (55-65 حرف)\\\\n- title_en: عنوان إنجليزي (40-55 حرف)\\\\n- slug: رابط URL (أحرف إنجليزية وأرقام وشرطات فقط)\\\\n- excerpt_ar: وصف (120-155 حرف)\\\\n- category: فئة من [خدمات SaaSAI، دليل العمرة، باقات الحج، تجارب العملاء، عروض حصرية، مقارنة فنادق، نصائح السفر، B2B وكالات]\\\\n- tags: 5-7 كلمات مفتاحية بفواصل\\\\n- meta_title: (50-60 حرف)\\\\n- meta_description: (140-160 حرف)\\\\n- focus_keyword: الكلمة الرئيسية\\\\n- content_outline: مصفوفة 5-6 عناوين H2 بالعربية\\\\n- target_word_count: 800-1200\\\\n- search_intent: informational|transactional|navigational\\\\n- priority: high|medium|low\\\\n\\\\nJSON فقط – مصفوفة:\\\\n[{...},{...}]` }}\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2688,
+        -240
+      ],
+      "id": "3c52a6f5-d095-476c-93bb-7178cb0a281c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        -368
+      ],
+      "id": "fff751cf-a614-4118-8f2e-c2c7dc4e1167",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ntA5hFSwHxgA18IL",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"={{ `أنت كاتب محتوى SEO محترف متخصص في خدمات SaaSAI.\\\\n\\\\nاكتب مقالة WordPress كاملة:\\\\nالعنوان: ${$json.title_ar}\\\\nالكلمة المفتاحية: ${$json.focus_keyword}\\\\nنية البحث: ${$json.search_intent}\\\\nالفئة: ${$json.category}\\\\nعدد الكلمات: ${$json.target_word_count||900}\\\\nمخطط المقالة: ${$json.content_outline}\\\\nالفندق: ${'SaaSAI'}\\\\nرابط الحجز: ${'https://wa.me/966500000000'}\\\\n\\\\nالمتطلبات:\\\\n1. عربية فصحى مبسطة\\\\n2. الكلمة المفتاحية في أول 100 كلمة\\\\n3. عناوين H2 و H3\\\\n4. كثافة 1.5-2%\\\\n5. CTA للحجز في النهاية\\\\n6. HTML فقط (p, h2, h3, ul, strong, em)\\\\n\\\\nJSON فقط:\\\\n{\\\\\\\"content_html\\\\\\\":\\\\\\\"...\\\\\\\",\\\\\\\"word_count\\\\\\\":950,\\\\\\\"readability_score\\\\\\\":85,\\\\\\\"featured_image_prompt_en\\\\\\\":\\\\\\\"...\\\\\\\"}` }}\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3120,
+        64
+      ],
+      "id": "042ede3b-a875-4cc6-a791-0bd77303a777",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        -32
+      ],
+      "id": "594d43e8-4fc1-44a5-bc23-ab364d705691",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "CwNqqeK8sLL7mLN4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 336,
+        "width": 624,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2288,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "3e0f519d-ea0c-4ce9-9fb5-9988a369c9fb",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 224,
+        "width": 544,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2912,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "a06a9d9b-d36d-4122-a4a9-329c47206bde",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 224,
+        "width": 512,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2320,
+        96
+      ],
+      "typeVersion": 1,
+      "id": "3b6a2107-35c0-46d6-b46d-7aff2d415341",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Mohammed almekhlafi",
+        "height": 416,
+        "width": 768,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2912,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "9409c779-afb1-441a-8fa3-0cdba68b9505",
+      "name": "Sticky Note7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule – 6 صباحاً توليد أفكار": {
+      "main": [
+        [
+          {
+            "node": "Code – إعداد سياق التوليد",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook – تشغيل يدوي": {
+      "main": [
+        [
+          {
+            "node": "Code – إعداد سياق التوليد",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – تحليل أفكار Claude للشيت": {
+      "main": [
+        [
+          {
+            "node": "GSheets – حفظ الأفكار (status=idea)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – حفظ الأفكار (status=idea)": {
+      "main": [
+        [
+          {
+            "node": "Telegram – إشعار الأفكار الجديدة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule – 7 صباحاً كتابة المحتوى": {
+      "main": [
+        [
+          {
+            "node": "GSheets – سحب الأفكار status=idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – سحب الأفكار status=idea": {
+      "main": [
+        [
+          {
+            "node": "IF – توجد أفكار للكتابة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF – توجد أفكار للكتابة": {
+      "main": [
+        [
+          {
+            "node": "Split – مقالة واحدة للكتابة",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – لا أفكار للكتابة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – تحليل رد كتابة المحتوى": {
+      "main": [
+        [
+          {
+            "node": "GSheets – تحديث المحتوى status=ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSheets – تحديث المحتوى status=ready": {
+      "main": [
+        [
+          {
+            "node": "Split Loop – back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code – إعداد سياق التوليد": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code – تحليل أفكار Claude للشيت",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split – مقالة واحدة للكتابة": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code – تحليل رد كتابة المحتوى",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Loop – back": {
+      "main": [
+        [
+          {
+            "node": "Split – مقالة واحدة للكتابة",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1012daf5-c443-4148-8ccc-c6f905b921ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2cfd2f443a40e284b0927c4aeb382927a8efac7a580c61f9dd9ff5af2643ecc6"
+  },
+  "id": "VJKRPuloRtSd0EJG",
+  "tags": []
+}
