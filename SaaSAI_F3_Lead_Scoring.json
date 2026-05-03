@@ -98,7 +98,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -364,76 +368,17 @@
           "mappingMode": "defineBelow",
           "value": {
             "lead_id": "={{ $json.lead_id }}",
-            "content_hash": "={{ $json.content_hash }}",
-            "phone": "={{ $json.phone }}",
-            "name": "={{ $json.name }}",
-            "full_name": "={{ $json.full_name || $json.name || '' }}",
-            "username": "={{ $json.username || '' }}",
-            "email": "={{ $json.email || '' }}",
-            "nationality": "={{ $json.nationality || '' }}",
-            "source": "={{ $json.source }}",
-            "platform": "={{ $json.platform }}",
-            "radar_intent": "={{ $json.radar_intent || '' }}",
-            "radar_urgency": "={{ $json.radar_urgency || '' }}",
-            "radar_quality": "={{ $json.radar_quality || 0 }}",
-            "lead_quality": "={{ $json.lead_quality || 0 }}",
-            "score": "={{ $json.score || 0 }}",
-            "final_score": "={{ $json.final_score || 0 }}",
-            "category": "={{ $json.category || 'COLD' }}",
-            "status": "={{ $json.status || 'new' }}",
-            "journey_step": "={{ $json.journey_step || '' }}",
-            "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
-            "nights_hint": "={{ $json.nights_hint || 0 }}",
-            "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
-            "raw_text": "={{ $json.raw_text || '' }}",
-            "message": "={{ $json.message || $json.last_message || '' }}",
-            "notes": "={{ $json.notes || $json.ai_reason || '' }}",
-            "ai_reason": "={{ $json.ai_reason || '' }}",
-            "profile_url": "={{ $json.profile_url || '' }}",
-            "post_url": "={{ $json.post_url || '' }}",
-            "phones_found": "={{ JSON.stringify($json.phones_found || []) }}",
-            "has_phone": "={{ $json.has_phone || false }}",
-            "phone_count": "={{ $json.phone_count || 0 }}",
-            "comment_id": "={{ $json.comment_id || '' }}",
-            "item_type": "={{ $json.item_type || 'comment' }}",
-            "consent": "={{ $json.consent || false }}",
-            "assigned_to": "={{ $json.assigned_to || '' }}",
-            "priority": "={{ $json.priority || 'normal' }}",
-            "recommended_action": "={{ $json.recommended_action || '' }}",
-            "lead_category": "={{ $json.lead_category || '' }}",
-            "lead_type": "={{ $json.lead_type || '' }}",
-            "preferred_channel": "={{ $json.preferred_channel || 'whatsapp' }}",
-            "base_score": "={{ $json.base_score || 0 }}",
-            "loyalty_bonus": "={{ $json.loyalty_bonus || 0 }}",
-            "urgency_bonus": "={{ $json.urgency_bonus || 0 }}",
-            "intent_bonus": "={{ $json.intent_bonus || 0 }}",
-            "phone_bonus": "={{ $json.phone_bonus || 0 }}",
-            "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
-            "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
-            "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
-            "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
-            "group_bonus": "={{ $json.group_bonus || 0 }}",
-            "score_breakdown": "={{ JSON.stringify($json.score_breakdown || {}) }}",
-            "scored_at": "={{ $json.scored_at || '' }}",
-            "is_radar": "={{ $json.is_radar || false }}",
-            "is_direct_inbound": "={{ $json.is_direct_inbound || false }}",
-            "is_demo": "={{ $json.is_demo || false }}",
-            "flow_origin": "={{ $json.flow_origin || '' }}",
             "created_at": "={{ $json.created_at || $now }}",
-            "captured_at": "={{ $json.captured_at || $now }}",
-            "updated_at": "={{ $now }}",
-            "archived_at": "={{ $json.archived_at || '' }}",
-            "task_id": "={{ $json.task_id || '' }}",
-            "task_type": "={{ $json.task_type || '' }}",
-            "sla_minutes": "={{ $json.sla_minutes || 0 }}",
-            "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
-            "handoff_at": "={{ $json.handoff_at || '' }}"
+            "full_name": "={{ $json.full_name || $json.name || '' }}",
+            "phone": "={{ $json.phone }}",
+            "service_type": "={{ $json.service_type }}",
+            "status": "={{ $json.status || 'new' }}",
+            "category": "={{ $json.category || 'COLD' }}",
+            "score": "={{ $json.score || 0 }}",
+            "ai_reason": "={{ $json.ai_reason || '' }}",
+            "message": "={{ $json.message || $json.last_message || '' }}",
+            "post_url": "={{ $json.post_url || '' }}",
+            "platform": "={{ $json.platform }}"
           },
           "matchingColumns": [
             "lead_id"
@@ -1098,7 +1043,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -1256,15 +1205,8 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "error_id": "={{ $json.error_id }}",
-            "flow_name": "SaaSAI_F3",
-            "node_name": "={{ $json.node_name || \"Unknown\" }}",
-            "error_msg": "={{ $json.error_msg || $json.error_message || $json.message || \"\" }}",
-            "severity": "high",
-            "occurred_at": "={{ $now }}",
-            "resolved_at": "",
-            "resolved_by": "",
-            "notes": "={{ JSON.stringify($json).substring(0,300) }}"
+            "service_type": "={{ $json.service_type }}",
+            "ai_reason": "={{ JSON.stringify($json).substring(0,300) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1306,7 +1248,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {

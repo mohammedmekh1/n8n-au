@@ -392,7 +392,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "id": "wed-code-003",
@@ -509,7 +513,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "id": "wed-gs-003",
@@ -538,10 +546,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "lead_id": "={{ $json.lead_id }}",
-            "status": "=in_progress",
             "service_type": "=wedding",
-            "journey_step": "=wedding_active",
-            "updated_at": "={{ $now }}"
+            "status": "=in_progress"
           },
           "matchingColumns": [
             "lead_id"
@@ -603,7 +609,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "id": "wed-tg-001",
@@ -815,7 +825,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "id": "wed-tg-err",
