@@ -79,7 +79,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -725,7 +729,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -1026,7 +1034,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -1171,7 +1183,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
@@ -1354,7 +1370,11 @@
           "name": "Google Sheets account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "settings": {},
+      "maxRetries": 5,
+      "waitBetweenRetries": 5000
     },
     {
       "parameters": {
