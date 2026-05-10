@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F9 – Performance Dashboard",
+  "name": "[COMPANY_NAME] – F9 – Performance Dashboard",
   "nodes": [
     {
       "parameters": {
@@ -50,7 +50,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Set Report Date Ranges – Improved Version ─────────────────────────────\nconst now = new Date();\n\n// ✅ استخدام timeZone بدلاً من الأوفست اليدوي (أكثر موثوقية)\nconst riyadhNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));\n\nconst todayStr = riyadhNow.toISOString().split('T')[0];\nconst yesterdayStr = new Date(riyadhNow.getTime() - 86400000).toISOString().split('T')[0];\nconst weekAgoStr = new Date(riyadhNow.getTime() - 7 * 86400000).toISOString().split('T')[0];\nconst monthAgoStr = new Date(riyadhNow.getTime() - 30 * 86400000).toISOString().split('T')[0];\n\n// ✅ تنسيق التاريخ بالعربية\nconst reportDateAr = riyadhNow.toLocaleDateString('ar-SA', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// ✅ وقت التنفيذ بتوقيت الرياض للتدقيق\nconst generatedAtRiyadh = new Date().toLocaleString('en-CA', { \n  timeZone: 'Asia/Riyadh',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false\n}).replace(',', 'T');\n\nreturn [{ json: {\n  today: todayStr,           // \"2026-03-19\"\n  yesterday: yesterdayStr,   // \"2026-03-18\"\n  week_ago: weekAgoStr,      // \"2026-03-12\"\n  month_ago: monthAgoStr,    // \"2026-02-17\" (30 يوم، ليس شهرًا قمريًا)\n  report_date_ar: reportDateAr, // \"الخميس، ١٩ مارس ٢٠٢٦\"\n  report_date_iso: todayStr,    // للمقارنة مع التواريخ الأيزو\n  generated_at: generatedAtRiyadh, // \"2026-03-19T20:53:44\" بتوقيت الرياض\n  timezone: 'Asia/Riyadh'    // للتدقيق\n} }];"
+        "jsCode": "const now = new Date();\n\nconst riyadhNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));\n\nconst todayStr = riyadhNow.toISOString().split('T')[0];\nconst yesterdayStr = new Date(riyadhNow.getTime() - 86400000).toISOString().split('T')[0];\nconst weekAgoStr = new Date(riyadhNow.getTime() - 7 * 86400000).toISOString().split('T')[0];\nconst monthAgoStr = new Date(riyadhNow.getTime() - 30 * 86400000).toISOString().split('T')[0];\n\nconst reportDateAr = riyadhNow.toLocaleDateString('ar-SA', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\nconst generatedAtRiyadh = new Date().toLocaleString('en-CA', { \n  timeZone: 'Asia/Riyadh',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false\n}).replace(',', 'T');\n\nreturn [{ json: {\n  today: todayStr,           // \"2026-03-19\"\n  yesterday: yesterdayStr,   // \"2026-03-18\"\n  week_ago: weekAgoStr,      // \"2026-03-12\"\n  month_ago: monthAgoStr,    // \"2026-02-17\" (30 يوم، ليس شهرًا قمريًا)\n  report_date_ar: reportDateAr, // \"الخميس، ١٩ مارس ٢٠٢٦\"\n  report_date_iso: todayStr,    // للمقارنة مع التواريخ الأيزو\n  generated_at: generatedAtRiyadh, // \"2026-03-19T20:53:44\" بتوقيت الرياض\n  timezone: 'Asia/Riyadh'    // للتدقيق\n} }];"
       },
       "name": "Code – Set Report Dates",
       "type": "n8n-nodes-base.code",
@@ -64,18 +64,18 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "options": {
           "valueRenderMode": "UNFORMATTED_VALUE",
@@ -104,18 +104,18 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1759159568,
           "mode": "list",
           "cachedResultName": "delivery_log",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1759159568"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1759159568"
         },
         "options": {
           "valueRenderMode": "UNFORMATTED_VALUE",
@@ -144,18 +144,18 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1511983230,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1511983230"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1511983230"
         },
         "options": {
           "valueRenderMode": "UNFORMATTED_VALUE",
@@ -184,18 +184,18 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "options": {
           "valueRenderMode": "UNFORMATTED_VALUE",
@@ -224,18 +224,18 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "options": {
           "valueRenderMode": "UNFORMATTED_VALUE",
@@ -263,7 +263,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Calculate All KPIs – FINAL FIXED VERSION ─────────────────────────────\nconst dates = $('Code – Set Report Dates').first().json;\nconst allItems = $input.all();\n\n// 🔍 تسجيل خروج للتدقيق\nconsole.log('🔍 DEBUG: Total items received:', allItems.length);\n\n// 🔧 دوال مساعدة\nconst clean = (val) => val?.toString().trim().toLowerCase() || '';\nconst getDate = (item) => {\n  const d = item?.created_at || item?.captured_at || item?.sent_at || item?.updated_at;\n  return d?.toString().split('T')[0] || null;\n};\nconst isToday = (dateStr) => dateStr === dates.today;\nconst isThisWeek = (dateStr) => dateStr && dateStr >= dates.week_ago && dateStr <= dates.today;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 🔍 فصل البيانات حسب المصدر\n// ═════════════════════════════════════════════════════════════════════════\n\n// 1️⃣ بيانات العملاء (Leads)\nconst leadsRaw = allItems\n  .filter(i => i.json?.journey_step !== undefined || i.json?.radar_intent !== undefined || i.json?.score !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id);\n\nconsole.log('👥 Leads found:', leadsRaw.length);\n\n// 2️⃣ بيانات الإرسال (Delivery) — ✅ إصلاح phone.includes\nconst delivRaw = allItems\n  .filter(i => i.json?.delivery_id !== undefined || i.json?.message_preview !== undefined)\n  .map(i => i.json)\n  .filter(j => {\n    const phone = j?.phone?.toString() || '';\n    return phone && !phone.includes('#ERROR!');\n  });\n\nconsole.log('📨 Deliveries found:', delivRaw.length);\n\n// 3️⃣ مهام المبيعات (Tasks)\nconst tasksRaw = allItems\n  .filter(i => i.json?.task_id !== undefined || i.json?.task_type !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id || j?.task_id);\n\nconsole.log('📋 Tasks found:', tasksRaw.length);\n\n// 4️⃣ الحجوزات (Bookings)\nconst bookingsRaw = allItems\n  .filter(i => {\n    const j = i.json;\n    return j?.status !== undefined && \n           j?.journey_step === undefined &&\n           j?.delivery_id === undefined &&\n           j?.task_id === undefined &&\n           j?.lead_id !== undefined;\n  })\n  .map(i => i.json);\n\nconsole.log('💰 Bookings found:', bookingsRaw.length);\n\n// 5️⃣ بيانات الأسبوع\nconst weekRaw = leadsRaw;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 1️⃣ معالجة بيانات العملاء\n// ═════════════════════════════════════════════════════════════════════════\n\nconst uniqueLeads = {};\nleadsRaw.forEach(l => {\n  const id = l.lead_id;\n  if (!id) return;\n  const updatedAt = new Date(l.updated_at || l.created_at || 0);\n  if (!uniqueLeads[id] || updatedAt > new Date(uniqueLeads[id].updated_at || uniqueLeads[id].created_at || 0)) {\n    uniqueLeads[id] = l;\n  }\n});\nconst leadsArray = Object.values(uniqueLeads);\nconsole.log('✨ Unique leads after dedup:', leadsArray.length);\n\nconst todayLeads = leadsArray.filter(l => isToday(getDate(l)));\nconsole.log('📅 Today leads:', todayLeads.length, '(date:', dates.today + ')');\n\nconst weekLeadsArray = leadsArray.filter(l => isThisWeek(getDate(l)));\n\nconst total_leads = todayLeads.length;\nconst hot_leads = todayLeads.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst warm_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('warm') || clean(l.status) === 'warm').length;\nconst cold_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('cold') || clean(l.status) === 'cold').length;\n\nconst avg_score = todayLeads.length > 0 \n  ? (todayLeads.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / todayLeads.length).toFixed(1)\n  : '0';\n\nconst from_radar = todayLeads.filter(l => clean(l.source)?.includes('radar')).length;\nconst from_whatsapp = todayLeads.filter(l => clean(l.source)?.includes('whatsapp')).length;\nconst from_form = todayLeads.filter(l => clean(l.source) === 'form').length;\nconst from_telegram = todayLeads.filter(l => clean(l.source)?.includes('telegram')).length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 2️⃣ معالجة بيانات الإرسال\n// ═════════════════════════════════════════════════════════════════════════\n\nconst validDeliveries = delivRaw.filter(d => {\n  if (!d.sent_at) return false;\n  if (d.lead_id?.toString()?.includes('test_') || d.flow_trigger === 'manual_test') return false;\n  return isToday(getDate(d)) && clean(d.status) !== 'empty';\n});\n\nconst total_deliveries = validDeliveries.length;\nconst delivered = validDeliveries.filter(d => clean(d.status) === 'delivered').length;\nconst failed = validDeliveries.filter(d => clean(d.status) === 'failed').length;\nconst delivery_rate = total_deliveries > 0 ? ((delivered / total_deliveries) * 100).toFixed(1) : '0';\n\nconst wa_delivered = validDeliveries.filter(d => clean(d.channel) === 'whatsapp' && clean(d.status) === 'delivered').length;\nconst tg_delivered = validDeliveries.filter(d => clean(d.channel) === 'telegram' && clean(d.status) === 'delivered').length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 3️⃣ معالجة مهام المبيعات\n// ═════════════════════════════════════════════════════════════════════════\n\nconst cleanTasks = tasksRaw.map(t => ({\n  ...t,\n  priority: clean(t.priority),\n  status: clean(t.status)\n}));\n\nconst todayTasks = cleanTasks.filter(t => {\n  const d = t.created_at?.split('T')[0];\n  return d === dates.today || d === dates.yesterday;\n});\n\nconst open_tasks = todayTasks.filter(t => t.status === 'open').length;\nconst closed_tasks = todayTasks.filter(t => t.status === 'closed').length;\nconst escalated = todayTasks.filter(t => t.priority === 'urgent' && t.status !== 'closed').length;\n\nconst total_handled = open_tasks + closed_tasks + todayTasks.filter(t => t.status === 'in_progress').length;\nconst task_close_rate = total_handled > 0 ? ((closed_tasks / total_handled) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 4️⃣ معالجة الحجوزات\n// ═════════════════════════════════════════════════════════════════════════\n\nconst validBookings = bookingsRaw.filter(b => {\n  return clean(b.status) === 'booked' && isToday(getDate(b)) && !b.archived_at;\n});\n\nconst uniqueBookings = {};\nvalidBookings.forEach(b => {\n  if (!b.lead_id) return;\n  uniqueBookings[b.lead_id] = b;\n});\nconst finalBookings = Object.values(uniqueBookings);\n\nconst bookings = finalBookings.length;\nconst b2b_booked = finalBookings.filter(b => clean(b.category)?.includes('b2b')).length;\nconst b2c_booked = finalBookings.filter(b => clean(b.category)?.includes('b2c')).length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 5️⃣ معالجة بيانات الأسبوع\n// ═════════════════════════════════════════════════════════════════════════\n\nconst week_leads = weekLeadsArray.length;\nconst week_hot = weekLeadsArray.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst week_booked = weekLeadsArray.filter(l => clean(l.status) === 'booked').length;\nconst week_avg_score = weekLeadsArray.length > 0 \n  ? (weekLeadsArray.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / weekLeadsArray.length).toFixed(1)\n  : '0';\nconst week_conv_rate = week_leads > 0 ? ((week_booked / week_leads) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 📊 معدلات التحويل\n// ═════════════════════════════════════════════════════════════════════════\n\nconst lead_to_booking_rate = total_leads > 0 ? ((bookings / total_leads) * 100).toFixed(1) : '0';\nconst hot_to_booking_rate = hot_leads > 0 ? ((bookings / hot_leads) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═════════════════════════════════════════════════════════════════════════\n\nreturn [{ json: {\n  report_date_ar: dates.report_date_ar,\n  report_date_iso: dates.report_date_iso,\n  generated_at: dates.generated_at,\n\n  total_leads, hot_leads, warm_leads, cold_leads, avg_score,\n  from_radar, from_whatsapp, from_form, from_telegram,\n\n  total_deliveries, delivered, failed, delivery_rate, wa_delivered, tg_delivered,\n\n  open_tasks, closed_tasks, escalated, task_close_rate,\n\n  bookings, b2b_booked, b2c_booked, lead_to_booking_rate, hot_to_booking_rate,\n\n  week_leads, week_hot, week_booked, week_avg_score, week_conv_rate,\n\n  _debug: {\n    total_items_received: allItems.length,\n    leads_found: leadsRaw.length,\n    deliveries_found: delivRaw.length,\n    tasks_found: tasksRaw.length,\n    bookings_found: bookingsRaw.length,\n    unique_leads_count: leadsArray.length,\n    today_leads_count: total_leads,\n    valid_deliveries_count: validDeliveries.length,\n    valid_bookings_count: finalBookings.length,\n    filters_applied: {\n      today: dates.today,\n      week_ago: dates.week_ago,\n      bookings_status_required: 'booked'\n    }\n  }\n} }];"
+        "jsCode": "const dates = $('Code – Set Report Dates').first().json;\nconst allItems = $input.all();\n\nconsole.log('🔍 DEBUG: Total items received:', allItems.length);\n\nconst clean = (val) => val?.toString().trim().toLowerCase() || '';\nconst getDate = (item) => {\n  const d = item?.created_at || item?.captured_at || item?.sent_at || item?.updated_at;\n  return d?.toString().split('T')[0] || null;\n};\nconst isToday = (dateStr) => dateStr === dates.today;\nconst isThisWeek = (dateStr) => dateStr && dateStr >= dates.week_ago && dateStr <= dates.today;\n\n\nconst leadsRaw = allItems\n  .filter(i => i.json?.journey_step !== undefined || i.json?.radar_intent !== undefined || i.json?.score !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id);\n\nconsole.log('👥 Leads found:', leadsRaw.length);\n\nconst delivRaw = allItems\n  .filter(i => i.json?.delivery_id !== undefined || i.json?.message_preview !== undefined)\n  .map(i => i.json)\n  .filter(j => {\n    const phone = j?.phone?.toString() || '';\n    return phone && !phone.includes('#ERROR!');\n  });\n\nconsole.log('📨 Deliveries found:', delivRaw.length);\n\nconst tasksRaw = allItems\n  .filter(i => i.json?.task_id !== undefined || i.json?.task_type !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id || j?.task_id);\n\nconsole.log('📋 Tasks found:', tasksRaw.length);\n\nconst ordersRaw = allItems\n  .filter(i => {\n    const j = i.json;\n    return j?.status !== undefined && \n           j?.journey_step === undefined &&\n           j?.delivery_id === undefined &&\n           j?.task_id === undefined &&\n           j?.lead_id !== undefined;\n  })\n  .map(i => i.json);\n\nconsole.log('💰 Bookings found:', ordersRaw.length);\n\nconst weekRaw = leadsRaw;\n\n\nconst uniqueLeads = {};\nleadsRaw.forEach(l => {\n  const id = l.lead_id;\n  if (!id) return;\n  const updatedAt = new Date(l.updated_at || l.created_at || 0);\n  if (!uniqueLeads[id] || updatedAt > new Date(uniqueLeads[id].updated_at || uniqueLeads[id].created_at || 0)) {\n    uniqueLeads[id] = l;\n  }\n});\nconst leadsArray = Object.values(uniqueLeads);\nconsole.log('✨ Unique leads after dedup:', leadsArray.length);\n\nconst todayLeads = leadsArray.filter(l => isToday(getDate(l)));\nconsole.log('📅 Today leads:', todayLeads.length, '(date:', dates.today + ')');\n\nconst weekLeadsArray = leadsArray.filter(l => isThisWeek(getDate(l)));\n\nconst total_leads = todayLeads.length;\nconst hot_leads = todayLeads.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst warm_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('warm') || clean(l.status) === 'warm').length;\nconst cold_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('cold') || clean(l.status) === 'cold').length;\n\nconst avg_score = todayLeads.length > 0 \n  ? (todayLeads.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / todayLeads.length).toFixed(1)\n  : '0';\n\nconst from_radar = todayLeads.filter(l => clean(l.source)?.includes('radar')).length;\nconst from_whatsapp = todayLeads.filter(l => clean(l.source)?.includes('whatsapp')).length;\nconst from_form = todayLeads.filter(l => clean(l.source) === 'form').length;\nconst from_telegram = todayLeads.filter(l => clean(l.source)?.includes('telegram')).length;\n\n\nconst validDeliveries = delivRaw.filter(d => {\n  if (!d.sent_at) return false;\n  if (d.lead_id?.toString()?.includes('test_') || d.flow_trigger === 'manual_test') return false;\n  return isToday(getDate(d)) && clean(d.status) !== 'empty';\n});\n\nconst total_deliveries = validDeliveries.length;\nconst delivered = validDeliveries.filter(d => clean(d.status) === 'delivered').length;\nconst failed = validDeliveries.filter(d => clean(d.status) === 'failed').length;\nconst delivery_rate = total_deliveries > 0 ? ((delivered / total_deliveries) * 100).toFixed(1) : '0';\n\nconst wa_delivered = validDeliveries.filter(d => clean(d.channel) === 'whatsapp' && clean(d.status) === 'delivered').length;\nconst tg_delivered = validDeliveries.filter(d => clean(d.channel) === 'telegram' && clean(d.status) === 'delivered').length;\n\n\nconst cleanTasks = tasksRaw.map(t => ({\n  ...t,\n  priority: clean(t.priority),\n  status: clean(t.status)\n}));\n\nconst todayTasks = cleanTasks.filter(t => {\n  const d = t.created_at?.split('T')[0];\n  return d === dates.today || d === dates.yesterday;\n});\n\nconst open_tasks = todayTasks.filter(t => t.status === 'open').length;\nconst closed_tasks = todayTasks.filter(t => t.status === 'closed').length;\nconst escalated = todayTasks.filter(t => t.priority === 'urgent' && t.status !== 'closed').length;\n\nconst total_handled = open_tasks + closed_tasks + todayTasks.filter(t => t.status === 'in_progress').length;\nconst task_close_rate = total_handled > 0 ? ((closed_tasks / total_handled) * 100).toFixed(1) : '0';\n\n\nconst validBookings = ordersRaw.filter(b => {\n  return clean(b.status) === 'booked' && isToday(getDate(b)) && !b.archived_at;\n});\n\nconst uniqueBookings = {};\nvalidBookings.forEach(b => {\n  if (!b.lead_id) return;\n  uniqueBookings[b.lead_id] = b;\n});\nconst finalBookings = Object.values(uniqueBookings);\n\nconst orders = finalBookings.length;\nconst b2b_booked = finalBookings.filter(b => clean(b.category)?.includes('b2b')).length;\nconst b2c_booked = finalBookings.filter(b => clean(b.category)?.includes('b2c')).length;\n\n\nconst week_leads = weekLeadsArray.length;\nconst week_hot = weekLeadsArray.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst week_booked = weekLeadsArray.filter(l => clean(l.status) === 'booked').length;\nconst week_avg_score = weekLeadsArray.length > 0 \n  ? (weekLeadsArray.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / weekLeadsArray.length).toFixed(1)\n  : '0';\nconst week_conv_rate = week_leads > 0 ? ((week_booked / week_leads) * 100).toFixed(1) : '0';\n\n\nconst lead_to_order_rate = total_leads > 0 ? ((orders / total_leads) * 100).toFixed(1) : '0';\nconst hot_to_order_rate = hot_leads > 0 ? ((orders / hot_leads) * 100).toFixed(1) : '0';\n\n\nreturn [{ json: {\n  report_date_ar: dates.report_date_ar,\n  report_date_iso: dates.report_date_iso,\n  generated_at: dates.generated_at,\n\n  total_leads, hot_leads, warm_leads, cold_leads, avg_score,\n  from_radar, from_whatsapp, from_form, from_telegram,\n\n  total_deliveries, delivered, failed, delivery_rate, wa_delivered, tg_delivered,\n\n  open_tasks, closed_tasks, escalated, task_close_rate,\n\n  orders, b2b_booked, b2c_booked, lead_to_order_rate, hot_to_order_rate,\n\n  week_leads, week_hot, week_booked, week_avg_score, week_conv_rate,\n\n  _debug: {\n    total_items_received: allItems.length,\n    leads_found: leadsRaw.length,\n    deliveries_found: delivRaw.length,\n    tasks_found: tasksRaw.length,\n    orders_found: ordersRaw.length,\n    unique_leads_count: leadsArray.length,\n    today_leads_count: total_leads,\n    valid_deliveries_count: validDeliveries.length,\n    valid_orders_count: finalBookings.length,\n    filters_applied: {\n      today: dates.today,\n      week_ago: dates.week_ago,\n      orders_status_required: 'booked'\n    }\n  }\n} }];"
       },
       "name": "Code – Calculate All KPIs",
       "type": "n8n-nodes-base.code",
@@ -276,7 +276,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Generate Smart Insights – ROBUST VERSION ────────────────────────────\nconst k = $input.first().json;\n\n// 🔧 دالة مساعدة لتحويل القيم لأرقام بأمان\nconst num = (val, def = 0) => {\n  const n = parseFloat(val);\n  return isNaN(n) ? def : n;\n};\n\nconst insights = [];\nlet overall_rating = '✅ جيد';\nlet action_items = [];\n\n// ═══════════════════════════════════════════════════════════════════════\n// 1️⃣ حجم العملاء الجدد\n// ═══════════════════════════════════════════════════════════════════════\nconst total_leads = num(k.total_leads);\nif (total_leads === 0) {\n  insights.push('⚠️ لا يوجد عملاء جدد اليوم – تحقق من عمل Flow #1 Radar و Flow #2');\n  overall_rating = '🔴 تنبيه';\n  action_items.push('تحقق من تشغيل Flow #1 Radar');\n} else if (total_leads >= 20) {\n  insights.push(`🚀 يوم ممتاز! ${total_leads} عميل جديد`);\n} else if (total_leads >= 10) {\n  insights.push(`📈 أداء جيد – ${total_leads} عميل جديد`);\n} else {\n  insights.push(`📊 ${total_leads} عميل اليوم – أداء طبيعي`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 2️⃣ نسبة العملاء الساخنين (جودة الـ Leads)\n// ═══════════════════════════════════════════════════════════════════════\nconst hot_leads = num(k.hot_leads);\nif (total_leads > 0) {\n  const hotRatio = Math.round((hot_leads / total_leads) * 100);\n  if (hotRatio >= 30) insights.push(`🔥 ${hotRatio}% من الـ Leads كانوا Hot – جودة ممتازة!`);\n  else if (hotRatio >= 15) insights.push(`🌡️ ${hotRatio}% Leads Hot – جيد`);\n  else insights.push(`❄️ نسبة Hot منخفضة ${hotRatio}% – راجع إعدادات Radar`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 3️⃣ معدل التحويل (حجوزات / عملاء)\n// ═══════════════════════════════════════════════════════════════════════\nconst convRate = num(k.lead_to_booking_rate);\nif (convRate >= 15) { \n  insights.push(`💰 تحويل ممتاز ${convRate}%!`); \n  overall_rating = '🟢 ممتاز'; \n}\nelse if (convRate >= 8) { \n  insights.push(`💼 تحويل جيد ${convRate}%`); \n}\nelse if (convRate > 0) { \n  insights.push(`📉 تحويل ${convRate}% – فرصة للتحسين`); \n}\nelse if (total_leads > 0) { \n  insights.push('⚠️ لا يوجد حجوزات اليوم – راجع فريق المبيعات'); \n  action_items.push('متابعة Hot Leads المفتوحة'); \n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 4️⃣ معدل نجاح الإرسال\n// ═══════════════════════════════════════════════════════════════════════\nconst deliveryRate = num(k.delivery_rate);\nconst total_deliveries = num(k.total_deliveries);\nif (deliveryRate < 80 && total_deliveries > 5) {\n  insights.push(`📨 معدل الإرسال ${deliveryRate}% – راجع إعدادات WhatsApp/Telegram`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('مراجعة delivery_log للفشل');\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 5️⃣ المهام المصعّدة\n// ═══════════════════════════════════════════════════════════════════════\nconst escalated = num(k.escalated);\nif (escalated > 0) {\n  insights.push(`🚨 ${escalated} مهمة مبيعات تم تصعيدها – يحتاج متابعة فورية!`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('إغلاق المهام المصعّدة');\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 6️⃣ متوسط جودة الـ Leads\n// ═══════════════════════════════════════════════════════════════════════\nconst avgScore = num(k.avg_score);\nif (avgScore > 0) {\n  const scoreStatus = avgScore >= 70 ? 'مرتفع 🟢' : avgScore >= 50 ? 'متوسط 🟡' : 'منخفض 🔴';\n  insights.push(`📊 متوسط جودة الـ Leads: ${avgScore}/100 – ${scoreStatus}`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 7️⃣ مقارنة مع متوسط الأسبوع (إضافة اختيارية)\n// ═══════════════════════════════════════════════════════════════════════\nconst week_leads = num(k.week_leads);\nconst weekAvg = week_leads > 0 ? Math.round(week_leads / 7) : 0;\nconst todayVsWeek = total_leads - weekAvg;\n\nif (week_leads > 0 && Math.abs(todayVsWeek) >= 2) {\n  const direction = todayVsWeek > 0 ? '📈 أعلى' : '📉 أقل';\n  insights.push(`${direction} من متوسط الأسبوع بـ ${Math.abs(todayVsWeek)} عميل`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═══════════════════════════════════════════════════════════════════════\nreturn [{ json: {\n  ...k,\n  insights: insights.join('\\n'),\n  overall_rating,\n  action_items: action_items.length > 0 \n    ? '⚡ إجراءات مطلوبة:\\n' + action_items.map((a,i) => `${i+1}. ${a}`).join('\\n') \n    : ''\n} }];"
+        "jsCode": "const k = $input.first().json;\n\nconst num = (val, def = 0) => {\n  const n = parseFloat(val);\n  return isNaN(n) ? def : n;\n};\n\nconst insights = [];\nlet overall_rating = '✅ جيد';\nlet action_items = [];\n\nconst total_leads = num(k.total_leads);\nif (total_leads === 0) {\n  insights.push('⚠️ لا يوجد عملاء جدد اليوم – تحقق من عمل Flow #1 Radar و Flow #2');\n  overall_rating = '🔴 تنبيه';\n  action_items.push('تحقق من تشغيل Flow #1 Radar');\n} else if (total_leads >= 20) {\n  insights.push(`🚀 يوم ممتاز! ${total_leads} عميل جديد`);\n} else if (total_leads >= 10) {\n  insights.push(`📈 أداء جيد – ${total_leads} عميل جديد`);\n} else {\n  insights.push(`📊 ${total_leads} عميل اليوم – أداء طبيعي`);\n}\n\nconst hot_leads = num(k.hot_leads);\nif (total_leads > 0) {\n  const hotRatio = Math.round((hot_leads / total_leads) * 100);\n  if (hotRatio >= 30) insights.push(`🔥 ${hotRatio}% من الـ Leads كانوا Hot – جودة ممتازة!`);\n  else if (hotRatio >= 15) insights.push(`🌡️ ${hotRatio}% Leads Hot – جيد`);\n  else insights.push(`❄️ نسبة Hot منخفضة ${hotRatio}% – راجع إعدادات Radar`);\n}\n\nconst convRate = num(k.lead_to_order_rate);\nif (convRate >= 15) { \n  insights.push(`💰 تحويل ممتاز ${convRate}%!`); \n  overall_rating = '🟢 ممتاز'; \n}\nelse if (convRate >= 8) { \n  insights.push(`💼 تحويل جيد ${convRate}%`); \n}\nelse if (convRate > 0) { \n  insights.push(`📉 تحويل ${convRate}% – فرصة للتحسين`); \n}\nelse if (total_leads > 0) { \n  insights.push('⚠️ لا يوجد طلبات اليوم – راجع فريق المبيعات'); \n  action_items.push('متابعة Hot Leads المفتوحة'); \n}\n\nconst deliveryRate = num(k.delivery_rate);\nconst total_deliveries = num(k.total_deliveries);\nif (deliveryRate < 80 && total_deliveries > 5) {\n  insights.push(`📨 معدل الإرسال ${deliveryRate}% – راجع إعدادات WhatsApp/Telegram`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('مراجعة delivery_log للفشل');\n}\n\nconst escalated = num(k.escalated);\nif (escalated > 0) {\n  insights.push(`🚨 ${escalated} مهمة مبيعات تم تصعيدها – يحتاج متابعة فورية!`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('إغلاق المهام المصعّدة');\n}\n\nconst avgScore = num(k.avg_score);\nif (avgScore > 0) {\n  const scoreStatus = avgScore >= 70 ? 'مرتفع 🟢' : avgScore >= 50 ? 'متوسط 🟡' : 'منخفض 🔴';\n  insights.push(`📊 متوسط جودة الـ Leads: ${avgScore}/100 – ${scoreStatus}`);\n}\n\nconst week_leads = num(k.week_leads);\nconst weekAvg = week_leads > 0 ? Math.round(week_leads / 7) : 0;\nconst todayVsWeek = total_leads - weekAvg;\n\nif (week_leads > 0 && Math.abs(todayVsWeek) >= 2) {\n  const direction = todayVsWeek > 0 ? '📈 أعلى' : '📉 أقل';\n  insights.push(`${direction} من متوسط الأسبوع بـ ${Math.abs(todayVsWeek)} عميل`);\n}\n\nreturn [{ json: {\n  ...k,\n  insights: insights.join('\\n'),\n  overall_rating,\n  action_items: action_items.length > 0 \n    ? '⚡ إجراءات مطلوبة:\\n' + action_items.map((a,i) => `${i+1}. ${a}`).join('\\n') \n    : ''\n} }];"
       },
       "name": "Code – Generate Smart Insights",
       "type": "n8n-nodes-base.code",
@@ -291,18 +291,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1610612762,
           "mode": "list",
           "cachedResultName": "daily_reports",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1610612762"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1610612762"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -472,8 +472,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "bookings",
-              "displayName": "bookings",
+              "id": "orders",
+              "displayName": "orders",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -490,8 +490,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "lead_to_booking_rate",
-              "displayName": "lead_to_booking_rate",
+              "id": "lead_to_order_rate",
+              "displayName": "lead_to_order_rate",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -542,18 +542,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1610612762,
           "mode": "list",
           "cachedResultName": "daily_reports",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1610612762"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1610612762"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -723,8 +723,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "bookings",
-              "displayName": "bookings",
+              "id": "orders",
+              "displayName": "orders",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -741,8 +741,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "lead_to_booking_rate",
-              "displayName": "lead_to_booking_rate",
+              "id": "lead_to_order_rate",
+              "displayName": "lead_to_order_rate",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -792,7 +792,7 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "={{ \n  (() => {\n    const k = $json || {};\n    \n    // 🔧 دالة مساعدة للأرقام\n    const num = (val, def = 0) => {\n      const n = parseFloat(val);\n      return (n != null && !isNaN(n)) ? n : def;\n    };\n    \n    // ✅ حماية من rating غير موجود\n    const rating = k.overall_rating || 'جديد';\n    const ratingBg = rating.includes('ممتاز') ? '🟢' : rating.includes('تنبيه') ? '🔴' : '🟡';\n    \n    let report = `📊 *تقرير الأداء اليومي – SaaSAI*\\n`;\n    report += `📅 ${k.report_date_ar || 'غير متاح'}\\n`;\n    report += `${ratingBg} التقييم: *${rating}*\\n\\n`;\n\n    report += `━━━ 👥 *العملاء المحتملون* ━━━\\n`;\n    report += `📥 إجمالي: *${num(k.total_leads)}* | 🔥 Hot: *${num(k.hot_leads)}* | 🌿 Warm: *${num(k.warm_leads)}*\\n`;\n    report += `📡 Radar: ${num(k.from_radar)} | 💬 WA: ${num(k.from_whatsapp)} | 🌐 Form: ${num(k.from_form)} | ✈️ TG: ${num(k.from_telegram)}\\n`;\n    report += `📈 متوسط الدرجة: *${num(k.avg_score, '0')}/100*\\n\\n`;\n\n    report += `━━━ 💰 *الحجوزات والتحويل* ━━━\\n`;\n    report += `✅ حجوزات: *${num(k.bookings)}* (B2C: ${num(k.b2c_booked, 0)} | B2B: ${num(k.b2b_booked, 0)})\\n`;\n    report += `📊 Lead → حجز: *${num(k.lead_to_booking_rate, '0')}%* | Hot → حجز: *${num(k.hot_to_booking_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 📨 *الإرسال* ━━━\\n`;\n    report += `📤 إجمالي: ${num(k.total_deliveries)} | ✅ ناجح: ${num(k.delivered, 0)} | ❌ فشل: ${num(k.failed, 0)}\\n`;\n    report += `معدل النجاح: *${num(k.delivery_rate, '0')}%* | WA: ${num(k.wa_delivered, 0)} | TG: ${num(k.tg_delivered, 0)}\\n\\n`;\n\n    report += `━━━ 📋 *مهام المبيعات* ━━━\\n`;\n    report += `🟢 مغلقة: ${num(k.closed_tasks)} | 🟡 مفتوحة: ${num(k.open_tasks)} | 🔴 مصعّدة: ${num(k.escalated, 0)}\\n`;\n    if (k.avg_close_min > 0) report += `⏱️ متوسط الإغلاق: ${k.avg_close_min} دقيقة\\n`;\n    report += `\\n━━━ 📅 *آخر 7 أيام* ━━━\\n`;\n    report += `👥 ${num(k.week_leads)} lead | 🔥 ${num(k.week_hot, 0)} hot | ✅ ${num(k.week_booked, 0)} حجز | نسبة: *${num(k.week_conv_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 💡 *التحليل* ━━━\\n`;\n    report += k.insights || '📊 جاري تحليل البيانات...';\n    \n    if (k.action_items) {\n      report += `\\n\\n${k.action_items}`;\n    }\n    \n    // ✅ السطر الأهم: إرجاع النص النهائي\n    return report;\n  })()\n}}",
+        "text": "={{ \n  (() => {\n    const k = $json || {};\n    \n    // 🔧 دالة مساعدة للأرقام\n    const num = (val, def = 0) => {\n      const n = parseFloat(val);\n      return (n != null && !isNaN(n)) ? n : def;\n    };\n    \n    // ✅ حماية من rating غير موجود\n    const rating = k.overall_rating || 'جديد';\n    const ratingBg = rating.includes('ممتاز') ? '🟢' : rating.includes('تنبيه') ? '🔴' : '🟡';\n    \n    let report = `📊 *تقرير الأداء اليومي – [COMPANY_NAME]*\\n`;\n    report += `📅 ${k.report_date_ar || 'غير متاح'}\\n`;\n    report += `${ratingBg} التقييم: *${rating}*\\n\\n`;\n\n    report += `━━━ 👥 *العملاء المحتملون* ━━━\\n`;\n    report += `📥 إجمالي: *${num(k.total_leads)}* | 🔥 Hot: *${num(k.hot_leads)}* | 🌿 Warm: *${num(k.warm_leads)}*\\n`;\n    report += `📡 Radar: ${num(k.from_radar)} | 💬 WA: ${num(k.from_whatsapp)} | 🌐 Form: ${num(k.from_form)} | ✈️ TG: ${num(k.from_telegram)}\\n`;\n    report += `📈 متوسط الدرجة: *${num(k.avg_score, '0')}/100*\\n\\n`;\n\n    report += `━━━ 💰 *الطلبات والتحويل* ━━━\\n`;\n    report += `✅ طلبات: *${num(k.orders)}* (B2C: ${num(k.b2c_booked, 0)} | B2B: ${num(k.b2b_booked, 0)})\\n`;\n    report += `📊 Lead → طلب: *${num(k.lead_to_order_rate, '0')}%* | Hot → طلب: *${num(k.hot_to_order_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 📨 *الإرسال* ━━━\\n`;\n    report += `📤 إجمالي: ${num(k.total_deliveries)} | ✅ ناجح: ${num(k.delivered, 0)} | ❌ فشل: ${num(k.failed, 0)}\\n`;\n    report += `معدل النجاح: *${num(k.delivery_rate, '0')}%* | WA: ${num(k.wa_delivered, 0)} | TG: ${num(k.tg_delivered, 0)}\\n\\n`;\n\n    report += `━━━ 📋 *مهام المبيعات* ━━━\\n`;\n    report += `🟢 مغلقة: ${num(k.closed_tasks)} | 🟡 مفتوحة: ${num(k.open_tasks)} | 🔴 مصعّدة: ${num(k.escalated, 0)}\\n`;\n    if (k.avg_close_min > 0) report += `⏱️ متوسط الإغلاق: ${k.avg_close_min} دقيقة\\n`;\n    report += `\\n━━━ 📅 *آخر 7 أيام* ━━━\\n`;\n    report += `👥 ${num(k.week_leads)} lead | 🔥 ${num(k.week_hot, 0)} hot | ✅ ${num(k.week_booked, 0)} طلب | نسبة: *${num(k.week_conv_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 💡 *التحليل* ━━━\\n`;\n    report += k.insights || '📊 جاري تحليل البيانات...';\n    \n    if (k.action_items) {\n      report += `\\n\\n${k.action_items}`;\n    }\n    \n    // ✅ السطر الأهم: إرجاع النص النهائي\n    return report;\n  })()\n}}",
         "additionalFields": {
           "disable_notification": true,
           "parse_mode": "Markdown"
@@ -830,18 +830,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1659619068,
           "mode": "list",
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1659619068"
         },
         "columns": {
           "mappingMode": "defineBelow",

@@ -1,9 +1,9 @@
 {
-  "name": "SaaSAI – F12 – Wedding Invitations دعوات الزفاف الرقمية",
+  "name": "[COMPANY_NAME] – F12 – SpecialEvent Invitations دعوات المناسبة خاصة الرقمية",
   "nodes": [
     {
       "id": "wed-wh-001",
-      "name": "Webhook – Wedding Order Entry",
+      "name": "Webhook – SpecialEvent Order Entry",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
@@ -11,14 +11,14 @@
         0
       ],
       "parameters": {
-        "path": "saasai-wedding-order",
+        "path": "general-special-service-order",
         "responseMode": "lastNode"
       },
       "webhookId": "62a49a33-6208-446e-9bd7-b6ba24e437c8"
     },
     {
       "id": "wed-code-001",
-      "name": "Code – Normalize Wedding Order",
+      "name": "Code – Normalize SpecialEvent Order",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -26,7 +26,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "\n// SaaSAI – F12 – Wedding Invitation Order Normalizer\nconst raw = $input.first()?.json || {};\nconst d = raw.body || raw;\n\n// استخراج بيانات الطلب\nconst phone   = (d.phone || d.groom_phone || d.bride_phone || '').replace(/[^\\d+]/g,'');\nconst name    = d.groom_name || d.contact_name || d.name || 'صاحب الطلب';\nconst partner = d.bride_name || d.partner_name || '';\nconst wedding_date = d.wedding_date || d.event_date || '';\nconst venue   = d.venue || d.location || '';\nconst package_type = d.package || d.package_type || 'standard';\nconst lang    = d.language || d.lang || 'ar';\nconst msg     = d.message || d.notes || d.special_requests || '';\n\n// توليد order_id فريد\nconst order_id = 'WED-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase();\n\n// تحديد السعر حسب الباقة\nconst PRICES = {\n  basic:    { price: 299, desc: 'دعوة رقمية أساسية + QR Code' },\n  standard: { price: 599, desc: 'دعوة تفاعلية + صفحة حضور + QR' },\n  premium:  { price: 999, desc: 'دعوة VIP + فيديو + موشن + صفحة كاملة' },\n  vip:      { price: 1499, desc: 'باقة مميزة شاملة + تصميم خاص + دعم مباشر' },\n};\nconst pkg = PRICES[package_type] || PRICES.standard;\n\nreturn [{ json: {\n  order_id,\n  lead_id:       d.lead_id || order_id,\n  phone:         phone.startsWith('+') ? phone : '+966' + phone.replace(/^0/,''),\n  name,\n  partner_name:  partner,\n  email:         d.email || '',\n  wedding_date,\n  venue,\n  package_type,\n  package_price: pkg.price,\n  package_desc:  pkg.desc,\n  language:      lang,\n  special_requests: msg,\n  source:        d.source || 'SaaSAI_Website',\n  platform:      d.platform || 'Website',\n  status:        'new',\n  payment_status:'pending',\n  created_at:    new Date().toISOString(),\n  flow_origin:   'SaaSAI_F12_Wedding',\n  service_type:  'wedding',\n  category:      'HOT',\n  score:         85,\n  is_wedding:    true,\n}}];\n"
+        "jsCode": "\n// [COMPANY_NAME] – F12 – SpecialEvent Invitation Order Normalizer\nconst raw = $input.first()?.json || {};\nconst d = raw.body || raw;\n\n// استخراج بيانات الطلب\nconst phone   = (d.phone || d.groom_phone || d.bride_phone || '').replace(/[^\\d+]/g,'');\nconst name    = d.groom_name || d.contact_name || d.name || 'صاحب الطلب';\nconst partner = d.bride_name || d.partner_name || '';\nconst special_service_date = d.special_service_date || d.event_date || '';\nconst venue   = d.venue || d.location || '';\nconst package_type = d.package || d.package_type || 'standard';\nconst lang    = d.language || d.lang || 'ar';\nconst msg     = d.message || d.notes || d.special_requests || '';\n\n// توليد order_id فريد\nconst order_id = 'WED-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase();\n\n// تحديد السعر حسب الباقة\nconst PRICES = {\n  basic:    { price: 299, desc: 'دعوة رقمية أساسية + QR Code' },\n  standard: { price: 599, desc: 'دعوة تفاعلية + صفحة حضور + QR' },\n  premium:  { price: 999, desc: 'دعوة VIP + فيديو + موشن + صفحة كاملة' },\n  vip:      { price: 1499, desc: 'باقة مميزة شاملة + تصميم خاص + دعم مباشر' },\n};\nconst pkg = PRICES[package_type] || PRICES.standard;\n\nreturn [{ json: {\n  order_id,\n  lead_id:       d.lead_id || order_id,\n  phone:         phone.startsWith('+') ? phone : '+966' + phone.replace(/^0/,''),\n  name,\n  partner_name:  partner,\n  email:         d.email || '',\n  special_service_date,\n  venue,\n  package_type,\n  package_price: pkg.price,\n  package_desc:  pkg.desc,\n  language:      lang,\n  special_requests: msg,\n  source:        d.source || '[COMPANY_NAME]_Website',\n  platform:      d.platform || 'Website',\n  status:        'new',\n  payment_status:'pending',\n  created_at:    new Date().toISOString(),\n  flow_origin:   '[COMPANY_NAME]_F12_SpecialEvent',\n  service_type:  'special_service',\n  category:      'HOT',\n  score:         85,\n  is_special_service:    true,\n}}];\n"
       }
     },
     {
@@ -39,7 +39,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "\n// SaaSAI – F12 – Validate Wedding Order\nconst d = $input.first().json;\nconst errors = [];\n\nif (!d.phone || d.phone.length < 10) errors.push('رقم الهاتف مفقود أو غير صالح');\nif (!d.name || d.name.length < 2)    errors.push('اسم العريس/العروس مفقود');\nif (!d.wedding_date)                  errors.push('تاريخ الزفاف مفقود');\nif (!d.package_type)                  errors.push('نوع الباقة غير محدد');\n\nconst valid = errors.length === 0;\nreturn [{ json: { ...d, is_valid: valid, validation_errors: errors.join(' | ') }}];\n"
+        "jsCode": "\n// [COMPANY_NAME] – F12 – Validate SpecialEvent Order\nconst d = $input.first().json;\nconst errors = [];\n\nif (!d.phone || d.phone.length < 10) errors.push('رقم الهاتف مفقود أو غير صالح');\nif (!d.name || d.name.length < 2)    errors.push('اسم العريس/العروس مفقود');\nif (!d.special_service_date)                  errors.push('تاريخ المناسبة خاصة مفقود');\nif (!d.package_type)                  errors.push('نوع الباقة غير محدد');\n\nconst valid = errors.length === 0;\nreturn [{ json: { ...d, is_valid: valid, validation_errors: errors.join(' | ') }}];\n"
       }
     },
     {
@@ -102,7 +102,7 @@
     },
     {
       "id": "wed-gs-001",
-      "name": "GSheets – Save Wedding Order",
+      "name": "GSheets – Save SpecialEvent Order",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
@@ -113,15 +113,15 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
           "value": 2001234568,
           "mode": "list",
-          "cachedResultName": "wedding_orders",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=2001234568"
+          "cachedResultName": "special_service_orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=2001234568"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -132,7 +132,7 @@
             "name": "={{ $json.name }}",
             "partner_name": "={{ $json.partner_name || '' }}",
             "email": "={{ $json.email || '' }}",
-            "wedding_date": "={{ $json.wedding_date || '' }}",
+            "special_service_date": "={{ $json.special_service_date || '' }}",
             "venue": "={{ $json.venue || '' }}",
             "package_type": "={{ $json.package_type }}",
             "package_price": "={{ $json.package_price || 0 }}",
@@ -141,16 +141,16 @@
             "special_requests": "={{ $json.special_requests || '' }}",
             "page_url": "={{ $json.page_url || '' }}",
             "qr_url": "={{ $json.qr_url || '' }}",
-            "wedding_slug": "={{ $json.wedding_slug || '' }}",
+            "special_service_slug": "={{ $json.special_service_slug || '' }}",
             "status": "={{ $json.status || 'new' }}",
             "payment_status": "={{ $json.payment_status || 'pending' }}",
             "source": "={{ $json.source || 'Website' }}",
             "platform": "={{ $json.platform || 'Website' }}",
-            "service_type": "=wedding",
+            "service_type": "=special_service",
             "created_at": "={{ $now }}",
             "updated_at": "={{ $now }}",
             "notes": "={{ $json.validation_errors || '' }}",
-            "flow_origin": "=SaaSAI_F12_Wedding"
+            "flow_origin": "=[COMPANY_NAME]_F12_SpecialEvent"
           },
           "matchingColumns": [
             "order_id"
@@ -211,8 +211,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_date",
-              "displayName": "wedding_date",
+              "id": "special_service_date",
+              "displayName": "special_service_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -292,8 +292,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_slug",
-              "displayName": "wedding_slug",
+              "id": "special_service_slug",
+              "displayName": "special_service_slug",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -396,7 +396,7 @@
     },
     {
       "id": "wed-code-003",
-      "name": "Code – Generate Wedding Page",
+      "name": "Code – Generate SpecialEvent Page",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -404,7 +404,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "\n// SaaSAI – F12 – Generate Wedding Page Link\nconst d = $input.first().json;\nconst slug = (d.name || 'wedding').toLowerCase()\n  .replace(/\\s+/g, '-')\n  .replace(/[^a-z0-9\\u0600-\\u06FF-]/g, '')\n  .slice(0, 30) + '-' + d.order_id.slice(-6).toLowerCase();\n\nconst page_url = `https://saasai.sa/wedding/${slug}`;\nconst qr_url   = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(page_url)}`;\nconst preview  = `https://saasai.sa/wedding/preview/${slug}`;\n\nreturn [{ json: {\n  ...d,\n  wedding_slug:  slug,\n  page_url,\n  qr_url,\n  preview_url:   preview,\n  share_message: `🎊 يسعدنا دعوتكم لحضور حفل زفاف ${d.name}${d.partner_name ? ' و' + d.partner_name : ''}\\n📅 ${d.wedding_date}\\n📍 ${d.venue || 'يُعلَن لاحقاً'}\\n\\n✨ تفاصيل الدعوة: ${page_url}\\n📲 رمز QR: ${qr_url}`,\n}}];\n"
+        "jsCode": "\n// [COMPANY_NAME] – F12 – Generate SpecialEvent Page Link\nconst d = $input.first().json;\nconst slug = (d.name || 'special_service').toLowerCase()\n  .replace(/\\s+/g, '-')\n  .replace(/[^a-z0-9\\u0600-\\u06FF-]/g, '')\n  .slice(0, 30) + '-' + d.order_id.slice(-6).toLowerCase();\n\nconst page_url = `https://[COMPANY_NAME].sa/special_service/${slug}`;\nconst qr_url   = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(page_url)}`;\nconst preview  = `https://[COMPANY_NAME].sa/special_service/preview/${slug}`;\n\nreturn [{ json: {\n  ...d,\n  special_service_slug:  slug,\n  page_url,\n  qr_url,\n  preview_url:   preview,\n  share_message: `🎊 يسعدنا دعوتكم لحضور حفل مناسبة خاصة ${d.name}${d.partner_name ? ' و' + d.partner_name : ''}\\n📅 ${d.special_service_date}\\n📍 ${d.venue || 'يُعلَن لاحقاً'}\\n\\n✨ تفاصيل الدعوة: ${page_url}\\n📲 رمز QR: ${qr_url}`,\n}}];\n"
       }
     },
     {
@@ -420,15 +420,15 @@
         "operation": "update",
         "documentId": {
           "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
           "__rl": true,
           "value": 2001234568,
           "mode": "list",
-          "cachedResultName": "wedding_orders",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=2001234568"
+          "cachedResultName": "special_service_orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=2001234568"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -436,7 +436,7 @@
             "order_id": "={{ $json.order_id }}",
             "page_url": "={{ $json.page_url }}",
             "qr_url": "={{ $json.qr_url }}",
-            "wedding_slug": "={{ $json.wedding_slug }}",
+            "special_service_slug": "={{ $json.special_service_slug }}",
             "status": "=page_created",
             "updated_at": "={{ $now }}"
           },
@@ -472,8 +472,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_slug",
-              "displayName": "wedding_slug",
+              "id": "special_service_slug",
+              "displayName": "special_service_slug",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -524,7 +524,7 @@
         "operation": "update",
         "documentId": {
           "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
@@ -532,15 +532,15 @@
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "lead_id": "={{ $json.lead_id }}",
             "status": "=in_progress",
-            "service_type": "=wedding",
-            "journey_step": "=wedding_active",
+            "service_type": "=special_service",
+            "journey_step": "=special_service_active",
             "updated_at": "={{ $now }}"
           },
           "matchingColumns": [
@@ -616,7 +616,7 @@
       ],
       "parameters": {
         "chatId": "=5292626260",
-        "text": "=🎊 <b>طلب دعوة زفاف جديد – SaaSAI</b>\n\n💍 <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📱 <b>الهاتف:</b> <code>{{ $json.phone }}</code>\n📅 <b>تاريخ الزفاف:</b> {{ $json.wedding_date || 'غير محدد' }}\n📍 <b>المكان:</b> {{ $json.venue || 'غير محدد' }}\n\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n📋 <b>التفاصيل:</b> {{ $json.package_desc }}\n\n🆔 <b>رقم الطلب:</b> <code>{{ $json.order_id }}</code>\n🔗 <b>رابط الدعوة:</b> {{ $json.page_url || 'قيد الإنشاء' }}\n\n💬 <b>طلبات خاصة:</b> <i>{{ $json.special_requests || 'لا يوجد' }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n<a href=\"https://wa.me/{{ $json.phone.replace(/[^\\d]/g,'') }}?text=مرحباً {{ $json.name }}، استلمنا طلب دعوتك الرقمية رقم {{ $json.order_id }} وسنتواصل معك خلال 24 ساعة لتأكيد التفاصيل.\">📲 واتساب العميل</a>\n\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "text": "=🎊 <b>طلب دعوة مناسبة خاصة جديد – [COMPANY_NAME]</b>\n\n⭐ <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📱 <b>الهاتف:</b> <code>{{ $json.phone }}</code>\n📅 <b>تاريخ المناسبة خاصة:</b> {{ $json.special_service_date || 'غير محدد' }}\n📍 <b>المكان:</b> {{ $json.venue || 'غير محدد' }}\n\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n📋 <b>التفاصيل:</b> {{ $json.package_desc }}\n\n🆔 <b>رقم الطلب:</b> <code>{{ $json.order_id }}</code>\n🔗 <b>رابط الدعوة:</b> {{ $json.page_url || 'قيد الإنشاء' }}\n\n💬 <b>طلبات خاصة:</b> <i>{{ $json.special_requests || 'لا يوجد' }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n<a href=\"https://wa.me/{{ $json.phone.replace(/[^\\d]/g,'') }}?text=مرحباً {{ $json.name }}، استلمنا طلب دعوتك الرقمية رقم {{ $json.order_id }} وسنتواصل معك خلال 24 ساعة لتأكيد التفاصيل.\">📲 واتساب العميل</a>\n\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
           "disable_web_page_preview": true
@@ -645,7 +645,7 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone.replace(/[^\\\\d]/g,'') }}\",\n  \"text\": \"{{ $json.share_message || ('مرحباً ' + $json.name + '، تم إنشاء دعوتك الرقمية! رابطها: ' + $json.page_url) }}\",\n  \"chat_name\": \"{{ $json.name }}\",\n  \"label\": \"wedding_confirmation\",\n  \"metadata\": { \"order_id\": \"{{ $json.order_id }}\", \"service\": \"wedding\" }\n}"
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone.replace(/[^\\\\d]/g,'') }}\",\n  \"text\": \"{{ $json.share_message || ('مرحباً ' + $json.name + '، تم إنشاء دعوتك الرقمية! رابطها: ' + $json.page_url) }}\",\n  \"chat_name\": \"{{ $json.name }}\",\n  \"label\": \"special_service_confirmation\",\n  \"metadata\": { \"order_id\": \"{{ $json.order_id }}\", \"service\": \"special_service\" }\n}"
       },
       "continueOnFail": true
     },
@@ -660,7 +660,7 @@
       ],
       "parameters": {
         "chatId": "=5292626260",
-        "text": "=✅ <b>تأكيد طلب الدعوة الرقمية</b>\n\n🎊 تم إنشاء صفحة دعوتك الرقمية بنجاح!\n\n💍 <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📅 <b>تاريخ الزفاف:</b> {{ $json.wedding_date || 'قريباً' }}\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n\n🔗 <b>رابط دعوتك:</b> {{ $json.page_url }}\n📱 <b>QR Code:</b> {{ $json.qr_url }}\n\n✨ <b>رسالة المشاركة جاهزة:</b>\n<i>{{ ($json.share_message || '').substring(0, 300) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n🆔 {{ $json.order_id }}\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "text": "=✅ <b>تأكيد طلب الدعوة الرقمية</b>\n\n🎊 تم إنشاء صفحة دعوتك الرقمية بنجاح!\n\n⭐ <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📅 <b>تاريخ المناسبة خاصة:</b> {{ $json.special_service_date || 'قريباً' }}\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n\n🔗 <b>رابط دعوتك:</b> {{ $json.page_url }}\n📱 <b>QR Code:</b> {{ $json.qr_url }}\n\n✨ <b>رسالة المشاركة جاهزة:</b>\n<i>{{ ($json.share_message || '').substring(0, 300) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n🆔 {{ $json.order_id }}\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
           "disable_web_page_preview": true
@@ -687,7 +687,7 @@
     },
     {
       "id": "wed-gs-err",
-      "name": "GSheets – Log Wedding Error",
+      "name": "GSheets – Log SpecialEvent Error",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
@@ -698,7 +698,7 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
@@ -706,13 +706,13 @@
           "value": 1659619068,
           "mode": "list",
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1659619068"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR-WED-' + Date.now().toString(36).toUpperCase() }}",
-            "flow_name": "=SaaSAI_F12_Wedding",
+            "flow_name": "=[COMPANY_NAME]_F12_SpecialEvent",
             "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,300) }}",
             "severity": "=high",
@@ -819,7 +819,7 @@
     },
     {
       "id": "wed-tg-err",
-      "name": "Telegram – Wedding Error Alert",
+      "name": "Telegram – SpecialEvent Error Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
@@ -828,7 +828,7 @@
       ],
       "parameters": {
         "chatId": "=5292626260",
-        "text": "=❌ <b>خطأ في Flow #12 – Wedding</b>\\n\\n{{ $json.error?.message || 'خطأ غير معروف' }}\\n🔧 {{ $json.execution?.lastNodeExecuted || 'Unknown' }}\\n⏱️ {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "text": "=❌ <b>خطأ في Flow #12 – SpecialEvent</b>\\n\\n{{ $json.error?.message || 'خطأ غير معروف' }}\\n🔧 {{ $json.execution?.lastNodeExecuted || 'Unknown' }}\\n⏱️ {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
           "disable_web_page_preview": true
@@ -844,18 +844,18 @@
     }
   ],
   "connections": {
-    "Webhook – Wedding Order Entry": {
+    "Webhook – SpecialEvent Order Entry": {
       "main": [
         [
           {
-            "node": "Code – Normalize Wedding Order",
+            "node": "Code – Normalize SpecialEvent Order",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code – Normalize Wedding Order": {
+    "Code – Normalize SpecialEvent Order": {
       "main": [
         [
           {
@@ -881,7 +881,7 @@
       "main": [
         [
           {
-            "node": "GSheets – Save Wedding Order",
+            "node": "GSheets – Save SpecialEvent Order",
             "type": "main",
             "index": 0
           }
@@ -895,18 +895,18 @@
         ]
       ]
     },
-    "GSheets – Save Wedding Order": {
+    "GSheets – Save SpecialEvent Order": {
       "main": [
         [
           {
-            "node": "Code – Generate Wedding Page",
+            "node": "Code – Generate SpecialEvent Page",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code – Generate Wedding Page": {
+    "Code – Generate SpecialEvent Page": {
       "main": [
         [
           {
@@ -959,18 +959,18 @@
       "main": [
         [
           {
-            "node": "GSheets – Log Wedding Error",
+            "node": "GSheets – Log SpecialEvent Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "GSheets – Log Wedding Error": {
+    "GSheets – Log SpecialEvent Error": {
       "main": [
         [
           {
-            "node": "Telegram – Wedding Error Alert",
+            "node": "Telegram – SpecialEvent Error Alert",
             "type": "main",
             "index": 0
           }
@@ -985,7 +985,7 @@
     "saveDataErrorExecution": "all"
   },
   "meta": {
-    "instanceId": "saasai-system"
+    "instanceId": "general-system"
   },
   "tags": []
 }

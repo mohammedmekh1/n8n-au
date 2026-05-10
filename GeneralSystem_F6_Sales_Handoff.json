@@ -1,10 +1,10 @@
 {
-  "name": "SaaSAI – F6 – Sales Handoff المبيعات",
+  "name": "[COMPANY_NAME] – F6 – Sales Handoff المبيعات",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "makkah-sales-handoff",
+        "path": "general-sales-handoff",
         "options": {}
       },
       "name": "Webhook – Sales Handoff Entry",
@@ -15,11 +15,11 @@
         -400
       ],
       "id": "fe540d9c-581a-4f80-ae5e-979371f9e913",
-      "webhookId": "makkah-sales-handoff"
+      "webhookId": "general-sales-handoff"
     },
     {
       "parameters": {
-        "jsCode": "// ─── Normalize incoming payload from Flow #3 v2.3 ──────────────────────────────\n// تنظيف وإثراء البيانات الواردة من Flow 3 بعد الويب هوك\n// يتعامل مع البيانات لو كانت داخل body أو مباشرة\n\nconst raw = $input.first().json || {};\nconst d = raw.body || raw || {};  // ← التصحيح الرئيسي: يقرأ من body لو موجود\n\n// 1. استخراج وتنظيف الحقول الأساسية\nconst phone = (d.phone || d.normalized_phone || '').trim().replace(/^0/, '+966');\nlet phones_found = Array.isArray(d.phones_found) ? d.phones_found : [];\nif (phone && !phones_found.includes(phone)) {\n  phones_found.push(phone);\n}\nphones_found = [...new Set(phones_found.filter(p => p && p.startsWith('+966')))];\n\n// 2. اسم ومصدر نظيف\nconst name = d.name || d.username || d.normalized_name || 'غير معروف';\nconst source = (d.source || 'unknown').replace(/FacebookFacebook/gi, 'Facebook').trim();\n\n// 3. تصنيف lead_type (محسن ليشمل luxury و couple)\nconst cat = (d.category || d.lead_category || 'unknown').toLowerCase();\nlet lead_type = 'B2C_hot';\nif (cat.includes('b2b')) lead_type = 'B2B_high';\nelse if (cat.includes('group') || cat.includes('large')) lead_type = 'B2C_group';\nelse if (cat.includes('family')) lead_type = 'B2C_family';\nelse if (cat.includes('luxury') || d.budget_signal === 'luxury') lead_type = 'B2C_luxury';\nelse if (cat.includes('couple') || cat.includes('زوج')) lead_type = 'B2C_couple';\n\n// 4. حساب pax (مع استخراج تقديري من الرسالة)\nlet pax = d.pax_hint || d.pax || 0;\nif (pax === 0) {\n  const msgLower = (d.message || '').toLowerCase();\n  if (msgLower.includes('عائلة') || msgLower.includes('زوجتي') || msgLower.includes('اولاد') || msgLower.includes('اطفال')) pax = 4;\n  else if (msgLower.includes('مجموعة') || msgLower.includes('اصدقاء')) pax = 6;\n  else if (msgLower.includes('زوج') || msgLower.includes('زوجين')) pax = 2;\n}\n\n// 5. score و urgency (مع fallback)\nconst score = d.final_score || d.score || 0;\nconst urgency = (d.radar_urgency || d.urgency || 'unknown').toLowerCase();\n\n// 6. SLA (وقت الاستجابة بالدقائق – محسن)\nlet sla_minutes = 60;\nif (urgency.includes('immediate') || score >= 90 || lead_type === 'B2B_high') sla_minutes = 15;\nelse if (urgency.includes('soon') || score >= 75) sla_minutes = 30;\nelse if (lead_type.includes('luxury') || lead_type.includes('family')) sla_minutes = 45;\n\n// 7. المخرج النهائي (منظم وكامل لـ Flow 6)\nreturn [{ json: {\n  phone,\n  name,\n  lead_id: d.lead_id || d.id || '',\n  final_score: score,\n  status: d.status || (score >= 80 ? 'Hot' : (score >= 55 ? 'Warm' : 'Cold')),\n  lead_category: cat,\n  lead_type,\n  preferred_channel: d.preferred_channel || 'telegram',\n  recommended_action: d.recommended_action || 'followup',\n  radar_urgency: urgency,\n  message: (d.message || '').substring(0, 500) + ((d.message || '').length > 500 ? '...' : ''),\n  phones_found,\n  source,\n  scored_at: d.scored_at || new Date().toISOString(),\n    pax,\n  sla_minutes,\n  handoff_at: new Date().toISOString(),\n  \n  // ⭐ أضف هنا:\n  stars_preference: d.stars_preference || 'unknown',\n  budget_signal: d.budget_signal || 'unknown',\n  travel_group: d.travel_group || 'unknown'\n} }];"
+        "jsCode": "\nconst raw = $input.first().json || {};\nconst d = raw.body || raw || {};  // ← التصحيح الرئيسي: يقرأ من body لو موجود\n\nconst phone = (d.phone || d.normalized_phone || '').trim().replace(/^0([7])/, '+964$1').replace(/^05/, '+9665');\nlet phones_found = Array.isArray(d.phones_found) ? d.phones_found : [];\nif (phone && !phones_found.includes(phone)) {\n  phones_found.push(phone);\n}\nphones_found = [...new Set(phones_found.filter(p => p && (p.startsWith('+966') || p.startsWith('+964'))))];\n\nconst name = d.name || d.username || d.normalized_name || 'غير معروف';\nconst source = (d.source || 'unknown').replace(/FacebookFacebook/gi, 'Facebook').trim();\n\nconst cat = (d.category || d.lead_category || 'unknown').toLowerCase();\nlet lead_type = 'B2C_hot';\nif (cat.includes('b2b')) lead_type = 'B2B_high';\nelse if (cat.includes('group') || cat.includes('large')) lead_type = 'B2C_group';\nelse if (cat.includes('family')) lead_type = 'B2C_family';\nelse if (cat.includes('luxury') || d.budget_signal === 'luxury') lead_type = 'B2C_luxury';\nelse if (cat.includes('couple') || cat.includes('زوج')) lead_type = 'B2C_couple';\n\nlet quantity = d.quantity_hint || d.quantity || 0;\nif (quantity === 0) {\n  const msgLower = (d.message || '').toLowerCase();\n  if (msgLower.includes('عائلة') || msgLower.includes('زوجتي') || msgLower.includes('اولاد') || msgLower.includes('اطفال')) quantity = 4;\n  else if (msgLower.includes('مجموعة') || msgLower.includes('اصدقاء')) quantity = 6;\n  else if (msgLower.includes('زوج') || msgLower.includes('زوجين')) quantity = 2;\n}\n\nconst score = d.final_score || d.score || 0;\nconst urgency = (d.radar_urgency || d.urgency || 'unknown').toLowerCase();\n\nlet sla_minutes = 60;\nif (urgency.includes('immediate') || score >= 90 || lead_type === 'B2B_high') sla_minutes = 15;\nelse if (urgency.includes('soon') || score >= 75) sla_minutes = 30;\nelse if (lead_type.includes('luxury') || lead_type.includes('family')) sla_minutes = 45;\n\nreturn [{ json: {\n  phone,\n  name,\n  lead_id: d.lead_id || d.id || '',\n  final_score: score,\n  status: d.status || (score >= 80 ? 'Hot' : (score >= 55 ? 'Warm' : 'Cold')),\n  lead_category: cat,\n  lead_type,\n  preferred_channel: d.preferred_channel || 'telegram',\n  recommended_action: d.recommended_action || 'followup',\n  radar_urgency: urgency,\n  message: (d.message || '').substring(0, 500) + ((d.message || '').length > 500 ? '...' : ''),\n  phones_found,\n  source,\n  scored_at: d.scored_at || new Date().toISOString(),\n    quantity,\n  sla_minutes,\n  handoff_at: new Date().toISOString(),\n  \n  // ⭐ أضف هنا:\n  service_preference: d.service_preference || 'unknown',\n  budget_signal: d.budget_signal || 'unknown',\n  order_type: d.order_type || 'unknown'\n} }];"
       },
       "name": "Code – Normalize Handoff Payload",
       "type": "n8n-nodes-base.code",
@@ -34,16 +34,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "filtersUI": {
           "values": [
@@ -76,7 +76,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Merge incoming payload with stored profile v2.4 – نهائي وخالي من الأخطاء ──────────\n// دمج البيانات الواردة من Normalize مع البروفايل المخزن من GSheets\n\nconst incoming = $('Code – Normalize Handoff Payload').first().json || {};\nconst profileItems = $input.all();\nconst profile = profileItems.length > 0 && profileItems[0].json ? profileItems[0].json : {};\n\n// تحقق إذا كان اللييد محجوز أو مغلق سابقاً\nconst isBooked = ['booked', 'closed', 'converted', 'done', 'rejected'].includes(\n  (profile.status || '').toLowerCase()\n);\n\n// دمج البيانات مع الأولوية للبيانات الجديدة (incoming)\nreturn [{\n  json: {\n    ...profile,                    // البروفايل القديم كأساس (تاريخ، journey_step، إلخ)\n    ...incoming,                   // الأولوية للبيانات الجديدة من Flow 3\n\n    // تصحيح الحقول الحساسة لو undefined أو فارغة (بدون استخدام d)\n    final_score: incoming.final_score || profile.final_score || 0,\n    status: incoming.status || profile.status || 'new',\n    lead_category: incoming.lead_category || profile.lead_category || 'unknown',\n    lead_type: incoming.lead_type || profile.lead_type || 'B2C_hot',\n    stars_preference: incoming.stars_preference || profile.stars_preference || 'unknown',\n    budget_signal: incoming.budget_signal || profile.budget_signal || 'unknown',\n    travel_group: incoming.travel_group || profile.travel_group || 'unknown',\n    pax_hint: incoming.pax || incoming.pax_hint || profile.pax_hint || 0,\n    radar_urgency: incoming.radar_urgency || profile.radar_urgency || 'unknown',\n    recommended_action: incoming.recommended_action || profile.recommended_action || 'followup',\n    preferred_channel: incoming.preferred_channel || profile.preferred_channel || 'telegram',\n\n    // حقول إضافية مهمة لـ Flow 6\n    stored_status: profile.status || 'new',\n    is_booked: isBooked,\n    last_seen_at: profile.last_seen_at || new Date().toISOString(),\n    interaction_count: profile.interaction_count || 0,\n\n    // تصحيح scored_at و handoff_at بشكل آمن جدًا\n    scored_at: incoming.scored_at || profile.scored_at \n      ? new Date(incoming.scored_at || profile.scored_at).toISOString()\n      : new Date().toISOString(),\n    handoff_at: incoming.handoff_at \n      ? new Date(incoming.handoff_at).toISOString()\n      : new Date().toISOString(),\n\n    // personalization جاهزة للاستخدام في تليجرام أو Flow 5\n    personalization: {\n      name: incoming.name || profile.name || 'العميل',\n      group_size: incoming.pax || incoming.pax_hint || profile.pax_hint || 1,\n      budget: incoming.budget_signal || profile.budget_signal || 'غير معروف',\n      stars: incoming.stars_preference || profile.stars_preference || 'غير معروف'\n    }\n  }\n}];"
+        "jsCode": "\nconst incoming = $('Code – Normalize Handoff Payload').first().json || {};\nconst profileItems = $input.all();\nconst profile = profileItems.length > 0 && profileItems[0].json ? profileItems[0].json : {};\n\nconst isBooked = ['booked', 'closed', 'converted', 'done', 'rejected'].includes(\n  (profile.status || '').toLowerCase()\n);\n\nreturn [{\n  json: {\n    ...profile,                    // البروفايل القديم كأساس (تاريخ، journey_step، إلخ)\n    ...incoming,                   // الأولوية للبيانات الجديدة من Flow 3\n\n    final_score: incoming.final_score || profile.final_score || 0,\n    status: incoming.status || profile.status || 'new',\n    lead_category: incoming.lead_category || profile.lead_category || 'unknown',\n    lead_type: incoming.lead_type || profile.lead_type || 'B2C_hot',\n    service_preference: incoming.service_preference || profile.service_preference || 'unknown',\n    budget_signal: incoming.budget_signal || profile.budget_signal || 'unknown',\n    order_type: incoming.order_type || profile.order_type || 'unknown',\n    quantity_hint: incoming.quantity || incoming.quantity_hint || profile.quantity_hint || 0,\n    radar_urgency: incoming.radar_urgency || profile.radar_urgency || 'unknown',\n    recommended_action: incoming.recommended_action || profile.recommended_action || 'followup',\n    preferred_channel: incoming.preferred_channel || profile.preferred_channel || 'telegram',\n\n    stored_status: profile.status || 'new',\n    is_booked: isBooked,\n    last_seen_at: profile.last_seen_at || new Date().toISOString(),\n    interaction_count: profile.interaction_count || 0,\n\n    scored_at: incoming.scored_at || profile.scored_at \n      ? new Date(incoming.scored_at || profile.scored_at).toISOString()\n      : new Date().toISOString(),\n    handoff_at: incoming.handoff_at \n      ? new Date(incoming.handoff_at).toISOString()\n      : new Date().toISOString(),\n\n    personalization: {\n      name: incoming.name || profile.name || 'العميل',\n      group_size: incoming.quantity || incoming.quantity_hint || profile.quantity_hint || 1,\n      budget: incoming.budget_signal || profile.budget_signal || 'غير معروف',\n      quality: incoming.service_preference || profile.service_preference || 'غير معروف'\n    }\n  }\n}];"
       },
       "name": "Code – Merge Profile Data",
       "type": "n8n-nodes-base.code",
@@ -126,18 +126,18 @@
       "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1596384271,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1596384271"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1596384271"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -149,14 +149,14 @@
             "lead_score": "={{ $json.final_score || 0 }}",
             "category": "={{ $json.lead_category || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
             "priority": "skipped",
             "task_type": "already_booked_skip",
             "assigned_to": "system",
             "status": "skipped",
             "sla_minutes": "0",
             "created_at": "={{ $now }}",
-            "notes": "={{ 'تم التخطي: العميل محجوز/مغلق مسبقاً. الحالة السابقة: ' + ($json.stored_status || 'unknown') }}"
+            "notes": "={{ 'تم التخطي: العميل معملوز/مغلق مسبقاً. الحالة السابقة: ' + ($json.stored_status || 'unknown') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -231,8 +231,8 @@
               "removed": false
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -481,7 +481,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── B2C HOT – حجز فردي عاجل ──────────────────────────────────────────────────\nconst d = $input.first().json;\nconst budgetLine = d.budget_signal === 'luxury' ? 'اهتمامه بـ 5 نجوم' : d.budget_signal === 'budget' ? 'يبحث عن أسعار اقتصادية' : 'ميزانية متوسطة';\nconst starsLine = d.stars_preference !== 'unknown' ? ` | تفضيل: ${d.stars_preference}` : '';\n\nreturn [{ json: {\n  ...d,\n  task_title: `🔥 حجز فوري B2C – ${d.name}`,\n  task_type: 'b2c_hot_booking',\n  priority: 'urgent',\n  action_required: 'اتصل فوراً، عميل حجز جاهز',\n  task_notes: `${budgetLine}${starsLine} | درجة: ${d.score}/100 | عاجلية: ${d.urgency}`,\n  woo_product_id: 101\n} }];"
+        "jsCode": "const d = $input.first().json;\nconst budgetLine = d.budget_signal === 'luxury' ? 'اهتمامه بـ احترافية عالية' : d.budget_signal === 'budget' ? 'يبحث عن أسعار اقتصادية' : 'ميزانية متوسطة';\nconst qualityLine = d.service_preference !== 'unknown' ? ` | تفضيل: ${d.service_preference}` : '';\n\nreturn [{ json: {\n  ...d,\n  task_title: `🔥 طلب فوري B2C – ${d.name}`,\n  task_type: 'b2c_hot_order',\n  priority: 'urgent',\n  action_required: 'اتصل فوراً، عميل طلب جاهز',\n  task_notes: `${budgetLine}${qualityLine} | درجة: ${d.score}/100 | عاجلية: ${d.urgency}`,\n  woo_product_id: 101\n} }];"
       },
       "name": "Code – Prepare B2C Hot Task",
       "type": "n8n-nodes-base.code",
@@ -494,7 +494,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Prepare B2C Family Task | نظام رادار SaaSAI v4.0 — مُصحح\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── توليد task_id فريد ─────────────────────────────────────────────────\nconst ts = Date.now().toString().slice(-6);\nconst rnd = Math.floor(Math.random() * 1000).toString().padStart(3, '0');\nconst task_id = `TSK-${ts}${rnd}`;\n\n// ── تحديد نوع المهمة ──────────────────────────────────────────────────\nconst task_type = 'b2c_family_booking';\n\n// ── تحديد الأولوية بناءً على الدرجة ───────────────────────────────────\nlet priority = 'normal';\nif (d.final_score >= 90) priority = 'urgent';\nelse if (d.final_score >= 70) priority = 'high';\n\n// ── تحديد المندوب (فارغ افتراضياً لفريق المبيعات) ─────────────────────\nconst assigned_to = 'sales_team';\n\n// ── حالة المهمة (ليست تصنيف العميل!) ──────────────────────────────────\nconst status = 'open';  // ✅ open / closed / converted / escalated\n\n// ── توحيد صيغة الهاتف ─────────────────────────────────────────────────\nconst phone = d.phone?.startsWith('+') ? d.phone : `+${d.phone}`;\n\n// ── ملء lead_name ─────────────────────────────────────────────────────\nconst lead_name = d.name || d.full_name || 'غير معروف';\n\n// ── ملاحظات مفصلة لفريق المبيعات ─────────────────────────────────────\nconst notes = `عميل يطلب خدمة SaaSAI ${d.stars_preference || '5 نجوم'} قريب الحرم ليوم ${d.check_in_hint || 'غير محدد'} لعائلة من ${d.pax || 4} أشخاص. ميزانية ${d.budget_signal || 'unknown'}. رقم الهاتف: ${phone}. مصدر: ${d.source}. الرسالة: ${d.message || d.last_message || ''}`.substring(0, 500);\n\n// ── عنوان المهمة ──────────────────────────────────────────────────────\nconst task_title = `👨‍👩‍👧 حجز عائلي – ${lead_name}`;\n\n// ── الإجراء المطلوب ───────────────────────────────────────────────────\nconst action_required = 'تواصل وأرسل عروض الغرف العائلية';\n\n// ─ـ ملاحظات المهمة المختصرة ───────────────────────────────────────────\nconst task_notes = `عائلة | نجوم: ${d.stars_preference} | ميزانية: ${d.budget_signal} | درجة: ${d.final_score || d.score}/100`;\n\n// ── personalization للرسائل ──────────────────────────────────────────\nconst personalization = {\n  name: lead_name,\n  group_size: d.pax || 4,\n  budget: d.budget_signal || 'unknown',\n  stars: d.stars_preference || 'unknown'\n};\n\n// ── الإخراج النهائي — جميع الحقول المطلوبة ───────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // حقول المهمة الأساسية\n    task_id: task_id,\n    task_type: task_type,\n    priority: priority,\n    assigned_to: assigned_to,\n    status: status,  // ✅ حالة المهمة: open\n    sla_minutes: d.sla_minutes || 30,\n    created_at: new Date().toISOString(),\n    \n    // حقول الهوية الموحدة\n    lead_name: lead_name,\n    lead_score: d.final_score || d.score || 100,\n    phone: phone,\n    \n    // حقول العرض\n    task_title: task_title,\n    action_required: action_required,\n    task_notes: task_notes,\n    personalization: personalization,\n    \n    // حالة التخزين\n    stored_status: 'new',\n    \n    // طوابع زمنية إضافية\n    handoff_at: new Date().toISOString(),\n    scored_at: d.scored_at || new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Flow #6 › Code – Prepare B2C Family Task | نظام رادار [COMPANY_NAME] v4.0 — مُصحح\n\nconst d = $input.first()?.json || {};\n\nconst ts = Date.now().toString().slice(-6);\nconst rnd = Math.floor(Math.random() * 1000).toString().padStart(3, '0');\nconst task_id = `TSK-${ts}${rnd}`;\n\nconst task_type = 'b2c_family_order';\n\nlet priority = 'normal';\nif (d.final_score >= 90) priority = 'urgent';\nelse if (d.final_score >= 70) priority = 'high';\n\nconst assigned_to = 'sales_team';\n\nconst status = 'open';  // ✅ open / closed / converted / escalated\n\nconst phone = d.phone?.startsWith('+') ? d.phone : `+${d.phone}`;\n\nconst lead_name = d.name || d.full_name || 'غير معروف';\n\nconst notes = `عميل يطلب خدمة [COMPANY_NAME] ${d.service_preference || 'احترافية عالية'} قريب المركز ليوم ${d.preferred_date || 'غير محدد'} لعائلة من ${d.quantity || 4} أشخاص. ميزانية ${d.budget_signal || 'unknown'}. رقم الهاتف: ${phone}. مصدر: ${d.source}. الرسالة: ${d.message || d.last_message || ''}`.substring(0, 500);\n\nconst task_title = `👨‍👩‍👧 طلب عائلي/جماعي – ${lead_name}`;\n\nconst action_required = 'تواصل وأرسل عروض الخدمات المطلوبة';\n\nconst task_notes = `عائلة | نجوم: ${d.service_preference} | ميزانية: ${d.budget_signal} | درجة: ${d.final_score || d.score}/100`;\n\nconst personalization = {\n  name: lead_name,\n  group_size: d.quantity || 4,\n  budget: d.budget_signal || 'unknown',\n  quality: d.service_preference || 'unknown'\n};\n\nreturn [{\n  json: {\n    ...d,\n    task_id: task_id,\n    task_type: task_type,\n    priority: priority,\n    assigned_to: assigned_to,\n    status: status,  // ✅ حالة المهمة: open\n    sla_minutes: d.sla_minutes || 30,\n    created_at: new Date().toISOString(),\n    \n    lead_name: lead_name,\n    lead_score: d.final_score || d.score || 100,\n    phone: phone,\n    \n    task_title: task_title,\n    action_required: action_required,\n    task_notes: task_notes,\n    personalization: personalization,\n    \n    stored_status: 'new',\n    \n    handoff_at: new Date().toISOString(),\n    scored_at: d.scored_at || new Date().toISOString()\n  }\n}];"
       },
       "name": "Code – Prepare B2C Family Task",
       "type": "n8n-nodes-base.code",
@@ -507,7 +507,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── B2C GROUP – مجموعة ────────────────────────────────────────────────────────\nconst d = $input.first().json;\nconst paxStr = d.pax > 0 ? `${d.pax} شخص` : 'مجموعة كبيرة';\nreturn [{ json: {\n  ...d,\n  task_title: `👥 حجز مجموعة (${paxStr}) – ${d.name}`,\n  task_type: 'b2c_group_booking',\n  priority: 'high',\n  action_required: 'أرسل عرض سعر جماعي + تأكيد توفر الغرف',\n  task_notes: `${paxStr} | يحتاج تسعير خاص | درجة: ${d.score}/100`,\n  woo_product_id: 103\n} }];"
+        "jsCode": "const d = $input.first().json;\nconst quantityStr = d.quantity > 0 ? `${d.quantity} شخص` : 'مجموعة كبيرة';\nreturn [{ json: {\n  ...d,\n  task_title: `👥 طلب مجموعة (${quantityStr}) – ${d.name}`,\n  task_type: 'b2c_group_order',\n  priority: 'high',\n  action_required: 'أرسل عرض سعر جماعي + تأكيد توفر الخدمة',\n  task_notes: `${quantityStr} | يحتاج تسعير خاص | درجة: ${d.score}/100`,\n  woo_product_id: 103\n} }];"
       },
       "name": "Code – Prepare Group Task",
       "type": "n8n-nodes-base.code",
@@ -520,7 +520,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── B2B – شراكة تجارية ────────────────────────────────────────────────────────\nconst d = $input.first().json;\nconst catLine = d.category === 'B2B_government' ? 'جهة حكومية' : d.category === 'B2B_conference' ? 'تنظيم مؤتمرات' : 'وكالة سياحة/شركة';\nreturn [{ json: {\n  ...d,\n  task_title: `🏢 شراكة B2B – ${d.name} (${catLine})`,\n  task_type: 'b2b_partnership',\n  priority: 'high',\n  action_required: 'حدد موعد اجتماع، أرسل Profile الشركة + خطة أسعار الجملة',\n  task_notes: `${catLine} | درجة: ${d.score}/100 | تفاعلات سابقة: ${d.interaction_count}`,\n  woo_product_id: 104\n} }];"
+        "jsCode": "const d = $input.first().json;\nconst catLine = d.category === 'B2B_government' ? 'جهة حكومية' : d.category === 'B2B_conference' ? 'تنظيم مؤتمرات' : 'وكالة سياحة/شركة';\nreturn [{ json: {\n  ...d,\n  task_title: `🏢 شراكة B2B – ${d.name} (${catLine})`,\n  task_type: 'b2b_partnership',\n  priority: 'high',\n  action_required: 'حدد موعد اجتماع، أرسل Profile الشركة + خطة أسعار الجملة',\n  task_notes: `${catLine} | درجة: ${d.score}/100 | تفاعلات سابقة: ${d.interaction_count}`,\n  woo_product_id: 104\n} }];"
       },
       "name": "Code – Prepare B2B Deal Task",
       "type": "n8n-nodes-base.code",
@@ -533,7 +533,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── FALLBACK – نوع غير معروف ──────────────────────────────────────────────────\nconst d = $input.first().json;\nreturn [{ json: {\n  ...d,\n  task_title: `📋 Lead جديد – ${d.name}`,\n  task_type: 'general_followup',\n  priority: 'normal',\n  action_required: 'تواصل وحدد احتياج العميل',\n  task_notes: `درجة: ${d.score}/100 | المصدر: ${d.source}`,\n  woo_product_id: 101\n} }];"
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: {\n  ...d,\n  task_title: `📋 Lead جديد – ${d.name}`,\n  task_type: 'general_followup',\n  priority: 'normal',\n  action_required: 'تواصل وحدد احتياج العميل',\n  task_notes: `درجة: ${d.score}/100 | المصدر: ${d.source}`,\n  woo_product_id: 101\n} }];"
       },
       "name": "Code – Prepare Fallback Task",
       "type": "n8n-nodes-base.code",
@@ -559,18 +559,18 @@
       "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1511983230,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1511983230"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1511983230"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -644,8 +644,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -824,8 +824,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -833,8 +833,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -842,8 +842,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1103,8 +1103,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1332,8 +1332,8 @@
               "removed": false
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1500,18 +1500,18 @@
       "parameters": {
         "operation": "appendOrUpdate",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1536,10 +1536,10 @@
             "status": "={{ $json.status || 'new' }}",
             "journey_step": "={{ $json.journey_step || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "order_type": "={{ $json.order_type || 'unknown' }}",
+            "service_preference": "={{ $json.service_preference || 'unknown' }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
+            "preferred_date": "={{ $json.preferred_date || '' }}",
             "nights_hint": "={{ $json.nights_hint || 0 }}",
             "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
             "raw_text": "={{ $json.raw_text || '' }}",
@@ -1566,7 +1566,7 @@
             "intent_bonus": "={{ $json.intent_bonus || 0 }}",
             "phone_bonus": "={{ $json.phone_bonus || 0 }}",
             "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "quality_bonus": "={{ $json.quality_bonus || 0 }}",
             "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
             "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
             "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
@@ -1585,7 +1585,7 @@
             "task_type": "={{ $json.task_type || '' }}",
             "sla_minutes": "={{ $json.sla_minutes || 0 }}",
             "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "quantity": "={{ $json.quantity || $json.quantity_hint || 0 }}",
             "handoff_at": "={{ $json.handoff_at || '' }}"
           },
           "matchingColumns": [
@@ -1773,8 +1773,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1782,8 +1782,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1791,8 +1791,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1800,8 +1800,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2043,8 +2043,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2214,8 +2214,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2256,7 +2256,7 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "={{ \n  (() => {\n    const d = $json;\n    \n    // 🎨 أيقونات الأولوية\n    const prioIcon = { \n      'urgent': '🔴', 'high': '🟠', 'normal': '🔵',\n      '1': '🔴', '2': '🟠', '3': '🔵'\n    };\n    \n    // 🎨 أيقونات نوع العميل\n    const typeIcon = { \n      'b2c_solo_hot_booking': '👤🔥', \n      'b2c_family_booking': '👨‍👩‍👧‍👦✨', \n      'b2c_group_booking': '👥🎯', \n      'b2b_partnership': '🏢💼', \n      'general_followup': '📋⏳',\n      'b2c_solo': '👤',\n      'b2c_family': '👨‍👩‍👧‍👦',\n      'b2c_group': '👥'\n    };\n    \n    // 🎨 أيقونات النجوم والميزانية\n    const starsIcon = {\n      '5star': '⭐⭐⭐⭐⭐', '4star': '⭐⭐⭐⭐', \n      '3star': '⭐⭐⭐', 'unknown': '⭐❓'\n    };\n    const budgetIcon = {\n      'luxury': '💎 فاخر', 'mid': '💰 متوسط', \n      'budget': '🎯 اقتصادي', 'unknown': '❓ غير محدد'\n    };\n    \n    // 📦 استخراج البيانات (مع تنظيف المسافات)\n    const taskType = d.category ? d.category + '_hot_booking' : 'b2c_solo_hot_booking';\n    const urgency = d.radar_urgency || 'عادي';\n    const urgencyText = { 'immediate': 'فوري 🔥', 'soon': 'قريب ⏱️', 'normal': 'عادي 📅' }[urgency] || urgency;\n    const sla = d.sla_minutes || (d.score >= 90 ? 15 : d.score >= 75 ? 30 : 60);\n    const action = 'اتصال فوري 📞';\n    const notes = 'عميل جديد - درجة عالية';\n    const score = d.score || d.final_score || 0;\n    const qualityBadge = score >= 90 ? '🏆 ممتاز' : score >= 75 ? '✅ جيد' : score >= 55 ? '⚠️ متوسط' : '🔻 منخفض';\n    const phone = d.phone || 'غير متاح';\n    const budgetRaw = (d.budget_signal || '').trim();\n    const paxRaw = Number(d.pax_hint) || d.pax_hint || 'غير محدد';\n    \n    // 🎨 بناء الرسالة (بدون تكرار)\n    return `${prioIcon[d.priority] || prioIcon[d.priority + ''] || '🔵'} *طلب جديد للمبيعات*\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n\\n` +\n      `${typeIcon[taskType] || '👤'} *بيانات العميل*\\n` +\n      `👤 *الاسم:* ${d.name || 'مجهول'}\\n` +\n      `📱 *الجوال:* ${phone}\\n` +\n      `🌐 *المصدر:* ${d.source || d.platform || 'غير معروف'}\\n\\n` +\n      `📊 *تقييم الفرصة*\\n` +\n      `🎯 *الدرجة:* ${score}/100 — ${qualityBadge}\\n` +\n      `⚡ *العاجلية:* ${urgencyText}\\n` +\n      `⏱️ *مهلة الرد:* ${sla} دقيقة كحد أقصى\\n` +\n      `🏷️ *التصنيف:* ${taskType.replace(/_/g, ' ')}\\n\\n` +\n      `🏨 *تفضيلات الإقامة*\\n` +\n      `✨ *النجوم:* ${starsIcon[d.stars_preference] || d.stars_preference || 'غير محدد'}\\n` +\n      `💵 *الميزانية:* ${budgetIcon[budgetRaw] || budgetRaw || 'غير محدد'}\\n` +\n      `👥 *عدد الأشخاص:* ${paxRaw}\\n\\n` +\n      `✅ *الإجراء المطلوب*\\n` +\n      `🎬 ${action}\\n` +\n      `📝 *ملاحظات:* ${notes}\\n\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n` +\n      `🆔 *معرف العميل:* \\`${d.lead_id}\\`\\n` +\n      `🕐 *وقت التسليم:* ${new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'})}`;\n  })()\n}}",
+        "text": "={{ \n  (() => {\n    const d = $json;\n    \n    // 🎨 أيقونات الأولوية\n    const prioIcon = { \n      'urgent': '🔴', 'high': '🟠', 'normal': '🔵',\n      '1': '🔴', '2': '🟠', '3': '🔵'\n    };\n    \n    // 🎨 أيقونات نوع العميل\n    const typeIcon = { \n      'b2c_solo_hot_order': '👤🔥', \n      'b2c_family_order': '👨‍👩‍👧‍👦✨', \n      'b2c_group_order': '👥🎯', \n      'b2b_partnership': '🏢💼', \n      'general_followup': '📋⏳',\n      'b2c_solo': '👤',\n      'b2c_family': '👨‍👩‍👧‍👦',\n      'b2c_group': '👥'\n    };\n    \n    // 🎨 أيقونات النجوم والميزانية\n    const qualityIcon = {\n      '5star': '⭐⭐⭐⭐⭐', '4star': '⭐⭐⭐⭐', \n      '3star': '⭐⭐⭐', 'unknown': '⭐❓'\n    };\n    const budgetIcon = {\n      'luxury': '💎 فاخر', 'mid': '💰 متوسط', \n      'budget': '🎯 اقتصادي', 'unknown': '❓ غير محدد'\n    };\n    \n    // 📦 استخراج البيانات (مع تنظيف المسافات)\n    const taskType = d.category ? d.category + '_hot_order' : 'b2c_solo_hot_order';\n    const urgency = d.radar_urgency || 'عادي';\n    const urgencyText = { 'immediate': 'فوري 🔥', 'soon': 'قريب ⏱️', 'normal': 'عادي 📅' }[urgency] || urgency;\n    const sla = d.sla_minutes || (d.score >= 90 ? 15 : d.score >= 75 ? 30 : 60);\n    const action = 'اتصال فوري 📞';\n    const notes = 'عميل جديد - درجة عالية';\n    const score = d.score || d.final_score || 0;\n    const qualityBadge = score >= 90 ? '🏆 ممتاز' : score >= 75 ? '✅ جيد' : score >= 55 ? '⚠️ متوسط' : '🔻 منخفض';\n    const phone = d.phone || 'غير متاح';\n    const budgetRaw = (d.budget_signal || '').trim();\n    const quantityRaw = Number(d.quantity_hint) || d.quantity_hint || 'غير محدد';\n    \n    // 🎨 بناء الرسالة (بدون تكرار)\n    return `${prioIcon[d.priority] || prioIcon[d.priority + ''] || '🔵'} *طلب جديد للمبيعات*\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n\\n` +\n      `${typeIcon[taskType] || '👤'} *بيانات العميل*\\n` +\n      `👤 *الاسم:* ${d.name || 'مجهول'}\\n` +\n      `📱 *الجوال:* ${phone}\\n` +\n      `🌐 *المصدر:* ${d.source || d.platform || 'غير معروف'}\\n\\n` +\n      `📊 *تقييم الفرصة*\\n` +\n      `🎯 *الدرجة:* ${score}/100 — ${qualityBadge}\\n` +\n      `⚡ *العاجلية:* ${urgencyText}\\n` +\n      `⏱️ *مهلة الرد:* ${sla} دقيقة كحد أقصى\\n` +\n      `🏷️ *مستوى الخدمة:* ${taskType.replace(/_/g, ' ')}\\n\\n` +\n      `🏢 *تفضيلات الخدمة*\\n` +\n      `✨ *النجوم:* ${qualityIcon[d.service_preference] || d.service_preference || 'غير محدد'}\\n` +\n      `💵 *الميزانية:* ${budgetIcon[budgetRaw] || budgetRaw || 'غير محدد'}\\n` +\n      `👥 *عدد الأشخاص:* ${quantityRaw}\\n\\n` +\n      `✅ *الإجراء المطلوب*\\n` +\n      `🎬 ${action}\\n` +\n      `📝 *ملاحظات:* ${notes}\\n\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n` +\n      `🆔 *معرف العميل:* \\`${d.lead_id}\\`\\n` +\n      `🕐 *وقت التسليم:* ${new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'})}`;\n  })()\n}}",
         "additionalFields": {
           "appendAttribution": false,
           "parse_mode": "Markdown"
@@ -2282,10 +2282,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "=[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"lead_phone\": \"{{ $json.phone }}\",\n  \"lead_name\": \"{{ $json.name }}\",\n  \"channel\": \"{{ $json.platform || 'whatsapp' }}\",\n  \"custom_message\": \"أهلاً وسهلاً بك يا {{ $json.name || 'عزيزي' }} 👋🌹\\n\\nنشكر ثقتك الغالية في خدماتنا لحجوزات SaaSAI للأتمتة.\\n\\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }} دقيقة على الأكثر.\\n\\n🕌 نعدك بتجربة إقامة مميزة، ونسأل الله أن يجعلها رحلة مباركة لك ولأسرتك.\\n\\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.\",\n  \"personalization\": {\n    \"name\": \"{{ $json.name }}\",\n    \"lead_id\": \"{{ $json.lead_id }}\",\n    \"score\": {{ $json.score || 0 }}\n  },\n  \"action_type\": \"transactional\",\n  \"template_id\": \"sales_handoff_confirm\",\n  \"priority\": \"{{ $json.score >= 90 || $json.radar_urgency == 'immediate' ? 'urgent' : $json.score >= 75 || $json.budget_signal == 'luxury' ? 'high' : 'normal' }}\",\n  \"metadata\": {\n    \"score\": {{ $json.score || 0 }},\n    \"sla_minutes\": {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }},\n    \"source\": \"{{ $json.source }}\",\n    \"category\": \"{{ $json.category }}\",\n    \"stars_preference\": \"{{ $json.stars_preference }}\",\n    \"budget_signal\": \"{{ ($json.budget_signal||'').trim() }}\",\n    \"sent_at\": \"{{ $now }}\"\n  }\n}",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"lead_phone\": \"{{ $json.phone }}\",\n  \"lead_name\": \"{{ $json.name }}\",\n  \"channel\": \"{{ $json.platform || 'whatsapp' }}\",\n  \"custom_message\": \"أهلاً وسهلاً بك يا {{ $json.name || 'عزيزي' }} 👋🌹\\n\\nنشكر ثقتك الغالية في خدماتنا لخدمات [COMPANY_NAME].\\n\\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }} دقيقة على الأكثر.\\n\\n✨ نعدك بتجربة خدمة مميزة تلبي تطلعاتك، ونسأل الله أن يجعلها نجاحاً باهراً لأعمالك.\\n\\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.\",\n  \"personalization\": {\n    \"name\": \"{{ $json.name }}\",\n    \"lead_id\": \"{{ $json.lead_id }}\",\n    \"score\": {{ $json.score || 0 }}\n  },\n  \"action_type\": \"transactional\",\n  \"template_id\": \"sales_handoff_confirm\",\n  \"priority\": \"{{ $json.score >= 90 || $json.radar_urgency == 'immediate' ? 'urgent' : $json.score >= 75 || $json.budget_signal == 'luxury' ? 'high' : 'normal' }}\",\n  \"metadata\": {\n    \"score\": {{ $json.score || 0 }},\n    \"sla_minutes\": {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }},\n    \"source\": \"{{ $json.source }}\",\n    \"category\": \"{{ $json.category }}\",\n    \"service_preference\": \"{{ $json.service_preference }}\",\n    \"budget_signal\": \"{{ ($json.budget_signal||'').trim() }}\",\n    \"sent_at\": \"{{ $now }}\"\n  }\n}",
         "options": {
           "timeout": 10000
         }
@@ -2316,16 +2316,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1511983230,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1511983230"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1511983230"
         },
         "filtersUI": {
           "values": [
@@ -2358,7 +2358,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Check If Still Open v2.3 – آمن 100% ويضمن boolean ────────────────────────\n\nconst taskData = $('Merge All Task Preparations').first().json || {};  // fallback آمن\n\n// فلتر آمن جدًا: نتأكد إن كل item ليه json قبل الوصول للحقول\nconst openTasks = $input.all().filter(i => {\n  if (!i || !i.json) return false;\n  return i.json.status === 'open' || i.json.phone || i.json.task_id;\n});\n\nconst stillOpen = openTasks.length > 0;  // ده boolean دائمًا (true/false)\n\nreturn [{ json: { \n  ...taskData,\n  still_open_2h: stillOpen,           // boolean صريح\n  open_tasks_count: openTasks.length, // للشفافية\n  debug_open_tasks: openTasks.length   // لو عايز تشوف العدد في اللوج\n} }];"
+        "jsCode": "\nconst taskData = $('Merge All Task Preparations').first().json || {};  // fallback آمن\n\nconst openTasks = $input.all().filter(i => {\n  if (!i || !i.json) return false;\n  return i.json.status === 'open' || i.json.phone || i.json.task_id;\n});\n\nconst stillOpen = openTasks.length > 0;  // ده boolean دائمًا (true/false)\n\nreturn [{ json: { \n  ...taskData,\n  still_open_2h: stillOpen,           // boolean صريح\n  open_tasks_count: openTasks.length, // للشفافية\n  debug_open_tasks: openTasks.length   // لو عايز تشوف العدد في اللوج\n} }];"
       },
       "name": "Code – Check If Still Open",
       "type": "n8n-nodes-base.code",
@@ -2449,16 +2449,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1511983230,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1511983230"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1511983230"
         },
         "filtersUI": {
           "values": [
@@ -2491,7 +2491,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Check Still Open After 2h | نظام رادار SaaSAI v4.0 — تشخيصي\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── حساب الوقت المنقضي بدقة ───────────────────────────────────────────\nconst createdAt = new Date(d.created_at || d.handoff_at || Date.now());\nconst now = new Date();\nconst diffMs = now - createdAt;\nconst hoursElapsed = diffMs / (1000 * 60 * 60); // تحويل لـ ساعات\n\n// ── التحقق من حالة المهمة ─────────────────────────────────────────────\nconst taskStatus = (d.status || d.task_status || 'open').toLowerCase().trim();\nconst isOpen = taskStatus === 'open';\nconst isEscalated = taskStatus === 'escalated';\nconst isClosed = ['closed', 'converted', 'cancelled'].includes(taskStatus);\n\n// ── الحساب النهائي لـ still_open_2h ───────────────────────────────────\nconst still_open = isOpen && !isEscalated && !isClosed;\nconst still_open_2h = still_open && hoursElapsed >= 2;\n\n// ── تسجيلات تشخيصية (للتتبع في اللوج) ─────────────────────────────────\nconst debug_info = {\n  created_at: d.created_at,\n  now: now.toISOString(),\n  hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n  task_status: taskStatus,\n  is_open: isOpen,\n  is_escalated: isEscalated,\n  is_closed: isClosed,\n  still_open: still_open,\n  still_open_2h: still_open_2h\n};\n\n// ── الإخراج النهائي ──────────────────────────────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // ✅ الحقول المطلوبة للعقدة الشرطية (boolean صريح)\n    still_open_2h: Boolean(still_open_2h),\n    still_open: Boolean(still_open),\n    \n    // حقول التشخيص (تظهر في اللوج للمراجعة)\n    _debug_hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n    _debug_task_status: taskStatus,\n    _debug_still_open_calc: debug_info,\n    \n    // حقول التصعيد\n    needs_escalation: Boolean(still_open_2h),\n    escalation_priority: d.sla_minutes <= 15 ? 'urgent' : \n                         d.sla_minutes <= 30 ? 'high' : 'normal',\n    checked_at: now.toISOString(),\n    \n    // ضمان وجود task_id\n    task_id: d.task_id || `TSK-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`\n  }\n}];"
+        "jsCode": "// Flow #6 › Code – Check Still Open After 2h | نظام رادار [COMPANY_NAME] v4.0 — تشخيصي\n\nconst d = $input.first()?.json || {};\n\nconst createdAt = new Date(d.created_at || d.handoff_at || Date.now());\nconst now = new Date();\nconst diffMs = now - createdAt;\nconst hoursElapsed = diffMs / (1000 * 60 * 60); // تحويل لـ ساعات\n\nconst taskStatus = (d.status || d.task_status || 'open').toLowerCase().trim();\nconst isOpen = taskStatus === 'open';\nconst isEscalated = taskStatus === 'escalated';\nconst isClosed = ['closed', 'converted', 'cancelled'].includes(taskStatus);\n\nconst still_open = isOpen && !isEscalated && !isClosed;\nconst still_open_2h = still_open && hoursElapsed >= 2;\n\nconst debug_info = {\n  created_at: d.created_at,\n  now: now.toISOString(),\n  hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n  task_status: taskStatus,\n  is_open: isOpen,\n  is_escalated: isEscalated,\n  is_closed: isClosed,\n  still_open: still_open,\n  still_open_2h: still_open_2h\n};\n\nreturn [{\n  json: {\n    ...d,\n    still_open_2h: Boolean(still_open_2h),\n    still_open: Boolean(still_open),\n    \n    _debug_hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n    _debug_task_status: taskStatus,\n    _debug_still_open_calc: debug_info,\n    \n    needs_escalation: Boolean(still_open_2h),\n    escalation_priority: d.sla_minutes <= 15 ? 'urgent' : \n                         d.sla_minutes <= 30 ? 'high' : 'normal',\n    checked_at: now.toISOString(),\n    \n    task_id: d.task_id || `TSK-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`\n  }\n}];"
       },
       "name": "Code – Check Still Open After 2h",
       "type": "n8n-nodes-base.code",
@@ -2566,18 +2566,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1511983230,
           "mode": "list",
           "cachedResultName": "sales_tasks",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1511983230"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1511983230"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -2661,8 +2661,8 @@
               "removed": false
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2860,8 +2860,8 @@
               "removed": false
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2870,8 +2870,8 @@
               "removed": false
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2880,8 +2880,8 @@
               "removed": false
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3170,8 +3170,8 @@
               "removed": false
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3410,8 +3410,8 @@
               "removed": false
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3597,24 +3597,24 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 881262346,
           "mode": "list",
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=881262346"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=881262346"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR6-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F6",
+            "flow_name": "[COMPANY_NAME]_F6",
             "node_name": "={{ $json.execution?.lastNodeExecuted || $json.node?.name || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || $json.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "={{ /timeout|429|503/i.test($json.error?.message||'') ? 'high' : 'medium' }}",
@@ -3861,7 +3861,7 @@
           "query": {},
           "body": {
             "lead_id": "FAC-6JCYAG-A9KST0",
-            "phone": "+966509988776",
+            "phone": "+[PHONE_NUMBER]",
             "name": "راشد الغامدي",
             "email": "empty",
             "nationality": "empty",
@@ -3875,18 +3875,18 @@
             "radar_intent": "info_seeking",
             "radar_quality": 95,
             "budget_signal": "mid",
-            "travel_group": "family",
-            "stars_preference": "4star",
-            "pax_hint": 0,
-            "check_in_hint": "بعد أسبوعين",
+            "order_type": "family",
+            "service_preference": "4star",
+            "quantity_hint": 0,
+            "preferred_date": "بعد أسبوعين",
             "nights_hint": 0,
-            "last_message": "أي فندق أنصحون فيه قريب الحرم بسعر معقول لغرفة عائلية؟ ميزانيتي 500 ريال الليلة. رحلتي بعد أسبوعين 0509988776",
+            "last_message": "أبحث عن خدمات احترافية تلبي احتياجاتي بسعر مناسب. الميزانية مرنة حسب الجودة.. أحتاج البدء قريباً. [PHONE_NUMBER]",
             "source": "Radar_Facebook",
             "platform": "Facebook",
             "lead_quality": 95,
             "journey_step": "cold_info"
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-sales-handoff",
+          "webhookUrl": "[YOUR_WEBHOOK_URL]",
           "executionMode": "production"
         },
         "pairedItem": {
