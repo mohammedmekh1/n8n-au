@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F3 – Lead Scoring التقييم",
+  "name": "[COMPANY_NAME] – F3 – Lead Scoring التقييم",
   "nodes": [
     {
       "parameters": {
@@ -46,7 +46,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Normalize Lead for Scoring v2 ─────────────────────────────────────────\n// Accepts leads from Flow #2 (all channels) and Flow #1 (Radar)\nconst lead = $input.first().json;\n\n// ── Identify source type ─────────────────────────────────────────────────────\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\n// ── Base score by source ──────────────────────────────────────────────────────\n// Radar already pre-scored by AI; use that as base if available\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\n// ── Extract core fields ───────────────────────────────────────────────────────\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\n// ── Radar AI data (if available) ─────────────────────────────────────────────\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst travel_group = lead.travel_group || 'unknown';\nconst stars_preference = lead.stars_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst pax_hint = lead.pax_hint || 0;\n\n\n// SaaSAI – Service Type Detection\nconst svcKeywords = {\n  automation: ['أتمتة','n8n','workflow','make','zapier','اوتوماشن'],\n  ai_solutions: ['ذكاء اصطناعي','ai','chatgpt','claude','gemini'],\n  web_dev: ['موقع','website','wordpress','تطبيق','متجر'],\n  seo: ['seo','محركات البحث','جوجل','ترتيب'],\n  design: ['تصميم','جرافيك','هوية','لوجو','شعار'],\n  video: ['فيديو','موشن','reels','مونتاج'],\n  marketing: ['تسويق','marketing','إعلان','ads','سوشيال'],\n  content: ['محتوى','مقال','كتابة','content'],\n  training: ['تدريب','كورس','دورة','training'],\n  wedding: ['زفاف','دعوة','عرس','wedding','مناسبة','invitation'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  travel_group,\n  stars_preference,\n  has_phone,\n  pax_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
+        "jsCode": "const lead = $input.first().json;\n\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst order_type = lead.order_type || 'unknown';\nconst service_preference = lead.service_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst quantity_hint = lead.quantity_hint || 0;\n\n\n// [COMPANY_NAME] – Service Type Detection\nconst svcKeywords = {\n  automation: ['أتمتة','n8n','workflow','make','zapier','اوتوماشن'],\n  ai_solutions: ['ذكاء اصطناعي','ai','chatgpt','claude','gemini'],\n  web_dev: ['موقع','website','wordpress','تطبيق','متجر'],\n  seo: ['seo','محركات البحث','جوجل','ترتيب'],\n  design: ['تصميم','جرافيك','هوية','لوجو','شعار'],\n  video: ['فيديو','موشن','reels','مونتاج'],\n  marketing: ['تسويق','marketing','إعلان','ads','سوشيال'],\n  content: ['محتوى','مقال','كتابة','content'],\n  training: ['تدريب','كورس','دورة','training'],\n  special_service: ['مناسبة خاصة','دعوة','حدث','special_service','مناسبة','invitation'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  order_type,\n  service_preference,\n  has_phone,\n  quantity_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
       },
       "name": "Code – Normalize Lead for Scoring",
       "type": "n8n-nodes-base.code",
@@ -60,14 +60,14 @@
     {
       "parameters": {
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 862175237,
           "mode": "list",
           "cachedResultName": "interactions_log",
@@ -102,7 +102,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Base Score + Loyalty + Radar Urgency Bonus ──────────────────────────────\nconst data = $('Code – Normalize Lead for Scoring').first().json;\nconst history = $input.all().map(i => i.json).filter(h => h && h.phone);\n\n// ── Loyalty bonus (repeat interaction) ───────────────────────────────────────\nconst interaction_count = history.length;\nconst loyalty_bonus = Math.min(interaction_count * 5, 20); // max 20 pts\n\n// ── Radar AI urgency bonus ────────────────────────────────────────────────────\nlet urgency_bonus = 0;\nif (data.radar_urgency === 'immediate') urgency_bonus = 25;\nelse if (data.radar_urgency === 'soon') urgency_bonus = 12;\nelse if (data.radar_urgency === 'planned') urgency_bonus = 5;\n\n// ── Radar intent bonus ────────────────────────────────────────────────────────\nlet intent_bonus = 0;\nif (data.radar_intent === 'booking_ready') intent_bonus = 30;\nelse if (data.radar_intent === 'complaint_competitor') intent_bonus = 20;\nelse if (data.radar_intent === 'booking_research') intent_bonus = 10;\nelse if (data.radar_intent === 'travel_planning') intent_bonus = 5;\n\n// ── Phone signal bonus ────────────────────────────────────────────────────────\nconst phone_bonus = data.has_phone ? 15 : 0;\n\n// ── Budget/Stars bonus ────────────────────────────────────────────────────────\nlet budget_bonus = 0;\nif (data.budget_signal === 'luxury') budget_bonus = 8;\nelse if (data.budget_signal === 'mid') budget_bonus = 5;\n\nlet stars_bonus = 0;\nif (data.stars_preference === '5star') stars_bonus = 8;\nelse if (data.stars_preference === '4star') stars_bonus = 5;\n\n// ── Direct inbound bonus (WhatsApp / Telegram contact) ───────────────────────\nconst inbound_bonus = data.is_direct_inbound ? 20 : 0;\n\nconst subtotal = data.base_score + loyalty_bonus + urgency_bonus + intent_bonus + phone_bonus + budget_bonus + stars_bonus + inbound_bonus;\n\nreturn [{ json: {\n  ...data,\n  interaction_count,\n  loyalty_bonus,\n  urgency_bonus,\n  intent_bonus,\n  phone_bonus,\n  budget_bonus,\n  stars_bonus,\n  inbound_bonus,\n  subtotal\n} }];"
+        "jsCode": "const data = $('Code – Normalize Lead for Scoring').first().json;\nconst history = $input.all().map(i => i.json).filter(h => h && h.phone);\n\nconst interaction_count = history.length;\nconst loyalty_bonus = Math.min(interaction_count * 5, 20); // max 20 pts\n\nlet urgency_bonus = 0;\nif (data.radar_urgency === 'immediate') urgency_bonus = 25;\nelse if (data.radar_urgency === 'soon') urgency_bonus = 12;\nelse if (data.radar_urgency === 'planned') urgency_bonus = 5;\n\nlet intent_bonus = 0;\nif (data.radar_intent === 'order_ready') intent_bonus = 30;\nelse if (data.radar_intent === 'complaint_competitor') intent_bonus = 20;\nelse if (data.radar_intent === 'order_research') intent_bonus = 10;\nelse if (data.radar_intent === 'travel_planning') intent_bonus = 5;\n\nconst phone_bonus = data.has_phone ? 15 : 0;\n\nlet budget_bonus = 0;\nif (data.budget_signal === 'luxury') budget_bonus = 8;\nelse if (data.budget_signal === 'mid') budget_bonus = 5;\n\nlet quality_bonus = 0;\nif (data.service_preference === '5star') quality_bonus = 8;\nelse if (data.service_preference === '4star') quality_bonus = 5;\n\nconst inbound_bonus = data.is_direct_inbound ? 20 : 0;\n\nconst subtotal = data.base_score + loyalty_bonus + urgency_bonus + intent_bonus + phone_bonus + budget_bonus + quality_bonus + inbound_bonus;\n\nreturn [{ json: {\n  ...data,\n  interaction_count,\n  loyalty_bonus,\n  urgency_bonus,\n  intent_bonus,\n  phone_bonus,\n  budget_bonus,\n  quality_bonus,\n  inbound_bonus,\n  subtotal\n} }];"
       },
       "name": "Code – Calculate Base & Bonuses",
       "type": "n8n-nodes-base.code",
@@ -150,7 +150,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Add urgency keyword bonus (+15)\nreturn [{ json: { ...$json, kw_urgency_bonus: 15 } }];"
+        "jsCode": "return [{ json: { ...$json, kw_urgency_bonus: 15 } }];"
       },
       "name": "Code – Add Urgency KW Bonus",
       "type": "n8n-nodes-base.code",
@@ -163,7 +163,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Check for urgency keywords and set boolean flag\nconst items = $input.all();\nreturn items.map(item => {\n  const msg = (item.json.message || item.json.raw_text || '').toLowerCase();\n  const urgencyKWs = ['عاجل','حالا','الآن','اليوم','حجز فوري','متاح','فوراً','هذا الأسبوع','قريباً','سريع','urgent','now','today','asap'];\n  const has_urgency_kw = urgencyKWs.some(kw => msg.includes(kw));\n  return { json: { ...item.json, has_urgency_kw } };\n});\n"
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const msg = (item.json.message || item.json.raw_text || '').toLowerCase();\n  const urgencyKWs = ['عاجل','حالا','الآن','اليوم','طلب فوري','متاح','فوراً','هذا الأسبوع','قريباً','سريع','urgent','now','today','asap'];\n  const has_urgency_kw = urgencyKWs.some(kw => msg.includes(kw));\n  return { json: { ...item.json, has_urgency_kw } };\n});\n"
       },
       "name": "Code – No Urgency KW",
       "type": "n8n-nodes-base.code",
@@ -223,7 +223,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// B2B detected: +35 pts, classify as B2B\nconst msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/حكوم|وزار|هيئة|government/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
+        "jsCode": "const msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/حكوم|وزار|هيئة|government/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
       },
       "name": "Code – Add B2B Bonus",
       "type": "n8n-nodes-base.code",
@@ -236,7 +236,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Not B2B – classify as B2C, check group size\nconst pax = $json.pax_hint || 0;\nconst tg = $json.travel_group || 'unknown';\nlet lead_category = 'B2C_solo';\nif (pax >= 10 || tg === 'group') lead_category = 'B2C_large_group';\nelse if (pax >= 4 || tg === 'family') lead_category = 'B2C_family';\nelse if (pax === 2 || tg === 'couple') lead_category = 'B2C_couple';\n\nreturn [{ json: { ...$json, b2b_bonus: 0, lead_category } }];"
+        "jsCode": "const quantity = $json.quantity_hint || 0;\nconst tg = $json.order_type || 'unknown';\nlet lead_category = 'B2C_solo';\nif (quantity >= 10 || tg === 'group') lead_category = 'B2C_large_group';\nelse if (quantity >= 4 || tg === 'family') lead_category = 'B2C_family';\nelse if (quantity === 2 || tg === 'couple') lead_category = 'B2C_couple';\n\nreturn [{ json: { ...$json, b2b_bonus: 0, lead_category } }];"
       },
       "name": "Code – Set B2C Category",
       "type": "n8n-nodes-base.code",
@@ -295,7 +295,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Add Group Bonus if Large Group (True branch) v2.3 ────────────────────────\n// هذه العقدة تُنفذ فقط إذا مرّ الشرط في IF السابقة\n// لكن نضيف تحقق إضافي للأمان (defense in depth)\n\nconst pax = $json.pax_hint || 0;\nconst groupType = $json.travel_group || 'unknown';\n\nconst isLarge = pax > 6 || groupType === 'group' || (groupType === 'family' && pax >= 4);\n\nreturn [{\n  json: {\n    ...$json,  // نحافظ على كل الحقول الأصلية\n    group_bonus: isLarge ? 20 : 0,  // فقط إذا كانت مجموعة كبيرة فعلاً\n    // تحديث lead_category إذا لم يكن موجوداً من قبل\n    lead_category: $json.lead_category || (isLarge ? 'B2C_large_group' : 'B2C')\n  }\n}];"
+        "jsCode": "\nconst quantity = $json.quantity_hint || 0;\nconst groupType = $json.order_type || 'unknown';\n\nconst isLarge = quantity > 6 || groupType === 'group' || (groupType === 'family' && quantity >= 4);\n\nreturn [{\n  json: {\n    ...$json,  // نحافظ على كل الحقول الأصلية\n    group_bonus: isLarge ? 20 : 0,  // فقط إذا كانت مجموعة كبيرة فعلاً\n    lead_category: $json.lead_category || (isLarge ? 'B2C_large_group' : 'B2C')\n  }\n}];"
       },
       "name": "Code – Add Group Bonus",
       "type": "n8n-nodes-base.code",
@@ -308,7 +308,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// No large group bonus\nreturn [{ json: { ...$json, group_bonus: 0 } }];"
+        "jsCode": "return [{ json: { ...$json, group_bonus: 0 } }];"
       },
       "name": "Code – No Group Bonus",
       "type": "n8n-nodes-base.code",
@@ -332,7 +332,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Final Score Calculation & Classification ─────────────────────────────\nconst d = $input.first().json;\n\nconst total = Math.min(\n  (d.base_score || 0) +\n  (d.loyalty_bonus || 0) +\n  (d.urgency_bonus || 0) +\n  (d.intent_bonus || 0) +\n  (d.phone_bonus || 0) +\n  (d.budget_bonus || 0) +\n  (d.stars_bonus || 0) +\n  (d.inbound_bonus || 0) +\n  (d.kw_urgency_bonus || 0) +\n  (d.b2b_bonus || 0) +\n  (d.group_bonus || 0),\n  100\n);\n\n// ── Status classification ─────────────────────────────────────────────────────\nlet status = 'Cold';\nlet priority = 3;\nif (total >= 80) { status = 'Hot'; priority = 1; }\nelse if (total >= 55) { status = 'Warm'; priority = 2; }\n\n// ── Next action recommendation ────────────────────────────────────────────────\nlet recommended_action = 'nurture_sequence';\nif (status === 'Hot') {\n  if (d.lead_category?.startsWith('B2B')) recommended_action = 'b2b_sales_call';\n  else recommended_action = 'immediate_sales_call';\n} else if (status === 'Warm') {\n  recommended_action = 'whatsapp_followup_24h';\n}\n\n// ── Score breakdown for transparency ─────────────────────────────────────────\nconst breakdown = {\n  base: d.base_score || 0,\n  loyalty: d.loyalty_bonus || 0,\n  urgency_ai: d.urgency_bonus || 0,\n  urgency_kw: d.kw_urgency_bonus || 0,\n  intent: d.intent_bonus || 0,\n  phone: d.phone_bonus || 0,\n  budget: d.budget_bonus || 0,\n  stars: d.stars_bonus || 0,\n  inbound: d.inbound_bonus || 0,\n  b2b: d.b2b_bonus || 0,\n  group: d.group_bonus || 0\n};\n\nreturn [{ json: {\n  ...d,\n  final_score: total,\n  status,\n  priority,\n  lead_category: d.lead_category || 'B2C_solo',\n  recommended_action,\n  score_breakdown: breakdown,\n  scored_at: new Date().toISOString()\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst total = Math.min(\n  (d.base_score || 0) +\n  (d.loyalty_bonus || 0) +\n  (d.urgency_bonus || 0) +\n  (d.intent_bonus || 0) +\n  (d.phone_bonus || 0) +\n  (d.budget_bonus || 0) +\n  (d.quality_bonus || 0) +\n  (d.inbound_bonus || 0) +\n  (d.kw_urgency_bonus || 0) +\n  (d.b2b_bonus || 0) +\n  (d.group_bonus || 0),\n  100\n);\n\nlet status = 'Cold';\nlet priority = 3;\nif (total >= 80) { status = 'Hot'; priority = 1; }\nelse if (total >= 55) { status = 'Warm'; priority = 2; }\n\nlet recommended_action = 'nurture_sequence';\nif (status === 'Hot') {\n  if (d.lead_category?.startsWith('B2B')) recommended_action = 'b2b_sales_call';\n  else recommended_action = 'immediate_sales_call';\n} else if (status === 'Warm') {\n  recommended_action = 'whatsapp_followup_24h';\n}\n\nconst breakdown = {\n  base: d.base_score || 0,\n  loyalty: d.loyalty_bonus || 0,\n  urgency_ai: d.urgency_bonus || 0,\n  urgency_kw: d.kw_urgency_bonus || 0,\n  intent: d.intent_bonus || 0,\n  phone: d.phone_bonus || 0,\n  budget: d.budget_bonus || 0,\n  quality: d.quality_bonus || 0,\n  inbound: d.inbound_bonus || 0,\n  b2b: d.b2b_bonus || 0,\n  group: d.group_bonus || 0\n};\n\nreturn [{ json: {\n  ...d,\n  final_score: total,\n  status,\n  priority,\n  lead_category: d.lead_category || 'B2C_solo',\n  recommended_action,\n  score_breakdown: breakdown,\n  scored_at: new Date().toISOString()\n} }];"
       },
       "name": "Code – Final Score & Classification",
       "type": "n8n-nodes-base.code",
@@ -347,18 +347,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -383,10 +383,10 @@
             "status": "={{ $json.status || 'new' }}",
             "journey_step": "={{ $json.journey_step || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "order_type": "={{ $json.order_type || 'unknown' }}",
+            "service_preference": "={{ $json.service_preference || 'unknown' }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
+            "preferred_date": "={{ $json.preferred_date || '' }}",
             "nights_hint": "={{ $json.nights_hint || 0 }}",
             "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
             "raw_text": "={{ $json.raw_text || '' }}",
@@ -413,7 +413,7 @@
             "intent_bonus": "={{ $json.intent_bonus || 0 }}",
             "phone_bonus": "={{ $json.phone_bonus || 0 }}",
             "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "quality_bonus": "={{ $json.quality_bonus || 0 }}",
             "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
             "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
             "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
@@ -432,7 +432,7 @@
             "task_type": "={{ $json.task_type || '' }}",
             "sla_minutes": "={{ $json.sla_minutes || 0 }}",
             "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "quantity": "={{ $json.quantity || $json.quantity_hint || 0 }}",
             "handoff_at": "={{ $json.handoff_at || '' }}"
           },
           "matchingColumns": [
@@ -620,8 +620,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -629,8 +629,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -638,8 +638,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -647,8 +647,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -890,8 +890,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1061,8 +1061,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1136,7 +1136,7 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "=*🔥 HOT LEAD – إجراء فوري مطلوب\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.travel_group || \"غير معروف\" }}* ({{ $json.pax_hint || \"?\" }} أفراد)\n🏨 *{{ $json.stars_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#عمرة_2026 #فنادق_مكة #hot-lead",
+        "text": "=*🔥 HOT LEAD – إجراء فوري مطلوب\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.order_type || \"غير معروف\" }}* ({{ $json.quantity_hint || \"?\" }} أفراد)\n🏢 *{{ $json.service_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#خدمة_2026 #خدمات_العراق #hot-lead",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
@@ -1161,10 +1161,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/makkah-sales-handoff",
+        "url": "=[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"score\": {{ $json.final_score }},\n  \"category\": \"{{ $json.lead_category }}\",\n  \"action\": \"{{ $json.recommended_action }}\",\n  \"urgency\": \"{{ $json.radar_urgency }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"priority\": {{ $json.priority }},\n  \"message\": \"{{ $json.message?.substring(0,400) }}\",\n  \"phones_found\": \"{{ $json.phones_found }}\",\n  \"source\": \"{{ $json.source }}\",\n  \"scored_at\": \"{{ $json.scored_at }}\",\n  \"budget_signal\": \"{{ $json.raw.budget_signal }}\",\n  \"travel_group\": \"{{ $json.travel_group }}\",\n  \"stars_preference\": \"{{ $json.stars_preference }}\",\n  \"pax_hint\": {{ $json.pax_hint }},\n  \"lead_id\": \"{{ $json.content_hash || '' }}\",\n  \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"profile_url\": \"{{ $json.raw.profile_url }}\",\n \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"radar_quality\": \"{{ $json.raw.radar_quality }}\",\n  \"lead_quality\": \"{{ $json.raw.lead_quality }}\",\n  \"post_url\": \"{{ $json.raw.post_url }}\",\n  \"username\": \"{{ $json.raw.username }}\",\n  \"full_name\": \"{{ $json.raw.full_name }}\",\n  \"platform\": \"{{ $json.raw.platform }}\",\n  \"bonus_breakdown\": {\n    \"budget\": {{ $json.budget_bonus }},\n    \"group\": {{ $json.group_bonus }},\n    \"b2b\": {{ $json.b2b_bonus }}\n  }\n}",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"score\": {{ $json.final_score }},\n  \"category\": \"{{ $json.lead_category }}\",\n  \"action\": \"{{ $json.recommended_action }}\",\n  \"urgency\": \"{{ $json.radar_urgency }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"priority\": {{ $json.priority }},\n  \"message\": \"{{ $json.message?.substring(0,400) }}\",\n  \"phones_found\": \"{{ $json.phones_found }}\",\n  \"source\": \"{{ $json.source }}\",\n  \"scored_at\": \"{{ $json.scored_at }}\",\n  \"budget_signal\": \"{{ $json.raw.budget_signal }}\",\n  \"order_type\": \"{{ $json.order_type }}\",\n  \"service_preference\": \"{{ $json.service_preference }}\",\n  \"quantity_hint\": {{ $json.quantity_hint }},\n  \"lead_id\": \"{{ $json.content_hash || '' }}\",\n  \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"profile_url\": \"{{ $json.raw.profile_url }}\",\n \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"radar_quality\": \"{{ $json.raw.radar_quality }}\",\n  \"lead_quality\": \"{{ $json.raw.lead_quality }}\",\n  \"post_url\": \"{{ $json.raw.post_url }}\",\n  \"username\": \"{{ $json.raw.username }}\",\n  \"full_name\": \"{{ $json.raw.full_name }}\",\n  \"platform\": \"{{ $json.raw.platform }}\",\n  \"bonus_breakdown\": {\n    \"budget\": {{ $json.budget_bonus }},\n    \"group\": {{ $json.group_bonus }},\n    \"b2b\": {{ $json.b2b_bonus }}\n  }\n}",
         "options": {
           "timeout": 10000
         }
@@ -1182,7 +1182,7 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#عمرة_2026 #فنادق_مكة\"\n}}",
+        "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#خدمة_2026 #خدمات_العراق\"\n}}",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
@@ -1207,10 +1207,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/marketing-journey",
+        "url": "=[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.name, score: $json.final_score, status: $json.status, category: $json.lead_category, recommended_action: $json.recommended_action, radar_intent: $json.radar_intent, budget_signal: $json.budget_signal, travel_group: $json.travel_group, stars_preference: $json.stars_preference, source: $json.source, scored_at: $json.scored_at }) }}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.name, score: $json.final_score, status: $json.status, category: $json.lead_category, recommended_action: $json.recommended_action, radar_intent: $json.radar_intent, budget_signal: $json.budget_signal, order_type: $json.order_type, service_preference: $json.service_preference, source: $json.source, scored_at: $json.scored_at }) }}",
         "options": {
           "timeout": 10000
         }
@@ -1240,24 +1240,24 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "mode": "list",
           "value": 1602796460,
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1602796460"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1602796460"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ $json.error_id }}",
-            "flow_name": "SaaSAI_F3",
+            "flow_name": "[COMPANY_NAME]_F3",
             "node_name": "={{ $json.node_name || \"Unknown\" }}",
             "error_msg": "={{ $json.error_msg || $json.error_message || $json.message || \"\" }}",
             "severity": "high",
@@ -1375,20 +1375,20 @@
             },
             {
               "id": "f0326741-fca3-415b-a219-76d5ed42d69c",
-              "name": "travel_group",
-              "value": "={{ $json.body.travel_group }}",
+              "name": "order_type",
+              "value": "={{ $json.body.order_type }}",
               "type": "string"
             },
             {
               "id": "833e6946-7054-4522-8c6e-4f18cdc9c045",
-              "name": "stars_preference",
-              "value": "={{ $json.body.stars_preference }}",
+              "name": "service_preference",
+              "value": "={{ $json.body.service_preference }}",
               "type": "string"
             },
             {
               "id": "7f38c01b-0c8d-45b4-a542-02ed350187a3",
-              "name": "check_in_hint",
-              "value": "={{ $json.body.check_in_hint }}",
+              "name": "preferred_date",
+              "value": "={{ $json.body.preferred_date }}",
               "type": "string"
             },
             {
@@ -1504,7 +1504,7 @@
           "params": {},
           "query": {},
           "body": {
-            "raw_text": "أريد حجز فندق فاخر في مكة قريب جداً من الكعبة، لا يهم السعر، المهم يكون 5 نجوم مع إطلالة على الحرم. هاتفي: 0534455667",
+            "raw_text": "أريد الحصول على خدمات احترافية متميزة في العراق.، لا يهم السعر، المهم الجودة العالية والالتزام بالمواعيد.. هاتفي: [PHONE_NUMBER]",
             "comment_id": "N/A",
             "captured_at": "2026-03-18T20:12:35.700+01:00",
             "is_demo": false,
@@ -1513,18 +1513,18 @@
             "phone_count": 0,
             "_keyword_matched": false,
             "_phone_detected": false,
-            "radar_intent": "booking_ready",
+            "radar_intent": "order_ready",
             "radar_urgency": "immediate",
             "radar_quality": 95,
             "budget_signal": "luxury",
-            "travel_group": "unknown",
-            "stars_preference": "5star",
-            "check_in_hint": "",
+            "order_type": "unknown",
+            "service_preference": "5star",
+            "preferred_date": "",
             "nights_hint": "",
-            "ai_reason": "المستخدم طالب حجز فندق 5 نجوم بإطلالة على الحرم وأرفق رقم جوال، يدل على استعداد فوري للحجز.",
+            "ai_reason": "المستخدم طالب طلب مركز خدمة احترافية عالية بإطلالة على المركز وأرفق رقم جوال، يدل على استعداد فوري للطلب.",
             "archived_at": "2026-03-18T19:12:34.802Z",
             "profile_url": "https://tiktok.com/@faisal_luxury",
-            "post_url": "https://tiktok.com/@makkahvlog/video/111222",
+            "post_url": "https://tiktok.com/@generalvlog/video/111222",
             "username": "faisal_luxury_travel",
             "full_name": "فيصل العمري",
             "platform": "TikTok",
@@ -1534,7 +1534,7 @@
             "lead_quality": "95",
             "phone": "+966534455667"
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
+          "webhookUrl": "[YOUR_WEBHOOK_URL]",
           "executionMode": "production"
         },
         "pairedItem": {

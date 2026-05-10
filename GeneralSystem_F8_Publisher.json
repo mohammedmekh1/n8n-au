@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F8 – Publisher النشر",
+  "name": "[COMPANY_NAME] – F8 – Publisher النشر",
   "nodes": [
     {
       "parameters": {
@@ -42,16 +42,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 966952321,
           "mode": "list",
           "cachedResultName": "social_posts",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=966952321"
         },
         "filtersUI": {
           "values": [
@@ -119,7 +119,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Prepare Post for Publishing – B2B AWARE v3 ───────────────────────────\nconst d = $input.first().json;\nconst baseHashtags = '#فنادق_مكة #حجز_فندق_مكة #عمرة2026 #حج2026 #MakkahHotel #HotelNearHaram';\nconst b2bHashtags = '#وكالات_سفر #حجوزات_فنادق #KaabaView #MakkahHotels #LuxuryTravel #Umrah2026';\n\n// ═══════════════════════════════════════════════════════════════════════\n// 🔍 تحديد المنصات المستهدفة — مع دعم B2B\n// ═══════════════════════════════════════════════════════════════════════\nlet platformsStr = '';\n\n// الأولوية 1: حقل platforms لو موجود (للمنشورات المتعددة المنصات)\nif (d.platforms) {\n  platformsStr = d.platforms;\n}\n// الأولوية 2: تحويل platform + channel إلى اسم معياري\nelse if (d.platform && d.channel) {\n  const p = (d.platform || '').toLowerCase().trim();\n  const c = (d.channel || '').toLowerCase().trim();\n  \n  if (p === 'x' || p === 'twitter' || c === 'twitter') platformsStr = 'x_twitter';\n  else if (p === 'instagram' || c === 'instagram') platformsStr = 'instagram';\n  else if (p === 'facebook' || c === 'facebook') platformsStr = 'facebook';\n  else if (p === 'whatsapp' || c === 'whatsapp') platformsStr = 'whatsapp';\n  else if (p === 'telegram' || c === 'telegram') platformsStr = 'telegram';\n  else if (p === 'tiktok' || c === 'tiktok') platformsStr = 'tiktok';\n  else if (p === 'linkedin' || c === 'linkedin') platformsStr = 'linkedin';\n}\n// الأولوية 3: إذا كان المحتوى B2B، استهدف قنوات B2B فقط\nelse if (d.content_type === 'b2b' || d.نوع_المحتوى === 'b2b') {\n  platformsStr = 'linkedin,facebook,whatsapp,telegram';\n}\n// الأولوية 4: fallback عام (كل المنصات)\nelse {\n  platformsStr = 'x_twitter,instagram,facebook,whatsapp,telegram,tiktok';\n}\n\nconst platforms = platformsStr.split(',').map(p => p.trim()).filter(p => p);\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📝 تجهيز النصوص — مع fallback متعدد المستويات\n// ═══════════════════════════════════════════════════════════════════════\n\n// استخراج العنوان العربي من أي حقل متاح (أولوية متعددة)\nconst arTitle = d.ar_title \n  || d.source_title \n  || d.post_text?.split('\\n')[0]?.substring(0, 60) \n  || d.x_post?.split('#')[0]?.trim()\n  || d.instagram_post?.split('\\n')[0]?.substring(0, 60)\n  || 'منشور خدمات SaaSAI';\n\n// استخراج النص الرئيسي (للجسم)\nconst arBody = d.ar_body \n  || d.post_text \n  || d.whatsapp_broadcast \n  || d.instagram_post \n  || d.x_post \n  || '';\n\n// اختيار الهاشتاجات حسب نوع المحتوى\nconst hashtags = d.content_type === 'b2b' ? b2bHashtags : baseHashtags;\n\nreturn [{\n  json: {\n    ...d,\n    \n    // نصوص جاهزة مع ضمان عدم تجاوز حدود المنصات\n    x_final:        (d.x_post || arTitle || '').substring(0, 270),\n    ig_final:       (d.instagram_post || arTitle || '') + '\\n\\n' + hashtags,\n    fb_final:       d.facebook_post || d.post_text || arTitle || '',\n    wa_final:       d.whatsapp_broadcast || arBody || '',\n    tg_final:       (d.telegram_post || arTitle || '') + '\\n\\n' + hashtags,\n    tt_final:       (d.tiktok_caption || d.instagram_post || arTitle || '').substring(0, 200),\n    li_final:       d.linkedin_post || d.facebook_post || arBody || '',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 🖼 بيانات الصورة — fallback ذكي للنصوص العربية\n    // ═══════════════════════════════════════════════════════════════════\n    \n    // النص الرئيسي بالعربية (للصورة) — استخراج من أي نص متاح\n    img_text_ar: d.template_text_ar \n      || d.ar_title \n      || d.source_title \n      || (d.post_text || '').split('\\n')[0]?.substring(0, 40)\n      || (d.x_post || '').split('#')[0]?.trim()?.substring(0, 40)\n      || 'SaaSAI للأتمتة',\n    \n    // النص الثانوي (رابط الحجز أو عرض) \n    img_subtext_ar: d.template_subtext_ar \n      || d.booking_link \n      || (d.source_url || '').replace('https://', '').split('/')[0]\n      || (d.whatsapp_broadcast || '').match(/wa\\.me\\/(\\d+)/)?.[1]\n      || '',\n    \n    // وصف الصورة بالإنجليزي لتوليد AI\n    img_prompt_en: d.image_prompt_en \n      || d.image_prompt \n      || 'Luxury hotel near Masjid al-Haram Makkah, golden hour, photorealistic, 16:9',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 📊 بيانات التتبع والحالة\n    // ═══════════════════════════════════════════════════════════════════\n    post_row_number: d.row_number,\n    platforms: platforms,\n    publish_start: new Date().toISOString(),\n    \n    // Debug info\n    _debug: {\n      content_type: d.content_type,\n      original_platform: d.platform,\n      original_channel: d.channel,\n      detected_platforms: platforms,\n      ar_title_used: arTitle.substring(0, 30) + '...',\n      hashtags_used: hashtags.substring(0, 20) + '...'\n    }\n  }\n}];"
+        "jsCode": "const d = $input.first().json;\nconst baseHashtags = '#خدمات_عامة #طلب_خدمة_عامة #2026 #2026 #QualityService #ServiceQuality';\nconst b2bHashtags = '#خدمات_أعمال #شركة_رائدة #HighQuality #QualityServices #LuxuryTravel #Service2026';\n\nlet platformsStr = '';\n\nif (d.platforms) {\n  platformsStr = d.platforms;\n}\nelse if (d.platform && d.channel) {\n  const p = (d.platform || '').toLowerCase().trim();\n  const c = (d.channel || '').toLowerCase().trim();\n  \n  if (p === 'x' || p === 'twitter' || c === 'twitter') platformsStr = 'x_twitter';\n  else if (p === 'instagram' || c === 'instagram') platformsStr = 'instagram';\n  else if (p === 'facebook' || c === 'facebook') platformsStr = 'facebook';\n  else if (p === 'whatsapp' || c === 'whatsapp') platformsStr = 'whatsapp';\n  else if (p === 'telegram' || c === 'telegram') platformsStr = 'telegram';\n  else if (p === 'tiktok' || c === 'tiktok') platformsStr = 'tiktok';\n  else if (p === 'linkedin' || c === 'linkedin') platformsStr = 'linkedin';\n}\nelse if (d.content_type === 'b2b' || d.نوع_المحتوى === 'b2b') {\n  platformsStr = 'linkedin,facebook,whatsapp,telegram';\n}\nelse {\n  platformsStr = 'x_twitter,instagram,facebook,whatsapp,telegram,tiktok';\n}\n\nconst platforms = platformsStr.split(',').map(p => p.trim()).filter(p => p);\n\n\nconst arTitle = d.ar_title \n  || d.source_title \n  || d.post_text?.split('\\n')[0]?.substring(0, 60) \n  || d.x_post?.split('#')[0]?.trim()\n  || d.instagram_post?.split('\\n')[0]?.substring(0, 60)\n  || 'منشور خدمات [COMPANY_NAME]';\n\nconst arBody = d.ar_body \n  || d.post_text \n  || d.whatsapp_broadcast \n  || d.instagram_post \n  || d.x_post \n  || '';\n\nconst hashtags = d.content_type === 'b2b' ? b2bHashtags : baseHashtags;\n\nreturn [{\n  json: {\n    ...d,\n    \n    x_final:        (d.x_post || arTitle || '').substring(0, 270),\n    ig_final:       (d.instagram_post || arTitle || '') + '\\n\\n' + hashtags,\n    fb_final:       d.facebook_post || d.post_text || arTitle || '',\n    wa_final:       d.whatsapp_broadcast || arBody || '',\n    tg_final:       (d.telegram_post || arTitle || '') + '\\n\\n' + hashtags,\n    tt_final:       (d.tiktok_caption || d.instagram_post || arTitle || '').substring(0, 200),\n    li_final:       d.linkedin_post || d.facebook_post || arBody || '',\n    \n    \n    img_text_ar: d.template_text_ar \n      || d.ar_title \n      || d.source_title \n      || (d.post_text || '').split('\\n')[0]?.substring(0, 40)\n      || (d.x_post || '').split('#')[0]?.trim()?.substring(0, 40)\n      || '[COMPANY_NAME] للأتمتة',\n    \n    // النص الثانوي (رابط الطلب أو عرض) \n    img_subtext_ar: d.template_subtext_ar \n      || d.order_link \n      || (d.source_url || '').replace('https://', '').split('/')[0]\n      || (d.whatsapp_broadcast || '').match(/wa\\.me\\/(\\d+)/)?.[1]\n      || '',\n    \n    img_prompt_en: d.image_prompt_en \n      || d.image_prompt \n      || 'Professional business environment, golden hour, photorealistic, 16:9',\n    \n    post_row_number: d.row_number,\n    platforms: platforms,\n    publish_start: new Date().toISOString(),\n    \n    _debug: {\n      content_type: d.content_type,\n      original_platform: d.platform,\n      original_channel: d.channel,\n      detected_platforms: platforms,\n      ar_title_used: arTitle.substring(0, 30) + '...',\n      hashtags_used: hashtags.substring(0, 20) + '...'\n    }\n  }\n}];"
       },
       "id": "bf82cb54-5e03-4e87-b18f-3e5ca46ba544",
       "name": "Code – تحضير المنشور للنشر",
@@ -132,7 +132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════════\n// استخراج رابط الصورة المباشر للنشر (lh3.googleusercontent.com)\n// ═══════════════════════════════════════════════════════════\n\ntry {\n  // الحصول على البيانات من العقد السابقة\n  const uploadNode = $('Upload file');\n  const prepareNode = $('Code – تحضير المنشور للنشر');\n  \n  const postData = prepareNode?.first()?.json || {};\n  const uploadData = uploadNode?.first()?.json || {};\n  \n  // معرف الملف من جوجل درايف\n  const fileId = uploadData.id || postData.image_file_id;\n  \n  if (!fileId) {\n    console.error('❌ File ID not found');\n    return [{\n      json: {\n        ...postData,\n        image_url: '',\n        image_source: 'error',\n        image_ready: false,\n        image_error: 'File ID not found'\n      }\n    }];\n  }\n  \n  // روابط بصيغ مختلفة\n  const links = {\n    // رابط مباشر عالي الجودة (لإنستغرام، فيسبوك، تليجرام)\n    direct: `https://lh3.googleusercontent.com/d/${fileId}=w1920-h1080`,\n    \n    // رابط مصغر للعرض السريع\n    thumbnail: `https://lh3.googleusercontent.com/d/${fileId}=w800-h600`,\n    \n    // رابط أصلي للمشاركة اليدوية\n    original: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`,\n    \n    // رابط للتضمين في المواقع\n    embed: `https://drive.google.com/uc?export=view&id=${fileId}`\n  };\n  \n  console.log('✅ Image URLs generated successfully');\n  console.log('Direct URL:', links.direct);\n  \n  return [{\n    json: {\n      ...postData,\n      // الروابط النهائية\n      image_url: links.direct,\n      image_url_thumbnail: links.thumbnail,\n      image_url_original: links.original,\n      image_url_embed: links.embed,\n      image_file_id: fileId,\n      drive_file_id: fileId,\n      drive_web_link: uploadData.webViewLink || links.original,\n      image_uploaded_at: new Date().toISOString(),\n      image_status: 'ready',\n      image_source: 'google_drive',\n      image_ready: true,\n      post_row_number: postData.post_row_number || postData.row_number || ''\n    }\n  }];\n  \n} catch(e) {\n  console.error('❌ Error extracting image URL:', e.message);\n  \n  const postData = $('Code – تحضير المنشور للنشر')?.first()?.json || {};\n  \n  return [{\n    json: {\n      ...postData,\n      image_url: '',\n      image_source: 'fallback',\n      image_ready: false,\n      image_error: e.message,\n      post_row_number: postData.post_row_number || ''\n    }\n  }];\n}"
+        "jsCode": "// استخراج رابط الصورة المباشر للنشر (lh3.googleusercontent.com)\n\ntry {\n  const uploadNode = $('Upload file');\n  const prepareNode = $('Code – تحضير المنشور للنشر');\n  \n  const postData = prepareNode?.first()?.json || {};\n  const uploadData = uploadNode?.first()?.json || {};\n  \n  const fileId = uploadData.id || postData.image_file_id;\n  \n  if (!fileId) {\n    console.error('❌ File ID not found');\n    return [{\n      json: {\n        ...postData,\n        image_url: '',\n        image_source: 'error',\n        image_ready: false,\n        image_error: 'File ID not found'\n      }\n    }];\n  }\n  \n  const links = {\n    // رابط مباشر عالي الجودة (لإنستغرام، فيسبوك، تليجرام)\n    direct: `https://lh3.googleusercontent.com/d/${fileId}=w1920-h1080`,\n    \n    // رابط مصغر للعرض السريع\n    thumbnail: `https://lh3.googleusercontent.com/d/${fileId}=w800-h600`,\n    \n    // رابط أصلي للمشاركة اليدوية\n    original: `https://drive.google.com/file/d/${fileId}/view?usp=sharing`,\n    \n    // رابط للتضمين في المواقع\n    embed: `https://drive.google.com/uc?export=view&id=${fileId}`\n  };\n  \n  console.log('✅ Image URLs generated successfully');\n  console.log('Direct URL:', links.direct);\n  \n  return [{\n    json: {\n      ...postData,\n      image_url: links.direct,\n      image_url_thumbnail: links.thumbnail,\n      image_url_original: links.original,\n      image_url_embed: links.embed,\n      image_file_id: fileId,\n      drive_file_id: fileId,\n      drive_web_link: uploadData.webViewLink || links.original,\n      image_uploaded_at: new Date().toISOString(),\n      image_status: 'ready',\n      image_source: 'google_drive',\n      image_ready: true,\n      post_row_number: postData.post_row_number || postData.row_number || ''\n    }\n  }];\n  \n} catch(e) {\n  console.error('❌ Error extracting image URL:', e.message);\n  \n  const postData = $('Code – تحضير المنشور للنشر')?.first()?.json || {};\n  \n  return [{\n    json: {\n      ...postData,\n      image_url: '',\n      image_source: 'fallback',\n      image_ready: false,\n      image_error: e.message,\n      post_row_number: postData.post_row_number || ''\n    }\n  }];\n}"
       },
       "id": "1f045ffe-1350-4436-aedb-771040091383",
       "name": "Code – استخراج URL الصورة النهائية",
@@ -147,18 +147,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 966952321,
           "mode": "list",
           "cachedResultName": "social_posts",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=966952321"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -432,8 +432,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "booking_link",
-              "displayName": "booking_link",
+              "id": "order_link",
+              "displayName": "order_link",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -780,7 +780,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const results = $input.all();\nconst postData = $('Code – تحضير المنشور للنشر').first().json;\n\nconst published = [];\nconst failed    = [];\nconst errors    = [];\n\nfor (const r of results) {\n  const d = r.json;\n  // Twitter\n  if (d.id || d.data?.id) published.push('X/Twitter');\n  // Buffer (Instagram/Facebook/TikTok)\n  else if (d.success && d.updates) {\n    const svc = d.updates?.[0]?.profile_service || 'Buffer';\n    published.push(svc.charAt(0).toUpperCase() + svc.slice(1));\n  }\n  // WhatsApp\n  else if (d.messages || d.message_id) published.push('WhatsApp');\n  // Telegram\n  else if (d.ok && d.result) published.push('Telegram');\n  // Snapchat\n  else if (d.story_id || d.snapchat_id) published.push('Snapchat');\n  else {\n    const errMsg = d.error || d.message || JSON.stringify(d).substring(0,100);\n    if (errMsg && errMsg.length > 5) {\n      failed.push('Unknown');\n      errors.push(errMsg);\n    }\n  }\n}\n\n// إضافة تاريخ الأفضل للنشر\nconst nowRiyadh = new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'});\nconst total   = published.length + failed.length;\nconst success = total > 0 ? Math.round((published.length / total) * 100) : 0;\n\nreturn [{\n  json: {\n    post_row_number: postData.post_row_number,\n    ar_title:        postData.ar_title,\n    image_url:       postData.image_url,\n    published_on:    published.join(', '),\n    failed_on:       failed.join(', '),\n    success_count:   published.length,\n    failed_count:    failed.length,\n    success_rate:    success,\n    errors:          errors.join(' | '),\n    published_at:    new Date().toISOString()\n  }\n}];\n"
+        "jsCode": "const results = $input.all();\nconst postData = $('Code – تحضير المنشور للنشر').first().json;\n\nconst published = [];\nconst failed    = [];\nconst errors    = [];\n\nfor (const r of results) {\n  const d = r.json;\n  if (d.id || d.data?.id) published.push('X/Twitter');\n  else if (d.success && d.updates) {\n    const svc = d.updates?.[0]?.profile_service || 'Buffer';\n    published.push(svc.charAt(0).toUpperCase() + svc.slice(1));\n  }\n  else if (d.messages || d.message_id) published.push('WhatsApp');\n  else if (d.ok && d.result) published.push('Telegram');\n  else if (d.story_id || d.snapchat_id) published.push('Snapchat');\n  else {\n    const errMsg = d.error || d.message || JSON.stringify(d).substring(0,100);\n    if (errMsg && errMsg.length > 5) {\n      failed.push('Unknown');\n      errors.push(errMsg);\n    }\n  }\n}\n\nconst nowRiyadh = new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'});\nconst total   = published.length + failed.length;\nconst success = total > 0 ? Math.round((published.length / total) * 100) : 0;\n\nreturn [{\n  json: {\n    post_row_number: postData.post_row_number,\n    ar_title:        postData.ar_title,\n    image_url:       postData.image_url,\n    published_on:    published.join(', '),\n    failed_on:       failed.join(', '),\n    success_count:   published.length,\n    failed_count:    failed.length,\n    success_rate:    success,\n    errors:          errors.join(' | '),\n    published_at:    new Date().toISOString()\n  }\n}];\n"
       },
       "id": "60255f6d-0372-40e0-81fb-8dd21ce8a8ec",
       "name": "Code – تقييم النشر وبناء التقرير",
@@ -795,18 +795,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 966952321,
           "mode": "list",
           "cachedResultName": "social_posts",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=966952321"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=966952321"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1032,18 +1032,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1848411495,
           "mode": "list",
           "cachedResultName": "publish_log",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1848411495"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1848411495"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1227,24 +1227,24 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1659619068,
           "mode": "list",
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1659619068"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR8-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F8",
+            "flow_name": "[COMPANY_NAME]_F8",
             "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "high",
@@ -1542,7 +1542,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"prompt\": \"{{ $json.video_concept_ar || 'فندق فاخر في مكة المكرمة، حركة بطيئة ناعمة، إضاءة ذهبية، تصوير سينمائي احترافي' }}\",\n  \"duration\": \"5\",\n  \"aspect_ratio\": \"16:9\",\n  \"negative_prompt\": \"blur, distortion, low quality, text, watermark\",\n  \"cfg_scale\": 7.5\n}",
+        "jsonBody": "{\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"prompt\": \"{{ $json.video_concept_ar || 'مقر احترافي في العراق، حركة بطيئة ناعمة، إضاءة ذهبية، تصوير سينمائي احترافي' }}\",\n  \"duration\": \"5\",\n  \"aspect_ratio\": \"16:9\",\n  \"negative_prompt\": \"blur, distortion, low quality, text, watermark\",\n  \"cfg_scale\": 7.5\n}",
         "options": {
           "timeout": 300000
         }
@@ -1568,12 +1568,12 @@
       "parameters": {
         "resource": "image",
         "modelId": {
-          "__rl": true,
+          "_rl": true,
           "value": "models/gemini-3-pro-image-preview",
           "mode": "list",
           "cachedResultName": "models/gemini-3-pro-image-preview (Nano Banana Pro)"
         },
-        "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Luxury hotel near Masjid al-Haram Makkah, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"SaaSAI_F8\"\n  }\n}",
+        "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Professional business environment, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"[COMPANY_NAME]_F8\"\n  }\n}",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
@@ -1595,12 +1595,12 @@
       "parameters": {
         "name": "={{ $('Code – تحضير المنشور للنشر').item.json.topic_id }}",
         "driveId": {
-          "__rl": true,
+          "_rl": true,
           "mode": "list",
           "value": "My Drive"
         },
         "folderId": {
-          "__rl": true,
+          "_rl": true,
           "mode": "list",
           "value": "root",
           "cachedResultName": "/ (Root folder)"
@@ -1626,7 +1626,7 @@
       "parameters": {
         "operation": "update",
         "fileId": {
-          "__rl": true,
+          "_rl": true,
           "value": "={{ $json.id }}",
           "mode": "id"
         },
@@ -1706,7 +1706,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"🧪 *رسالة اختبار من نظام SaaSAI*\\n\\nمرحباً! هذه رسالة تجريبية للتأكد من أن نظام البث عبر واتساب يعمل بشكل صحيح.\\n\\n✅ إذا وصلت هذه الرسالة، فالنظام جاهز للإرسال!\\n\\n🔗 للحجز: wa.me/966XXXXXXXXX\\n🏨 SaaSAI للأتمتة\",\n  \"chat_name\": \"اختبار النظام\",\n  \"label\": \"test_broadcast\",\n  \"metadata\": {\n    \"lead_id\": \"TEST-{{ $now.format('YYYYMMDDHHmm') }}\",\n    \"journey_step\": \"test\",\n    \"campaign\": \"system_check\",\n    \"priority\": \"high\",\n    \"content_score\": 100,\n    \"platform_source\": \"n8n_manual_test\",\n    \"image_url\": \"\",\n    \"booking_link\": \"wa.me/966XXXXXXXXX\"\n  }\n}",
+        "jsonBody": "={\n  \"phone\": \"[PHONE_NUMBER]\",\n  \"text\": \"🧪 *رسالة اختبار من نظام [COMPANY_NAME]*\\n\\nمرحباً! هذه رسالة تجريبية للتأكد من أن نظام البث عبر واتساب يعمل بشكل صحيح.\\n\\n✅ إذا وصلت هذه الرسالة، فالنظام جاهز للإرسال!\\n\\n🔗 للطلب: [YOUR_WHATSAPP_LINK]\\n🏢 [COMPANY_NAME] للأتمتة\",\n  \"chat_name\": \"اختبار النظام\",\n  \"label\": \"test_broadcast\",\n  \"metadata\": {\n    \"lead_id\": \"TEST-{{ $now.format('YYYYMMDDHHmm') }}\",\n    \"journey_step\": \"test\",\n    \"campaign\": \"system_check\",\n    \"priority\": \"high\",\n    \"content_score\": 100,\n    \"platform_source\": \"n8n_manual_test\",\n    \"image_url\": \"\",\n    \"order_link\": \"[YOUR_WHATSAPP_LINK]\"\n  }\n}",
         "options": {
           "timeout": 15000
         }
@@ -1729,7 +1729,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تنظيف وتوحيد أرقام الهواتف دولياً لواتساب\n// يدعم: اليمن (+967)، السعودية (+966)، مصر (+20)، الإمارات (+971)، إلخ.\n// ═══════════════════════════════════════════════════════════\n\nconst items = $input.all();\n\n// دالة تنظيف الرقم\nfunction normalizePhone(phone, defaultCountry = '966') {\n  if (!phone) return null;\n  \n  // إزالة كل ما عدا الأرقام و+\n  let clean = String(phone).replace(/[^\\d+]/g, '');\n  \n  // إزالة البادئات الشائعة\n  if (clean.startsWith('00')) clean = '+' + clean.slice(2);\n  if (clean.startsWith('0') && !clean.startsWith('+')) clean = '+' + defaultCountry + clean.slice(1);\n  \n  // إضافة + إذا لم توجد\n  if (!clean.startsWith('+')) clean = '+' + clean;\n  \n  // إزالة + وتحويل للصيغة الدولية الصرفة لواتساب\n  return clean.replace('+', '');\n}\n\n// دالة اكتشاف الدولة من الرقم\nfunction detectCountry(phone) {\n  const p = String(phone).replace(/[^\\d]/g, '');\n  if (p.startsWith('967')) return { code: 'YE', name: 'اليمن', prefix: '967' };\n  if (p.startsWith('966')) return { code: 'SA', name: 'السعودية', prefix: '966' };\n  if (p.startsWith('20')) return { code: 'EG', name: 'مصر', prefix: '20' };\n  if (p.startsWith('971')) return { code: 'AE', name: 'الإمارات', prefix: '971' };\n  if (p.startsWith('965')) return { code: 'KW', name: 'الكويت', prefix: '965' };\n  if (p.startsWith('974')) return { code: 'QA', name: 'قطر', prefix: '974' };\n  if (p.startsWith('973')) return { code: 'BH', name: 'البحرين', prefix: '973' };\n  if (p.startsWith('968')) return { code: 'OM', name: 'عُمان', prefix: '968' };\n  if (p.startsWith('962')) return { code: 'JO', name: 'الأردن', prefix: '962' };\n  if (p.startsWith('961')) return { code: 'LB', name: 'لبنان', prefix: '961' };\n  return { code: 'UNKNOWN', name: 'أخرى', prefix: null };\n}\n\nreturn items.map(item => {\n  const phone = item.json.phone || item.json.phone_normalized || '';\n  const country = detectPhone(phone);\n  const normalized = normalizePhone(phone, country.prefix || '966');\n  \n  return {\n    json: {\n      ...item.json,\n      phone_normalized: normalized,\n      phone_original: phone,\n      country_code: country.code,\n      country_name: country.name,\n      country_prefix: country.prefix,\n      is_valid_phone: normalized && normalized.length >= 10 && normalized.length <= 15\n    }\n  };\n});"
+        "jsCode": "\nconst items = $input.all();\n\nfunction normalizePhone(phone, defaultCountry = '966') {\n  if (!phone) return null;\n  \n  let clean = String(phone).replace(/[^\\d+]/g, '');\n  \n  if (clean.startsWith('00')) clean = '+' + clean.slice(2);\n  if (clean.startsWith('0') && !clean.startsWith('+')) clean = '+' + defaultCountry + clean.slice(1);\n  \n  if (!clean.startsWith('+')) clean = '+' + clean;\n  \n  return clean.replace('+', '');\n}\n\nfunction detectCountry(phone) {\n  const p = String(phone).replace(/[^\\d]/g, '');\n  if (p.startsWith('967')) return { code: 'YE', name: 'اليمن', prefix: '967' };\n  if (p.startsWith('966')) return { code: 'SA', name: 'السعودية', prefix: '966' };\n  if (p.startsWith('20')) return { code: 'EG', name: 'مصر', prefix: '20' };\n  if (p.startsWith('971')) return { code: 'AE', name: 'الإمارات', prefix: '971' };\n  if (p.startsWith('965')) return { code: 'KW', name: 'الكويت', prefix: '965' };\n  if (p.startsWith('974')) return { code: 'QA', name: 'قطر', prefix: '974' };\n  if (p.startsWith('973')) return { code: 'BH', name: 'البحرين', prefix: '973' };\n  if (p.startsWith('968')) return { code: 'OM', name: 'عُمان', prefix: '968' };\n  if (p.startsWith('962')) return { code: 'JO', name: 'الأردن', prefix: '962' };\n  if (p.startsWith('961')) return { code: 'LB', name: 'لبنان', prefix: '961' };\n  return { code: 'UNKNOWN', name: 'أخرى', prefix: null };\n}\n\nreturn items.map(item => {\n  const phone = item.json.phone || item.json.phone_normalized || '';\n  const country = detectPhone(phone);\n  const normalized = normalizePhone(phone, country.prefix || '966');\n  \n  return {\n    json: {\n      ...item.json,\n      phone_normalized: normalized,\n      phone_original: phone,\n      country_code: country.code,\n      country_name: country.name,\n      country_prefix: country.prefix,\n      is_valid_phone: normalized && normalized.length >= 10 && normalized.length <= 15\n    }\n  };\n});"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1742,7 +1742,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تحويل رابط الصورة إلى Binary Data لـ n8n\n// ═══════════════════════════════════════════════════════════\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `makkah_post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
+        "jsCode": "// تحويل رابط الصورة إلى Binary Data لـ n8n\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1755,7 +1755,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// ════════════════════════════════════════════════════════════════════\n// ⏸️ Canva Template Node — للتفعيل لاحقاً\n// هذه العقدة معطلة حتى يتم ربط Canva API\n// عند التفعيل: ستُنشئ تصميماً من قالب Canva وتضيف النص عليه\n// ════════════════════════════════════════════════════════════════════\n\n// TODO: تفعيل عند توفر Canva API credentials\n// الـ API: https://www.canva.com/developers/docs/api/\n\nconst d = $input.first().json;\nreturn [{ json: {\n  ...d,\n  canva_status: 'paused',\n  canva_note: 'Canva integration pending — will use template_text_ar: ' + (d.template_text_ar || ''),\n  canva_template_id: 'not_set_yet'\n}}];\n"
+        "jsCode": "\n\n\nconst d = $input.first().json;\nreturn [{ json: {\n  ...d,\n  canva_status: 'paused',\n  canva_note: 'Canva integration pending — will use template_text_ar: ' + (d.template_text_ar || ''),\n  canva_template_id: 'not_set_yet'\n}}];\n"
       },
       "id": "46b6c0ce-3875-434b-89af-5e3be75d9b6b",
       "name": "Canva Template (للتفعيل لاحقاً)",

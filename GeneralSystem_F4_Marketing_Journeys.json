@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F4 – Marketing Journeys",
+  "name": "[COMPANY_NAME] – F4 – Marketing Journeys",
   "nodes": [
     {
       "parameters": {
@@ -21,16 +21,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "filtersUI": {
           "values": [
@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Normalize Journey Data v4 — Fixed Webhook Structure ───────────────────\nconst webhook = $('Webhook – From Flow #3 (Scoring)')?.first()?.json || {};\n\n// ✅ استخراج البيانات الفعلية من داخل body\nconst incoming = webhook.body || webhook;\n\n// ✅ جلب الملف الشخصي من جوجل شيت (إن وُجد)\nconst profileItems = $input.all();\nconst profile = (profileItems?.[0]?.json?.phone) ? profileItems[0].json : {};\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 1️⃣ استخراج الهوية والبيانات الأساسية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phone = incoming.phone || incoming.lead_phone || profile.phone || profile.lead_phone || '';\nconst name = incoming.name || incoming.lead_name || incoming.full_name || profile.name || profile.lead_name || 'عميل جديد';\nconst email = incoming.email || incoming.lead_email || profile.email || '';\nconst source = incoming.source || profile.source || 'unknown';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 2️⃣ الدرجة والحالة\n// ═══════════════════════════════════════════════════════════════════════════\nconst final_score = incoming.score || incoming.final_score || profile.final_score || profile.score || 0;\nconst status = incoming.status || incoming.lead_status || profile.status || 'New';\nconst lead_category = incoming.category || incoming.lead_category || profile.category || profile.lead_category || 'B2C_solo';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 3️⃣ نية العميل والأولوية\n// ═══════════════════════════════════════════════════════════════════════════\nconst radar_intent = incoming.radar_intent || profile.radar_intent || 'general_inquiry';\nconst radar_urgency = incoming.radar_urgency || profile.radar_urgency || 'normal';\nconst budget_signal = incoming.budget_signal || profile.budget_signal || 'unknown';\nconst travel_group = incoming.travel_group || profile.travel_group || 'unknown';\nconst stars_preference = incoming.stars_preference || profile.stars_preference || 'any';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 4️⃣ بيانات الاتصال الإضافية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phones_found = incoming.phones_found || profile.phones_found || (phone ? [phone] : []);\nconst pax_hint = incoming.pax || incoming.pax_hint || profile.pax || profile.pax_hint || 0;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 5️⃣ منطق خطوة الرحلة (Journey Step)\n// ═══════════════════════════════════════════════════════════════════════════\nconst storedStep = profile.journey_step || 'new';\nconst isHot = status === 'Hot' || final_score >= 85;\nconst isB2B = lead_category.toUpperCase().startsWith('B2B');\nconst isFamily = lead_category.toLowerCase().includes('family') || travel_group === 'family';\n\nlet journey_step;\nif (isHot) {\n  journey_step = 'hot_contacted';\n} else if (isB2B) {\n  journey_step = 'b2b_nurturing';\n} else if (status === 'Warm' && final_score >= 60) {\n  journey_step = 'warm_followup';\n} else if (status === 'Cold' || final_score < 40) {\n  journey_step = 'cold_archive';\n} else {\n  journey_step = storedStep !== 'new' ? storedStep : 'new_lead';\n}\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 6️⃣ القناة المفضلة + توقيت المتابعة\n// ═══════════════════════════════════════════════════════════════════════════\nconst preferred_channel = incoming.preferred_channel || profile.preferred_channel || \n  (phone ? 'whatsapp' : email ? 'email' : 'telegram');\n\nconst lastContact = profile.last_contacted_at ? new Date(profile.last_contacted_at) : null;\nconst now = new Date();\nconst hours_since_last = lastContact ? Math.round((now - lastContact) / 36e5) : 999;\nconst tooSoon = hours_since_last < 24 && status !== 'Hot';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 7️⃣ الإجراء الموصى به\n// ═══════════════════════════════════════════════════════════════════════════\nconst recommended_action = incoming.recommended_action || \n  (isHot ? 'immediate_call' : \n   status === 'Warm' ? 'whatsapp_followup_24h' : \n   'email_nurture');\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═══════════════════════════════════════════════════════════════════════════\nreturn [{\n  json: {\n    // === الهوية ===\n    phone,\n    name,\n    email,\n    source,\n    \n    // === التقييم ===\n    final_score: Number(final_score),\n    status,\n    lead_category,\n    \n    // === النية والأولوية ===\n    radar_intent,\n    radar_urgency,\n    budget_signal,\n    travel_group,\n    stars_preference,\n    \n    // === الاتصال ===\n    pax_hint: Number(pax_hint),\n    phones_found: Array.isArray(phones_found) ? phones_found : [phones_found].filter(Boolean),\n    preferred_channel,\n    \n    // === الرحلة ===\n    journey_step,\n    recommended_action,\n    \n    // === التوقيت ===\n    tooSoon,\n    hours_since_last,\n    now_iso: now.toISOString(),\n    \n    // === للتدقيق ===\n    _debug: {\n      incoming_keys: Object.keys(incoming),\n      profile_keys: Object.keys(profile),\n      score_used: final_score,\n      category_used: lead_category,\n      using_body_wrapper: !!(webhook.body)\n    }\n  }\n}];"
+        "jsCode": "const webhook = $('Webhook – From Flow #3 (Scoring)')?.first()?.json || {};\n\nconst incoming = webhook.body || webhook;\n\nconst profileItems = $input.all();\nconst profile = (profileItems?.[0]?.json?.phone) ? profileItems[0].json : {};\n\nconst phone = incoming.phone || incoming.lead_phone || profile.phone || profile.lead_phone || '';\nconst name = incoming.name || incoming.lead_name || incoming.full_name || profile.name || profile.lead_name || 'عميل جديد';\nconst email = incoming.email || incoming.lead_email || profile.email || '';\nconst source = incoming.source || profile.source || 'unknown';\n\nconst final_score = incoming.score || incoming.final_score || profile.final_score || profile.score || 0;\nconst status = incoming.status || incoming.lead_status || profile.status || 'New';\nconst lead_category = incoming.category || incoming.lead_category || profile.category || profile.lead_category || 'B2C_solo';\n\nconst radar_intent = incoming.radar_intent || profile.radar_intent || 'general_inquiry';\nconst radar_urgency = incoming.radar_urgency || profile.radar_urgency || 'normal';\nconst budget_signal = incoming.budget_signal || profile.budget_signal || 'unknown';\nconst order_type = incoming.order_type || profile.order_type || 'unknown';\nconst service_preference = incoming.service_preference || profile.service_preference || 'any';\n\nconst phones_found = incoming.phones_found || profile.phones_found || (phone ? [phone] : []);\nconst quantity_hint = incoming.quantity || incoming.quantity_hint || profile.quantity || profile.quantity_hint || 0;\n\nconst storedStep = profile.journey_step || 'new';\nconst isHot = status === 'Hot' || final_score >= 85;\nconst isB2B = lead_category.toUpperCase().startsWith('B2B');\nconst isFamily = lead_category.toLowerCase().includes('family') || order_type === 'family';\n\nlet journey_step;\nif (isHot) {\n  journey_step = 'hot_contacted';\n} else if (isB2B) {\n  journey_step = 'b2b_nurturing';\n} else if (status === 'Warm' && final_score >= 60) {\n  journey_step = 'warm_followup';\n} else if (status === 'Cold' || final_score < 40) {\n  journey_step = 'cold_archive';\n} else {\n  journey_step = storedStep !== 'new' ? storedStep : 'new_lead';\n}\n\nconst preferred_channel = incoming.preferred_channel || profile.preferred_channel || \n  (phone ? 'whatsapp' : email ? 'email' : 'telegram');\n\nconst lastContact = profile.last_contacted_at ? new Date(profile.last_contacted_at) : null;\nconst now = new Date();\nconst hours_since_last = lastContact ? Math.round((now - lastContact) / 36e5) : 999;\nconst tooSoon = hours_since_last < 24 && status !== 'Hot';\n\nconst recommended_action = incoming.recommended_action || \n  (isHot ? 'immediate_call' : \n   status === 'Warm' ? 'whatsapp_followup_24h' : \n   'email_nurture');\n\nreturn [{\n  json: {\n    phone,\n    name,\n    email,\n    source,\n    \n    final_score: Number(final_score),\n    status,\n    lead_category,\n    \n    radar_intent,\n    radar_urgency,\n    budget_signal,\n    order_type,\n    service_preference,\n    \n    quantity_hint: Number(quantity_hint),\n    phones_found: Array.isArray(phones_found) ? phones_found : [phones_found].filter(Boolean),\n    preferred_channel,\n    \n    journey_step,\n    recommended_action,\n    \n    tooSoon,\n    hours_since_last,\n    now_iso: now.toISOString(),\n    \n    _debug: {\n      incoming_keys: Object.keys(incoming),\n      profile_keys: Object.keys(profile),\n      score_used: final_score,\n      category_used: lead_category,\n      using_body_wrapper: !!(webhook.body)\n    }\n  }\n}];"
       },
       "name": "Code – Normalize Journey Data",
       "type": "n8n-nodes-base.code",
@@ -113,14 +113,14 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1417386966,
           "mode": "list",
           "cachedResultName": "journey_log",
@@ -430,7 +430,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── HOT LEAD – إجراء فوري وتحويل مباشر ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst phone = d.phone_normalized || d.phone || d.lead_phone || '';\n\n// 🚨 خط الاستعجال\nconst urgencyLine = d.radar_urgency === 'immediate' \n  ? '🔴 نفهم أنك تحتاج للحجز *الآن* — وسنساعدك فورًا!' \n  : '⚡ طلبك مهم بالنسبة لنا، وسنبدأ المعالجة فورًا.';\n\n// 💰 خط الميزانية المخصص\nconst budgetLine = d.budget_signal === 'luxury' \n  ? '✨ نعرض لك أفضل فنادق 5 نجوم بإطلالة مباشرة على الحرم.' \n  : d.budget_signal === 'mid'\n  ? '💎 نوفر لك خيارات 4 نجوم متميزة بأفضل قيمة.'\n  : d.budget_signal === 'budget'\n  ? '🎯 لدينا عروض توفير ممتازة بأسعار تنافسية.'\n  : '💰 نملك خيارات متنوعة تناسب جميع الميزانيات.';\n\n// 👥 خط عدد الأشخاص\nconst paxLine = d.pax_hint && d.pax_hint > 1 \n  ? `\\n👨‍👩‍👧‍👦 نخصص لك غرفًا مناسبة لمجموعتك (${d.pax_hint} أشخاص).` \n  : d.pax_hint === 1\n  ? '\\n👤 نوفر لك إقامة مريحة ومناسبة لفرد واحد.'\n  : '';\n\n// 🕌 خط تفضيل النجوم\nconst starsLine = d.stars_preference === '5star'\n  ? '\\n⭐ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n⭐ خيارات 4 نجوم مريحة وبموقع ممتاز.'\n  : '';\n\n// 🎯 دعوة للإجراء عاجلة ومباشرة (تحويل فوري)\nconst cta = `\n🚀 *لتأكيد حجزك خلال دقائق*، اختر واحدًا:\n\n1️⃣ 📞 أريد اتصالاً فوريًا من مستشار الحجوزات\n2️⃣ 💬 أريد عرضًا سريعًا مع الأسعار عبر واتساب\n3️⃣ 🗓️ أريد حجزًا مباشرًا (أرسل تواريخي)\n\n_فقط أرسل الرقم (1 أو 2 أو 3) وسنبدأ فورًا!_ ⏱️`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🏨 أهلاً وسهلاً بك يا ${customerName}!\n\n${urgencyLine}\n\n${budgetLine}${starsLine}${paxLine}\n\nنحن متخصصون في حجوزات SaaSAI للأتمتة 2026، وجاهزون لخدمتك الآن.\n\n${cta}\n\n🆔 مرجع الطلب العاجل: ${leadId}\n📞 للطوارئ: اضغط هنا للاتصال مباشرة: https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}\n\nفريق الحجوزات العاجلة — SaaSAI للأتمتة 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'hot_immediate',\n  next_journey_step: 'hot_contacted',\n  priority: 'urgent',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  hot_lead_type: d.radar_urgency === 'immediate' ? 'urgent_booking' : 'high_interest',\n  expected_response_window_minutes: 15,  // نتوقع ردًا خلال 15 دقيقة\n  escalate_if_no_reply_minutes: 30,      // تصعيد لمسؤول إذا لم يرد خلال 30د\n  cta_options: ['1', '2', '3'],          // خيارات الاستجابة الفورية\n  conversion_goal: 'immediate_booking',   // هدف التحويل: حجز فوري\n  whatsapp_click_to_call_url: `https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}`,\n  whatsapp_ready: true,                   // جاهز للإرسال عبر واتساب\n  auto_escalate: true                     // تفعيل التصعيد التلقائي عند عدم الرد\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst phone = d.phone_normalized || d.phone || d.lead_phone || '';\n\nconst urgencyLine = d.radar_urgency === 'immediate' \n  ? '🔴 نفهم أنك تحتاج للطلب *الآن* — وسنساعدك فورًا!' \n  : '⚡ طلبك مهم بالنسبة لنا، وسنبدأ المعالجة فورًا.';\n\nconst budgetLine = d.budget_signal === 'luxury' \n  ? '✨ نعرض لك أفضل خدمات احترافية عالية بإطلالة مباشرة على المركز.' \n  : d.budget_signal === 'mid'\n  ? '💎 نوفر لك خيارات مميزة متميزة بأفضل قيمة.'\n  : d.budget_signal === 'budget'\n  ? '🎯 لدينا عروض توفير ممتازة بأسعار تنافسية.'\n  : '💰 نملك خيارات متنوعة تناسب جميع الميزانيات.';\n\nconst quantityLine = d.quantity_hint && d.quantity_hint > 1 \n  ? `\\n👨‍👩‍👧‍👦 نخصص لك غرفًا مناسبة لمجموعتك (${d.quantity_hint} أشخاص).` \n  : d.quantity_hint === 1\n  ? '\\n👤 نوفر لك خدمة مريحة ومناسبة لفرد واحد.'\n  : '';\n\nconst qualityLine = d.service_preference === '5star'\n  ? '\\n⭐ جميع خياراتنا احترافية عالية مع خدمات حصرية.'\n  : d.service_preference === '4star'\n  ? '\\n⭐ خيارات مميزة مريحة وبموقع ممتاز.'\n  : '';\n\nconst cta = `\n🚀 *لتأكيد طلبك خلال دقائق*، اختر واحدًا:\n\n1️⃣ 📞 أريد اتصالاً فوريًا من مستشار الطلبات\n2️⃣ 💬 أريد عرضًا سريعًا مع الأسعار عبر واتساب\n3️⃣ 🗓️ أريد طلبًا مباشرًا (أرسل تواريخي)\n\n_فقط أرسل الرقم (1 أو 2 أو 3) وسنبدأ فورًا!_ ⏱️`;\n\nconst message = `🏢 أهلاً وسهلاً بك يا ${customerName}!\n\n${urgencyLine}\n\n${budgetLine}${qualityLine}${quantityLine}\n\nنحن متخصصون في خدمات [COMPANY_NAME] 2026، وجاهزون لخدمتك الآن.\n\n${cta}\n\n🆔 مرجع الطلب العاجل: ${leadId}\n📞 للطوارئ: اضغط هنا للاتصال مباشرة: https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}\n\nفريق الطلبات العاجلة — [COMPANY_NAME] للأتمتة ✨`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'hot_immediate',\n  next_journey_step: 'hot_contacted',\n  priority: 'urgent',\n  \n  text: message,\n  \n  hot_lead_type: d.radar_urgency === 'immediate' ? 'urgent_order' : 'high_interest',\n  expected_response_window_minutes: 15,  // نتوقع ردًا خلال 15 دقيقة\n  escalate_if_no_reply_minutes: 30,      // تصعيد لمسؤول إذا لم يرد خلال 30د\n  cta_options: ['1', '2', '3'],          // خيارات الاستجابة الفورية\n  conversion_goal: 'immediate_order',   // هدف التحويل: طلب فوري\n  whatsapp_click_to_call_url: `https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}`,\n  whatsapp_ready: true,                   // جاهز للإرسال عبر واتساب\n  auto_escalate: true                     // تفعيل التصعيد التلقائي عند عدم الرد\n} }];"
       },
       "name": "Code – Hot Immediate Message",
       "type": "n8n-nodes-base.code",
@@ -443,7 +443,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── B2B – شراكة تجارية احترافية ────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || d.company_name || 'شركتنا الكريمة';\nconst companyName = d.company_name || 'شركتكم الموقرة';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'قناتنا الرسمية';\n\n// 🏢 تخصيص خطاب الفئة\nconst catLine = d.lead_category === 'B2B_government' \n  ? 'للجهات الحكومية والوزارات الموقرة' \n  : d.lead_category === 'B2B_conference'\n  ? 'لتنظيم المؤتمرات والفعاليات الاحترافية'\n  : d.lead_category === 'B2B_travel_agency'\n  ? 'لشركات السياحة ووكالات السفر المعتمدة'\n  : 'لشركائنا الاستراتيجيين في قطاع الضيافة';\n\n// 💼 مزايا مخصصة حسب نوع الشراكة\nconst benefits = {\n  'B2B_government': [\n    'عقود سنوية معتمدة وفق الأنظمة الحكومية',\n    'فواتير رسمية وضريبية موحدة',\n    'مدير حساب متخصص للجهات الحكومية',\n    'أولوية قصوى في مواسم الذروة والحج'\n  ],\n  'B2B_conference': [\n    'باقات مؤتمرات شاملة (قاعات + إقامة + خدمة)',\n    'تنسيق لوجستي كامل للوفود والمشاركين',\n    'خصومات حجمية حسب عدد الحضور',\n    'دعم فني 24/7 خلال فترة الفعالية'\n  ],\n  'B2B_travel_agency': [\n    'عمولات تنافسية على كل حجز مؤكد',\n    'لوحة تحكم خاصة لمتابعة الحجوزات',\n    'تأكيد فوري وتذاكر إلكترونية',\n    'دعم متعدد اللغات لعملائكم الدوليين'\n  ],\n  'default': [\n    'عقود مرنة بأسعار شراكة حصرية',\n    'أولوية في التخصيص خلال المواسم',\n    'مدير حساب مخصص لمتابعة احتياجاتكم',\n    'تقارير أداء شهرية وفواتير احترافية'\n  ]\n};\n\nconst benefitList = benefits[d.lead_category] || benefits['default'];\n\n// 📅 اقتراح مواعيد ذكي (اختياري)\nconst suggestedTimes = [\n  'الأحد - الثلاثاء 10ص-2م',\n  'الأربعاء - الخميس 4م-8م',\n  'موعد مخصص يناسب جدولكم'\n];\n\n// 🎯 دعوة للإجراء احترافية لقطاع الأعمال\nconst cta = `📋 *لبدء شراكة مثمرة*، يسعدنا تحديد موعد قصير (15 دقيقة) لمناقشة:\n\n• احتياجاتكم الخاصة لموسم 2026\n• الباقات الأنسب لنوع نشاطكم\n• آلية التعاون والتكامل الفني\n\n🗓️ *مواعيد مقترحة*: ${suggestedTimes.join(' | ')}\n\n_أو ردوا بـ \"موعد\" وسنتواصل معكم لتنسيق الوقت الأنسب_ 🤝`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🤝 أهلاً وسهلاً بكم في ${companyName}،\n\nنرحب بكم ${catLine} في منظومة SaaSAI للأتمتة 2026.\n\n✨ *مزايا الشراكة معنا:*\n${benefitList.map(b => `• ${b}`).join('\\n')}\n\n${cta}\n\n🆔 مرجع الشراكة: ${leadId}\n📧 للتواصل المباشر: partnerships@makkah-hotels.com\n\nمع خالص التقدير،  \nفريق شراكات الأعمال — SaaSAI للأتمتة 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'b2b_partnership',\n  next_journey_step: 'b2b_meeting_requested',\n  priority: 'high',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  partnership_type: d.lead_category || 'general_b2b',\n  expected_response_window_hours: 48,  // نتوقع ردًا خلال يومين عمل\n  follow_up_if_no_reply: true,          // إرسال تذكير احترافي إذا لم يردوا\n  meeting_duration_minutes: 15,         // مدة المكالمة المقترحة\n  cta_keyword: 'موعد',                  // كلمة الاستجابة المتوقعة\n  contact_email: 'partnerships@makkah-hotels.com', // بديل للتواصل\n  whatsapp_ready: true,                 // جاهز للإرسال عبر واتساب\n  b2b_priority_score: d.final_score || 80 // درجة أولوية الشراكة\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || d.company_name || 'شركتنا الكريمة';\nconst companyName = d.company_name || 'شركتكم الموقرة';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'قناتنا الرسمية';\n\nconst catLine = d.lead_category === 'B2B_government' \n  ? 'للجهات الحكومية والوزارات الموقرة' \n  : d.lead_category === 'B2B_conference'\n  ? 'لتنظيم المؤتمرات والفعاليات الاحترافية'\n  : d.lead_category === 'B2B_travel_agency'\n  ? 'لشركات السياحة ووكالات السفر المعتمدة'\n  : 'لشركائنا الاستراتيجيين في قطاع الضيافة';\n\nconst benefits = {\n  'B2B_government': [\n    'عقود سنوية معتمدة وفق الأنظمة الحكومية',\n    'فواتير رسمية وضريبية موحدة',\n    'مدير حساب متخصص للجهات الحكومية',\n    'أولوية قصوى في مواسم الذروة والعمل'\n  ],\n  'B2B_conference': [\n    'باقات مؤتمرات شاملة (قاعات + خدمة + خدمة)',\n    'تنسيق لوجستي كامل للوفود والمشاركين',\n    'خصومات عملمية حسب عدد الحضور',\n    'دعم فني 24/7 خلال فترة الفعالية'\n  ],\n  'B2B_travel_agency': [\n    'عمولات تنافسية على كل طلب مؤكد',\n    'لوحة تحكم خاصة لمتابعة الطلبات',\n    'تأكيد فوري وتذاكر إلكترونية',\n    'دعم متعدد اللغات لعملائكم الدوليين'\n  ],\n  'default': [\n    'عقود مرنة بأسعار شراكة حصرية',\n    'أولوية في التخصيص خلال المواسم',\n    'مدير حساب مخصص لمتابعة احتياجاتكم',\n    'تقارير أداء شهرية وفواتير احترافية'\n  ]\n};\n\nconst benefitList = benefits[d.lead_category] || benefits['default'];\n\nconst suggestedTimes = [\n  'الأحد - الثلاثاء 10ص-2م',\n  'الأربعاء - الخميس 4م-8م',\n  'موعد مخصص يناسب جدولكم'\n];\n\nconst cta = `📋 *لبدء شراكة مثمرة*، يسعدنا تحديد موعد قصير (15 دقيقة) لمناقشة:\n\n• احتياجاتكم الخاصة لموسم 2026\n• الباقات الأنسب لنوع نشاطكم\n• آلية التعاون والتكامل الفني\n\n🗓️ *مواعيد مقترحة*: ${suggestedTimes.join(' | ')}\n\n_أو ردوا بـ \"موعد\" وسنتواصل معكم لتنسيق الوقت الأنسب_ 🤝`;\n\nconst message = `🤝 أهلاً وسهلاً بكم في ${companyName}،\n\nنرحب بكم ${catLine} في منظومة [COMPANY_NAME] للأتمتة 2026.\n\n✨ *مزايا الشراكة معنا:*\n${benefitList.map(b => `• ${b}`).join('\\n')}\n\n${cta}\n\n🆔 مرجع الشراكة: ${leadId}\n📧 للتواصل المباشر: partnerships@general-Companys.com\n\nمع خالص التقدير،  \nفريق شراكات الأعمال — [COMPANY_NAME] للأتمتة ✨`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'b2b_partnership',\n  next_journey_step: 'b2b_meeting_requested',\n  priority: 'high',\n  \n  text: message,\n  \n  partnership_type: d.lead_category || 'general_b2b',\n  expected_response_window_hours: 48,  // نتوقع ردًا خلال يومين عمل\n  follow_up_if_no_reply: true,          // إرسال تذكير احترافي إذا لم يردوا\n  meeting_duration_minutes: 15,         // مدة المكالمة المقترحة\n  cta_keyword: 'موعد',                  // كلمة الاستجابة المتوقعة\n  contact_email: 'partnerships@general-Companys.com', // بديل للتواصل\n  whatsapp_ready: true,                 // جاهز للإرسال عبر واتساب\n  b2b_priority_score: d.final_score || 80 // درجة أولوية الشراكة\n} }];"
       },
       "name": "Code – B2B Partnership Message",
       "type": "n8n-nodes-base.code",
@@ -456,7 +456,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── WARM NEW – ترحيب أولي ذكي ───────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'موقعنا';\n\n// 🏨 تخصيص خط النجوم\nconst starsLine = d.stars_preference === '5star' \n  ? 'فنادق 5 نجوم فاخرة قريبة من الحرم 🌟' \n  : d.stars_preference === '4star'\n  ? 'فنادق 4 نجوم مريحة بموقع ممتاز ✨'\n  : 'أفضل خدمات SaaSAI بمختلف الفئات لتناسب احتياجاتك 💰';\n\n// 👥 تخصيص خط المجموعة\nconst groupLine = d.travel_group === 'family' \n  ? 'مع خيارات غرف عائلية واسعة 🧒👧' \n  : d.travel_group === 'couple'\n  ? 'مع خصوصية وهدوء يناسبكما 💑'\n  : d.travel_group === 'group'\n  ? 'مع تنسيق خاص للمجموعات 👥'\n  : '';\n\n// 💎 ملاحظة الميزانية (اختياري)\nconst budgetNote = d.budget_signal === 'luxury'\n  ? '\\n🎁 نضمن لك أفضل قيمة مقابل الفخامة التي تبحث عنها.'\n  : d.budget_signal === 'mid'\n  ? '\\n🎁 نوفر لك التوازن المثالي بين الجودة والسعر.'\n  : '';\n\n// 🎯 دعوة للإجراء مبسطة وتفاعلية\nconst cta = `📌 *للحصول على عرضك المخصص خلال دقائق*، اختر رقمًا:\n\n1️⃣ 🗓️ أريد تحديد تواريخ إقامتي\n2️⃣ 👥 أريد معرفة الأسعار حسب عدد الأشخاص  \n3️⃣ 🕌 أريد فندقًا قريبًا جدًا من الحرم\n4️⃣ 💬 أريد التحدث مع مستشار حجوزات\n\n_فقط أرسل الرقم المطلوب وسنبدأ فورًا!_ 😊`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🕌 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لاهتمامك بحجوزات SaaSAI للأتمتة عبر ${source}! 🙏\n\n✨ نخصص لك ${starsLine} ${groupLine} بأفضل الأسعار لموسم 2026.${budgetNote}\n\n${cta}\n\n🆔 مرجع طلبك: ${leadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🤲`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_welcome',\n  next_journey_step: 'warm_followup',\n  priority: d.final_score >= 70 ? 'high' : 'normal', // رفع الأولوية للدرجات الجيدة\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  welcome_type: 'interactive_menu',  // نوع الترحيب: قائمة تفاعلية\n  expected_response_window_hours: 24, // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,        // إرسال تذكير إذا لم يرد\n  cta_options: ['1', '2', '3', '4'],  // خيارات الاستجابة المتوقعة\n  collection_fields: ['dates', 'pax', 'preferences'], // البيانات التي نجمعها\n  whatsapp_ready: true                // جاهز للإرسال عبر واتساب\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'موقعنا';\n\nconst qualityLine = d.service_preference === '5star' \n  ? 'خدمات احترافية عالية فاخرة قريبة من المركز 🌟' \n  : d.service_preference === '4star'\n  ? 'خدمات مميزة مريحة بموقع ممتاز ✨'\n  : 'أفضل خدمات [COMPANY_NAME] بمختلف الفئات لتناسب احتياجاتك 💰';\n\nconst groupLine = d.order_type === 'family' \n  ? 'مع خيارات غرف عائلية واسعة 🧒👧' \n  : d.order_type === 'couple'\n  ? 'مع خصوصية وهدوء يناسبكما 💑'\n  : d.order_type === 'group'\n  ? 'مع تنسيق خاص للمجموعات 👥'\n  : '';\n\nconst budgetNote = d.budget_signal === 'luxury'\n  ? '\\n🎁 نضمن لك أفضل قيمة مقابل الفخامة التي تبحث عنها.'\n  : d.budget_signal === 'mid'\n  ? '\\n🎁 نوفر لك التوازن المثالي بين الجودة والسعر.'\n  : '';\n\nconst cta = `📌 *للحصول على عرضك المخصص خلال دقائق*، اختر رقمًا:\n\n1️⃣ 🗓️ أريد تحديد تواريخ إقامتي\n2️⃣ 👥 أريد معرفة الأسعار حسب عدد الأشخاص  \n3️⃣ ✨ أريد مركز خدمةًا قريبًا جدًا من المركز\n4️⃣ 💬 أريد التحدث مع مستشار طلبات\n\n_فقط أرسل الرقم المطلوب وسنبدأ فورًا!_ 😊`;\n\nconst message = `✨ أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لاهتمامك بخدمات [COMPANY_NAME] عبر ${source}! 🙏\n\n✨ نخصص لك ${qualityLine} ${groupLine} بأفضل الأسعار لموسم 2026.${budgetNote}\n\n${cta}\n\n🆔 مرجع طلبك: ${leadId}\n\nفريق [COMPANY_NAME] — خدمتك أولويتنا 🌹`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_welcome',\n  next_journey_step: 'warm_followup',\n  priority: d.final_score >= 70 ? 'high' : 'normal', // رفع الأولوية للدرجات الجيدة\n  \n  text: message,\n  \n  welcome_type: 'interactive_menu',  // نوع الترحيب: قائمة تفاعلية\n  expected_response_window_hours: 24, // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,        // إرسال تذكير إذا لم يرد\n  cta_options: ['1', '2', '3', '4'],  // خيارات الاستجابة المتوقعة\n  collection_fields: ['dates', 'quantity', 'preferences'], // البيانات التي نجمعها\n  whatsapp_ready: true                // جاهز للإرسال عبر واتساب\n} }];"
       },
       "name": "Code – Warm Welcome Message",
       "type": "n8n-nodes-base.code",
@@ -469,7 +469,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── WARM FOLLOWUP – متابعة دافئة مخصصة ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب الميزانية\nconst offerLine = d.budget_signal === 'luxury' \n  ? 'عرض VIP خاص على فنادق 5 نجوم بإطلالة على الحرم 🌟' \n  : d.budget_signal === 'mid'\n  ? 'عرض حصري بخصم يصل 30% على فنادق 4 نجوم مميزة 💎'\n  : 'عرض توفير بخصم حتى 40% على خيارات مريحة ومناسبة 💰';\n\n// 🏨 ملاحظة حسب تفضيل النجوم\nconst starsNote = d.stars_preference === '5star'\n  ? '\\n✨ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n✨ خيارات 4 نجوم مريحة وبأسعار منافسة.'\n  : '';\n\n// 🧒 ملاحظة للعائلات\nconst familyNote = (d.travel_group === 'family' || d.lead_category?.includes('family'))\n  ? '\\n👨‍👩‍👧‍👦 نوفر غرفًا عائلية واسعة وخدمات مناسبة للأطفال.'\n  : '';\n\n// 📝 إصلاح عرض \"عدد الأشخاص\" عندما يكون 0 أو فارغ\nconst displayPax = d.travel_group === 'family' \n  ? 'عائلتك' \n  : d.pax_hint && d.pax_hint > 1 \n  ? `${d.pax_hint} أشخاص` \n  : 'إقامتك';\n\n// 🆔 مرجع بديل إذا فُقد lead_id\nconst displayLeadId = leadId !== 'غير متاح' ? leadId : 'J-' + Date.now().toString(36).toUpperCase();\n\n// 📝 بناء الرسالة النهائية\nconst message = `🌟 مرحباً ${customerName}،\n\nنتمنى أن تكونوا بخير وعافية!\n\nلدينا ${offerLine} في مكة المكرمة 2026 محجوز خصيصاً لـ ${displayPax}.${starsNote}${familyNote}\n\n⏰ *العرض متاح لفترة محدودة فقط* (48 ساعة).\n\n🎁 *مزايا الحجز الآن:*\n• تأكيد فوري للحجز\n• إلغاء مجاني قبل 24 ساعة\n• دعم 24/7 عبر واتساب\n\nهل تريد التفاصيل الكاملة والأسعار؟ \n📲 فقط أرسل \"نعم\" أو تواصل معنا مباشرة 🏨\n\n🆔 مرجع العرض: ${displayLeadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_followup',\n  next_journey_step: 'warm_offer_sent',\n  priority: d.final_score >= 75 ? 'high' : 'normal',\n  text: message,\n  \n  // === بيانات إضافية للتحليل ===\n  offer_type: d.budget_signal || 'standard',\n  expected_response_window_hours: 48,\n  follow_up_if_no_reply: true,\n  offer_expiry_iso: new Date(Date.now() + 48 * 36e5).toISOString(),\n  cta_keyword: 'نعم',\n  whatsapp_ready: true\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\nconst offerLine = d.budget_signal === 'luxury' \n  ? 'عرض VIP خاص على خدمات احترافية عالية بإطلالة على المركز 🌟' \n  : d.budget_signal === 'mid'\n  ? 'عرض حصري بخصم يصل 30% على خدمات مميزة مميزة 💎'\n  : 'عرض توفير بخصم حتى 40% على خيارات مريحة ومناسبة 💰';\n\nconst qualityNote = d.service_preference === '5star'\n  ? '\\n✨ جميع خياراتنا احترافية عالية مع خدمات حصرية.'\n  : d.service_preference === '4star'\n  ? '\\n✨ خيارات مميزة مريحة وبأسعار منافسة.'\n  : '';\n\nconst familyNote = (d.order_type === 'family' || d.lead_category?.includes('family'))\n  ? '\\n👨‍👩‍👧‍👦 نوفر غرفًا عائلية واسعة وخدمات مناسبة للأطفال.'\n  : '';\n\nconst displayPax = d.order_type === 'family' \n  ? 'عائلتك' \n  : d.quantity_hint && d.quantity_hint > 1 \n  ? `${d.quantity_hint} أشخاص` \n  : 'إقامتك';\n\nconst displayLeadId = leadId !== 'غير متاح' ? leadId : 'J-' + Date.now().toString(36).toUpperCase();\n\nconst message = `🌟 مرحباً ${customerName}،\n\nنتمنى أن تكونوا بخير وعافية!\n\nلدينا ${offerLine} في العراق 2026 معملوز خصيصاً لـ ${displayPax}.${qualityNote}${familyNote}\n\n⏰ *العرض متاح لفترة محدودة فقط* (48 ساعة).\n\n🎁 *مزايا الطلب الآن:*\n• تأكيد فوري للطلب\n• إلغاء مجاني قبل 24 ساعة\n• دعم 24/7 عبر واتساب\n\nهل تريد التفاصيل الكاملة والأسعار؟ \n📲 فقط أرسل \"نعم\" أو تواصل معنا مباشرة 🏢\n\n🆔 مرجع العرض: ${displayLeadId}\n\nفريق [COMPANY_NAME] — خدمتك أولويتنا ✨`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_followup',\n  next_journey_step: 'warm_offer_sent',\n  priority: d.final_score >= 75 ? 'high' : 'normal',\n  text: message,\n  \n  offer_type: d.budget_signal || 'standard',\n  expected_response_window_hours: 48,\n  follow_up_if_no_reply: true,\n  offer_expiry_iso: new Date(Date.now() + 48 * 36e5).toISOString(),\n  cta_keyword: 'نعم',\n  whatsapp_ready: true\n} }];"
       },
       "name": "Code – Warm Followup Message",
       "type": "n8n-nodes-base.code",
@@ -482,7 +482,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── COLD RE-ENGAGE – إعادة تفعيل (مُحسّن) ─────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج الاسم بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب بيانات العميل (اختياري)\nconst offerText = d.budget_signal === 'luxury'\n  ? 'باقات فاخرة بأسعار حصرية للموسم القادم 🌟'\n  : d.stars_preference === '5star'\n  ? 'غرف 5 نجوم بإطلالة على الحرم بخصم ترحيبي 🕌'\n  : 'عروض موسمية تناسب جميع الميزانيات 💰';\n\n// 📝 بناء الرسالة النهائية\nconst message = `👋 مرحباً ${customerName}،\n\nمنذ فترة لم نتواصل – نأمل أن تكون رحلتك لمكة المكرمة ما زالت ضمن خططك!\n\n🎁 ${offerText}\n\nإذا كنت لا تزال مهتماً بالحجز، نسعد بمساعدتك في أي وقت.\n\n📲 أرسل \"مهتم\" وسنتواصل معك فوراً 🕌\n\n🆔 مرجع: ${leadId}`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'cold_reengage',\n  next_journey_step: 'cold_reengaged',\n  priority: 'low',\n  text: message,  // ✅ الرسالة جاهزة للإرسال الفعلي\n  // === بيانات إضافية للتحليل ===\n  reengage_reason: 'long_no_contact',\n  offer_type: d.budget_signal || 'general',\n  expected_response_window_hours: 72,  // نتوقع ردًا خلال 3 أيام\n  follow_up_if_no_reply: true  // إذا لم يرد، نرسل تذكيرًا لاحقًا\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\nconst offerText = d.budget_signal === 'luxury'\n  ? 'باقات فاخرة بأسعار حصرية للموسم القادم 🌟'\n  : d.service_preference === '5star'\n  ? 'غرف احترافية عالية بإطلالة على المركز بخصم ترحيبي ✨'\n  : 'عروض موسمية تناسب جميع الميزانيات 💰';\n\nconst message = `👋 مرحباً ${customerName}،\n\nمنذ فترة لم نتواصل – نأمل أن تكون مشروعك لالعراق ما زالت ضمن خططك!\n\n🎁 ${offerText}\n\nإذا كنت لا تزال مهتماً بالطلب، نسعد بمساعدتك في أي وقت.\n\n📲 أرسل \"مهتم\" وسنتواصل معك فوراً ✨\n\n🆔 مرجع: ${leadId}`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'cold_reengage',\n  next_journey_step: 'cold_reengaged',\n  priority: 'low',\n  text: message,  // ✅ الرسالة جاهزة للإرسال الفعلي\n  reengage_reason: 'long_no_contact',\n  offer_type: d.budget_signal || 'general',\n  expected_response_window_hours: 72,  // نتوقع ردًا خلال 3 أيام\n  follow_up_if_no_reply: true  // إذا لم يرد، نرسل تذكيرًا لاحقًا\n} }];"
       },
       "name": "Code – Cold Re-engagement Message",
       "type": "n8n-nodes-base.code",
@@ -495,7 +495,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── FALLBACK – مسار غير معروف (رسالة آمنة + إعادة توجيه) ───────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst journeyStep = d.journey_step || 'unknown';\nconst source = d.source || 'قناتنا';\n\n// 📝 رسالة عامة آمنة وموجهة لجمع البيانات\nconst message = `🏨 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لتواصلك معنا بخصوص SaaSAI للأتمتة 2026 عبر ${source}. 🙏\n\nنحن هنا لمساعدتك في العثور على أفضل إقامة قريبة من الحرم المكي، بأسعار تناسب احتياجاتك.\n\n✨ *لنبدأ معًا*، أخبرنا قليلاً عن رحلتك:\n\n🗓️ ما هو تاريخ وصولك المتوقع؟\n👥 كم عدد الأشخاص في مجموعتك؟\n⭐ هل تفضل فنادق 5 نجوم، 4 نجوم، أو خيارات اقتصادية؟\n\n_فقط أرسل إجاباتك وسنجهّز لك عرضًا مخصصًا خلال دقائق!_ 😊\n\n🆔 مرجع استفسارك: ${leadId}\n\nفريق SaaSAI — خدمتك أولويتنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'generic_intro',\n  next_journey_step: 'warm_new',  // إعادة توجيه آمن لمسار الترحيب وجمع البيانات\n  priority: 'normal',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والأتمتة ===\n  fallback_reason: 'unknown_journey_step',  // سبب استخدام المسار الاحتياطي\n  original_journey_step: journeyStep,       // حفظ القيمة الأصلية للتدقيق\n  auto_reroute_to: 'warm_new',              // المسار الذي سيُعاد التوجيه إليه\n  data_collection_mode: true,               // تفعيل وضع جمع البيانات\n  expected_response_window_hours: 24,       // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,              // إرسال تذكير إذا لم يرد\n  whatsapp_ready: true,                     // جاهز للإرسال عبر واتساب\n  \n  // === للتدقيق الفني ===\n  _debug: {\n    fallback_triggered_at: new Date().toISOString(),\n    missing_journey_mapping: journeyStep,\n    safe_mode_enabled: true\n  }\n} }];"
+        "jsCode": "const d = $input.first().json;\n\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst journeyStep = d.journey_step || 'unknown';\nconst source = d.source || 'قناتنا';\n\nconst message = `🏢 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لتواصلك معنا بخصوص [COMPANY_NAME] للأتمتة 2026 عبر ${source}. 🙏\n\nنحن هنا لمساعدتك في العثور على أفضل خدمة قريبة من مركز المدينة، بأسعار تناسب احتياجاتك.\n\n✨ *لنبدأ معًا*، أخبرنا قليلاً عن مشروعك:\n\n🗓️ ما هو تاريخ البدء المتوقع؟\n👥 كم عدد الأشخاص في طلبك؟\n⭐ هل تفضل خدمات احترافية عالية، مميزة، أو خيارات اقتصادية؟\n\n_فقط أرسل إجاباتك وسنجهّز لك عرضًا مخصصًا خلال دقائق!_ 😊\n\n🆔 مرجع استفسارك: ${leadId}\n\nفريق [COMPANY_NAME] — خدمتك أولويتنا ✨`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'generic_intro',\n  next_journey_step: 'warm_new',  // إعادة توجيه آمن لمسار الترحيب وجمع البيانات\n  priority: 'normal',\n  \n  text: message,\n  \n  fallback_reason: 'unknown_journey_step',  // سبب استخدام المسار الاحتياطي\n  original_journey_step: journeyStep,       // حفظ القيمة الأصلية للتدقيق\n  auto_reroute_to: 'warm_new',              // المسار الذي سيُعاد التوجيه إليه\n  data_collection_mode: true,               // تفعيل وضع جمع البيانات\n  expected_response_window_hours: 24,       // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,              // إرسال تذكير إذا لم يرد\n  whatsapp_ready: true,                     // جاهز للإرسال عبر واتساب\n  \n  _debug: {\n    fallback_triggered_at: new Date().toISOString(),\n    missing_journey_mapping: journeyStep,\n    safe_mode_enabled: true\n  }\n} }];"
       },
       "name": "Code – Fallback Generic Message",
       "type": "n8n-nodes-base.code",
@@ -653,7 +653,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone_normalized || $json.phone }}\",\n  \"text\": \"{{ $json.text || $json.message || 'رسالة تجريبية من نظام حجوزات مكة ✅' }}\",\n  \"chat_name\": \"{{ $json.name || $json.lead_name || 'عميل' }}\",\n  \"label\": \"{{ $json.message_template || $json.journey_step || 'test_label' }}\",\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id || 'test_' + Date.now() }}\",\n    \"journey_step\": \"{{ $json.journey_step || 'unknown' }}\",\n    \"campaign\": \"test_yemen\",\n    \"priority\": \"{{ $json.priority || 'normal' }}\",\n    \"debug_source\": \"n8n_work4\"\n  }\n}",
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone_normalized || $json.phone }}\",\n  \"text\": \"{{ $json.text || $json.message || 'رسالة تجريبية من نظام طلبات العراق ✅' }}\",\n  \"chat_name\": \"{{ $json.name || $json.lead_name || 'عميل' }}\",\n  \"label\": \"{{ $json.message_template || $json.journey_step || 'test_label' }}\",\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id || 'test_' + Date.now() }}\",\n    \"journey_step\": \"{{ $json.journey_step || 'unknown' }}\",\n    \"campaign\": \"test_yemen\",\n    \"priority\": \"{{ $json.priority || 'normal' }}\",\n    \"debug_source\": \"n8n_work4\"\n  }\n}",
         "options": {
           "timeout": 15000
         }
@@ -677,10 +677,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, lead_email: $json.email, channel: 'telegram', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name, pax: $json.pax_hint, company_name: 'SaaSAI للأتمتة', offer_code: 'MAKKAH2026' }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
+        "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, lead_email: $json.email, channel: 'telegram', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name, quantity: $json.quantity_hint, company_name: '[COMPANY_NAME] للأتمتة', offer_code: 'General2026' }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
         "options": {
           "timeout": 15000
         }
@@ -698,7 +698,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, channel: 'sms', custom_message: $json.text.substring(0,160), template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
@@ -719,7 +719,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ lead_email: $json.email, channel: 'email', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
@@ -740,7 +740,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ lead_phone: $json.phone, channel: 'whatsapp', custom_message: $json.text, template_id: $json.message_template, personalization: { name: $json.name }, action_type: 'marketing', priority: $json.priority, journey_step: $json.journey_step }) }}",
@@ -773,18 +773,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -809,10 +809,10 @@
             "status": "={{ $json.status || 'new' }}",
             "journey_step": "={{ $json.journey_step || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "order_type": "={{ $json.order_type || 'unknown' }}",
+            "service_preference": "={{ $json.service_preference || 'unknown' }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
+            "preferred_date": "={{ $json.preferred_date || '' }}",
             "nights_hint": "={{ $json.nights_hint || 0 }}",
             "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
             "raw_text": "={{ $json.raw_text || '' }}",
@@ -839,7 +839,7 @@
             "intent_bonus": "={{ $json.intent_bonus || 0 }}",
             "phone_bonus": "={{ $json.phone_bonus || 0 }}",
             "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "quality_bonus": "={{ $json.quality_bonus || 0 }}",
             "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
             "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
             "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
@@ -858,7 +858,7 @@
             "task_type": "={{ $json.task_type || '' }}",
             "sla_minutes": "={{ $json.sla_minutes || 0 }}",
             "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "quantity": "={{ $json.quantity || $json.quantity_hint || 0 }}",
             "handoff_at": "={{ $json.handoff_at || '' }}"
           },
           "matchingColumns": [
@@ -1046,8 +1046,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1055,8 +1055,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1064,8 +1064,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1073,8 +1073,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1316,8 +1316,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1487,8 +1487,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1530,14 +1530,14 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1417386966,
           "mode": "list",
           "cachedResultName": "journey_log",
@@ -1741,14 +1741,14 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1602796460,
           "mode": "list",
           "cachedResultName": "workflow_errors",
@@ -1925,14 +1925,14 @@
             "status": "Warm",
             "category": "B2C_family",
             "recommended_action": "whatsapp_followup_24h",
-            "radar_intent": "booking_ready",
+            "radar_intent": "order_ready",
             "budget_signal": "unknown",
-            "travel_group": "family",
-            "stars_preference": "any",
+            "order_type": "family",
+            "service_preference": "any",
             "source": "Form",
             "scored_at": "2026-03-18T19:12:39.030Z"
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/marketing-journey",
+          "webhookUrl": "[YOUR_WEBHOOK_URL]",
           "executionMode": "production"
         },
         "pairedItem": {

@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F2 – Lead Capture الاستقبال",
+  "name": "[COMPANY_NAME] – F2 – Lead Capture الاستقبال",
   "nodes": [
     {
       "parameters": {
@@ -88,7 +88,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════\n// Code – Normalize & Validate Lead  |  Flow #2 Lead Capture v3.0\n// يستلم من 5 مصادر: WhatsApp, Telegram Bot, Instagram Meta,\n//   Website Form, Flow #1 Radar\n// يُنتج كائناً موحداً متوافقاً مع جميع أعمدة شيت leads\n// ════════════════════════════════════════════════════════════════════\n\nconst allItems = $input.all();\n\n// ── 1. البحث عن أول عنصر يحتوي بيانات حقيقية ──────────────────\nlet d = null;\nfor (const item of allItems) {\n  const j = item.json || {};\n  if (j.name || j.phone || j.source || j.event_type || j.From ||\n      j.content_hash || j.radar_source || j.form_type) {\n    d = (j.body && typeof j.body === 'object' && !Array.isArray(j.body))\n        ? { ...j.body, _headers: j.headers } : j;\n    break;\n  }\n}\nif (!d) d = allItems[0]?.json || {};\n\n// ── 2. اكتشاف المصدر ──────────────────────────────────────────\nlet source = 'Unknown';\nif      (d.event_type === 'message:received:new') source = 'WhatsApp_TimelinesAI';\nelse if (d.From && d.Body)                        source = 'WhatsApp';\nelse if (d.message?.from && d.message?.text)      source = 'Telegram_Bot';\nelse if (d.entry?.[0]?.messaging)                 source = 'Instagram_Meta';\nelse if (d.radar_source || d.content_hash)        source = 'Radar_' + (d.platform || 'Social');\nelse if (d.source === 'Website_Form' || d.form_type) source = 'Website_Form';\n// الربط مع Flow #1: يأتي عبر webhook lead-from-radar\nelse if (d.radar_intent || d.radar_quality)       source = 'Radar_' + (d.platform || 'Social');\n\n// ── 3. استخراج وتوحيد رقم الهاتف ────────────────────────────\nlet phone = '';\nif      (source === 'WhatsApp_TimelinesAI') phone = d.chat?.phone || d.message?.sender?.phone || '';\nelse if (source === 'WhatsApp')             phone = (d.From || '').replace('whatsapp:','');\nelse if (source === 'Telegram_Bot')         phone = d.message?.contact?.phone_number || d.contact?.phone || '';\nelse if (source.startsWith('Radar_'))       phone = (d.phones_found?.[0]) || d.phone || '';\nelse                                        phone = d.phone || d.mobile || d.tel || d.whatsapp || '';\n\nphone = phone.toString().replace(/[\\s\\-().]/g,'');\nif      (phone.startsWith('00966'))              phone = '+966' + phone.slice(5);\nelse if (phone.startsWith('966') && phone.length>=12) phone = '+966' + phone.slice(3);\nelse if (phone.startsWith('05') && phone.length===10) phone = '+966' + phone.slice(1);\nelse if (phone.startsWith('5')  && phone.length===9)  phone = '+9665' + phone.slice(1);\nelse if (phone.length > 5 && !phone.startsWith('+'))  phone = '+' + phone.replace(/^0+/,'');\n\nconst phoneValid = /^\\+[0-9]{7,15}$/.test(phone);\n\n// ── 4. استخراج الاسم ─────────────────────────────────────────\nlet name = '';\nif      (source === 'WhatsApp_TimelinesAI') name = d.chat?.full_name || d.message?.sender?.full_name || '';\nelse if (source === 'WhatsApp')             name = d.ProfileName || d.name || '';\nelse if (source === 'Telegram_Bot')         name = [d.message?.from?.first_name, d.message?.from?.last_name].filter(Boolean).join(' ');\nelse if (source.startsWith('Radar_'))       name = d.full_name || d.username || '';\nelse                                        name = d.name || d.full_name || '';\nname = name.trim() || 'غير معروف';\n\n// ── 5. استخراج الرسالة ────────────────────────────────────────\nlet message = '';\nif      (source === 'WhatsApp_TimelinesAI') message = d.message?.text || '';\nelse if (source === 'WhatsApp')             message = d.Body || '';\nelse if (source === 'Telegram_Bot')         message = d.message?.text || '';\nelse if (source === 'Instagram_Meta')       message = d.entry?.[0]?.messaging?.[0]?.message?.text || '';\nelse if (source.startsWith('Radar_'))       message = d.raw_text || d.text || '';\nelse                                        message = d.message || d.inquiry || d.notes || '';\n\n// ── 6. بريد إلكتروني + pax ───────────────────────────────────\nconst email = (d.email || '').trim().toLowerCase();\nconst paxMatch = message.match(/(\\d+)\\s*(شخص|أشخاص|نفر|غرف|غرفة|pax)/i);\nconst pax_hint = paxMatch ? parseInt(paxMatch[1]) : (d.pax_hint || 0);\n\n// ── 7. الجنسية من النص ───────────────────────────────────────\nfunction detectNationality(txt) {\n  const t = (txt||'').toLowerCase();\n  if (/سعودي|الرياض|جدة|الدمام/.test(t))    return 'سعودي';\n  if (/إماراتي|دبي|أبوظبي/.test(t))          return 'إماراتي';\n  if (/كويتي|الكويت/.test(t))                return 'كويتي';\n  if (/مصري|القاهرة/.test(t))                return 'مصري';\n  if (/أردني|عمان|الأردن/.test(t))           return 'أردني';\n  if (/باكستاني|باكستان/.test(t))            return 'باكستاني';\n  if (/هندي|india/i.test(t))                 return 'هندي';\n  if (/indonesian|indonesia/i.test(t))        return 'إندونيسي';\n  return d.nationality || '';\n}\nconst nationality = detectNationality(message);\n\n// ── 8. بيانات Radar (من Flow #1) ─────────────────────────────\nconst radar_intent    = d.radar_intent    || d.intent    || '';\nconst radar_urgency   = d.radar_urgency   || d.urgency   || '';\nconst radar_quality   = Number(d.radar_quality || d.lead_quality || 0);\nconst budget_signal   = d.budget_signal   || 'unknown';\nconst travel_group    = d.travel_group    || 'unknown';\nconst stars_preference= d.stars_preference|| 'unknown';\nconst check_in_hint   = d.check_in_hint   || '';\nconst nights_hint     = Number(d.nights_hint || 0);\nconst content_hash    = d.content_hash    || '';\nconst platform        = d.platform        || source.replace('Radar_','') || '';\n\n// ── 9. توليد lead_id ─────────────────────────────────────────\nfunction genLeadId() {\n  const ts  = Date.now().toString().slice(-6);\n  const rnd = Math.floor(Math.random()*1000).toString().padStart(3,'0');\n  return `LD-${ts}${rnd}`;\n}\n\n// ── 10. تحديد category ───────────────────────────────────────\nfunction getCategory(intent, quality) {\n  if (intent === 'booking_ready')                              return 'HOT';\n  if (['booking_research','travel_planning'].includes(intent)) return 'WARM';\n  if (quality >= 50)                                           return 'WARM';\n  if (quality > 0)                                             return 'WARM';\n  // للمصادر المباشرة (WhatsApp/Form) نعتبرها WARM تلقائياً\n  return source === 'Unknown' ? 'COLD' : 'WARM';\n}\nconst category = getCategory(radar_intent, radar_quality);\n\n// ── 11. journey_step ─────────────────────────────────────────\nfunction getJourneyStep(intent, urgency, src) {\n  if (intent === 'booking_ready' && urgency === 'immediate') return 'hot_immediate';\n  if (intent === 'booking_ready')                            return 'hot';\n  if (intent === 'booking_research')                         return 'warm_research';\n  if (intent === 'travel_planning')                          return 'warm_planning';\n  if (src.startsWith('Radar_'))                              return 'warm_radar';\n  if (src === 'WhatsApp' || src === 'WhatsApp_TimelinesAI')  return 'warm_whatsapp';\n  if (src === 'Website_Form')                                return 'warm_form';\n  if (src === 'Telegram_Bot')                                return 'warm_telegram';\n  if (src === 'Instagram_Meta')                              return 'warm_instagram';\n  return 'cold_info';\n}\nconst journey_step = getJourneyStep(radar_intent, radar_urgency, source);\n\n// ── 12. المخرج النهائي الكامل ────────────────────────────────\nreturn [{ json: {\n  // ── هوية ───────────────────────────────\n  lead_id:          genLeadId(),\n  phone:            phone,\n  phone_valid:      phoneValid,\n  name:             name,\n  email:            email,\n  nationality:      nationality,\n\n  // ── مصدر ───────────────────────────────\n  source:           source,\n  platform:         platform,\n  content_hash:     content_hash,\n\n  // ── رسالة ──────────────────────────────\n  message:          message.substring(0, 500),\n  last_message:     message.substring(0, 500),\n  pax_hint:         pax_hint,\n\n  // ── رادار ──────────────────────────────\n  radar_intent:     radar_intent,\n  radar_urgency:    radar_urgency,\n  radar_quality:    radar_quality,\n  score:            radar_quality,\n  category:         category,\n  budget_signal:    budget_signal,\n  travel_group:     travel_group,\n  stars_preference: stars_preference,\n  check_in_hint:    check_in_hint,\n  nights_hint:      nights_hint,\n\n  // ── رحلة ───────────────────────────────\n  journey_step:     journey_step,\n  consent:          'TRUE',\n  status:           'new',\n\n  // ── وقت ────────────────────────────────\n  received_at:      new Date().toISOString(),\n  created_at:       new Date().toISOString(),\n  updated_at:       new Date().toISOString(),\n  assigned_to:      '',\n  notes:            d.ai_reason || d.notes || '',\n\n  // ── للتشخيص ────────────────────────────\n  _source_detected: source,\n  _items_checked:   allItems.length,\n  _phone_raw:       d.phone || d.From || ''\n}}];\n"
+        "jsCode": "\nconst allItems = $input.all();\n\nlet d = null;\nfor (const item of allItems) {\n  const j = item.json || {};\n  if (j.name || j.phone || j.source || j.event_type || j.From ||\n      j.content_hash || j.radar_source || j.form_type) {\n    d = (j.body && typeof j.body === 'object' && !Array.isArray(j.body))\n        ? { ...j.body, _headers: j.headers } : j;\n    break;\n  }\n}\nif (!d) d = allItems[0]?.json || {};\n\nlet source = 'Unknown';\nif      (d.event_type === 'message:received:new') source = 'WhatsApp_TimelinesAI';\nelse if (d.From && d.Body)                        source = 'WhatsApp';\nelse if (d.message?.from && d.message?.text)      source = 'Telegram_Bot';\nelse if (d.entry?.[0]?.messaging)                 source = 'Instagram_Meta';\nelse if (d.radar_source || d.content_hash)        source = 'Radar_' + (d.platform || 'Social');\nelse if (d.source === 'Website_Form' || d.form_type) source = 'Website_Form';\nelse if (d.radar_intent || d.radar_quality)       source = 'Radar_' + (d.platform || 'Social');\n\nlet phone = '';\nif      (source === 'WhatsApp_TimelinesAI') phone = d.chat?.phone || d.message?.sender?.phone || '';\nelse if (source === 'WhatsApp')             phone = (d.From || '').replace('whatsapp:','');\nelse if (source === 'Telegram_Bot')         phone = d.message?.contact?.phone_number || d.contact?.phone || '';\nelse if (source.startsWith('Radar_'))       phone = (d.phones_found?.[0]) || d.phone || '';\nelse                                        phone = d.phone || d.mobile || d.tel || d.whatsapp || '';\n\nphone = phone.toString().replace(/[\\s\\-().]/g,'');\nif      (phone.startsWith('00964'))              phone = '+964' + phone.slice(5);\nelse if (phone.startsWith('964') && phone.length>=12) phone = '+964' + phone.slice(3);\nelse if (phone.startsWith('07')  && phone.length===11) phone = '+964' + phone.slice(1);\nelse if (phone.startsWith('00966'))              phone = '+966' + phone.slice(5);\nelse if (phone.startsWith('966') && phone.length>=12) phone = '+966' + phone.slice(3);\nelse if (phone.startsWith('05') && phone.length===10) phone = '+966' + phone.slice(1);\nelse if (phone.startsWith('5')  && phone.length===9)  phone = '+9665' + phone.slice(1);\nelse if (phone.length > 5 && !phone.startsWith('+'))  phone = '+' + phone.replace(/^0+/,'');\n\nconst phoneValid = /^\\+[0-9]{7,15}$/.test(phone);\n\nlet name = '';\nif      (source === 'WhatsApp_TimelinesAI') name = d.chat?.full_name || d.message?.sender?.full_name || '';\nelse if (source === 'WhatsApp')             name = d.ProfileName || d.name || '';\nelse if (source === 'Telegram_Bot')         name = [d.message?.from?.first_name, d.message?.from?.last_name].filter(Boolean).join(' ');\nelse if (source.startsWith('Radar_'))       name = d.full_name || d.username || '';\nelse                                        name = d.name || d.full_name || '';\nname = name.trim() || 'غير معروف';\n\nlet message = '';\nif      (source === 'WhatsApp_TimelinesAI') message = d.message?.text || '';\nelse if (source === 'WhatsApp')             message = d.Body || '';\nelse if (source === 'Telegram_Bot')         message = d.message?.text || '';\nelse if (source === 'Instagram_Meta')       message = d.entry?.[0]?.messaging?.[0]?.message?.text || '';\nelse if (source.startsWith('Radar_'))       message = d.raw_text || d.text || '';\nelse                                        message = d.message || d.inquiry || d.notes || '';\n\nconst email = (d.email || '').trim().toLowerCase();\nconst quantityMatch = message.match(/(\\d+)\\s*(شخص|أشخاص|نفر|غرف|غرفة|quantity)/i);\nconst quantity_hint = quantityMatch ? parseInt(quantityMatch[1]) : (d.quantity_hint || 0);\n\nfunction detectNationality(txt) {\n  const t = (txt||'').toLowerCase();\n  if (/عراقي|بغداد|أربيل|البصرة|الموصل/.test(t)) return 'عراقي';\n  if (/سعودي|الرياض|جدة|الدمام/.test(t))    return 'سعودي';\n  if (/إماراتي|دبي|أبوظبي/.test(t))          return 'إماراتي';\n  if (/كويتي|الكويت/.test(t))                return 'كويتي';\n  if (/مصري|القاهرة/.test(t))                return 'مصري';\n  if (/أردني|عمان|الأردن/.test(t))           return 'أردني';\n  if (/باكستاني|باكستان/.test(t))            return 'باكستاني';\n  if (/هندي|india/i.test(t))                 return 'هندي';\n  if (/indonesian|indonesia/i.test(t))        return 'إندونيسي';\n  return d.nationality || '';\n}\nconst nationality = detectNationality(message);\n\nconst radar_intent    = d.radar_intent    || d.intent    || '';\nconst radar_urgency   = d.radar_urgency   || d.urgency   || '';\nconst radar_quality   = Number(d.radar_quality || d.lead_quality || 0);\nconst budget_signal   = d.budget_signal   || 'unknown';\nconst order_type    = d.order_type    || 'unknown';\nconst service_preference= d.service_preference|| 'unknown';\nconst preferred_date   = d.preferred_date   || '';\nconst nights_hint     = Number(d.nights_hint || 0);\nconst content_hash    = d.content_hash    || '';\nconst platform        = d.platform        || source.replace('Radar_','') || '';\n\nfunction genLeadId() {\n  const ts  = Date.now().toString().slice(-6);\n  const rnd = Math.floor(Math.random()*1000).toString().padStart(3,'0');\n  return `LD-${ts}${rnd}`;\n}\n\nfunction getCategory(intent, quality) {\n  if (intent === 'order_ready')                              return 'HOT';\n  if (['order_research','travel_planning'].includes(intent)) return 'WARM';\n  if (quality >= 50)                                           return 'WARM';\n  if (quality > 0)                                             return 'WARM';\n  return source === 'Unknown' ? 'COLD' : 'WARM';\n}\nconst category = getCategory(radar_intent, radar_quality);\n\nfunction getJourneyStep(intent, urgency, src) {\n  if (intent === 'order_ready' && urgency === 'immediate') return 'hot_immediate';\n  if (intent === 'order_ready')                            return 'hot';\n  if (intent === 'order_research')                         return 'warm_research';\n  if (intent === 'travel_planning')                          return 'warm_planning';\n  if (src.startsWith('Radar_'))                              return 'warm_radar';\n  if (src === 'WhatsApp' || src === 'WhatsApp_TimelinesAI')  return 'warm_whatsapp';\n  if (src === 'Website_Form')                                return 'warm_form';\n  if (src === 'Telegram_Bot')                                return 'warm_telegram';\n  if (src === 'Instagram_Meta')                              return 'warm_instagram';\n  return 'cold_info';\n}\nconst journey_step = getJourneyStep(radar_intent, radar_urgency, source);\n\nreturn [{ json: {\n  lead_id:          genLeadId(),\n  phone:            phone,\n  phone_valid:      phoneValid,\n  name:             name,\n  email:            email,\n  nationality:      nationality,\n\n  source:           source,\n  platform:         platform,\n  content_hash:     content_hash,\n\n  message:          message.substring(0, 500),\n  last_message:     message.substring(0, 500),\n  quantity_hint:         quantity_hint,\n\n  radar_intent:     radar_intent,\n  radar_urgency:    radar_urgency,\n  radar_quality:    radar_quality,\n  score:            radar_quality,\n  category:         category,\n  budget_signal:    budget_signal,\n  order_type:     order_type,\n  service_preference: service_preference,\n  preferred_date:    preferred_date,\n  nights_hint:      nights_hint,\n\n  journey_step:     journey_step,\n  consent:          'TRUE',\n  status:           'new',\n\n  received_at:      new Date().toISOString(),\n  created_at:       new Date().toISOString(),\n  updated_at:       new Date().toISOString(),\n  assigned_to:      '',\n  notes:            d.ai_reason || d.notes || '',\n\n  _source_detected: source,\n  _items_checked:   allItems.length,\n  _phone_raw:       d.phone || d.From || ''\n}}];\n"
       },
       "name": "Code – Normalize & Validate Lead",
       "type": "n8n-nodes-base.code",
@@ -137,7 +137,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════\n// Code – Rate Limit per Phone (GSheets-based, no env vars)\n// يتحقق من عدد التفاعلات في الساعة الأخيرة\n// ════════════════════════════════════════════════════════════════════\nconst item = $input.first().json;\nconst RATE_LIMIT_MAX = 5;\nconst RATE_WINDOW_MS = 3600000; // 1 hour\n\n// نستخدم Static Data لتخزين مؤقت خفيف (يُعاد عند restart n8n)\nconst store = $getWorkflowStaticData('node');\nconst key = 'rl_' + (item.phone || 'unknown').replace(/[^\\d]/g,'');\nconst now = Date.now();\n\nlet timestamps = store[key] || [];\ntimestamps = timestamps.filter(ts => now - ts < RATE_WINDOW_MS);\nconst rate_limited = timestamps.length >= RATE_LIMIT_MAX;\nif (!rate_limited) {\n  timestamps.push(now);\n  store[key] = timestamps;\n}\n\nreturn [{ json: {\n  ...item,\n  rate_limited,\n  request_count: timestamps.length,\n  rate_reset_at: new Date(now + RATE_WINDOW_MS).toISOString()\n}}];\n"
+        "jsCode": "const item = $input.first().json;\nconst RATE_LIMIT_MAX = 5;\nconst RATE_WINDOW_MS = 3600000; // 1 hour\n\nconst store = $getWorkflowStaticData('node');\nconst key = 'rl_' + (item.phone || 'unknown').replace(/[^\\d]/g,'');\nconst now = Date.now();\n\nlet timestamps = store[key] || [];\ntimestamps = timestamps.filter(ts => now - ts < RATE_WINDOW_MS);\nconst rate_limited = timestamps.length >= RATE_LIMIT_MAX;\nif (!rate_limited) {\n  timestamps.push(now);\n  store[key] = timestamps;\n}\n\nreturn [{ json: {\n  ...item,\n  rate_limited,\n  request_count: timestamps.length,\n  rate_reset_at: new Date(now + RATE_WINDOW_MS).toISOString()\n}}];\n"
       },
       "name": "Code – Rate Limit per Phone",
       "type": "n8n-nodes-base.code",
@@ -187,16 +187,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "filtersUI": {
           "values": [
@@ -266,18 +266,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -302,10 +302,10 @@
             "status": "={{ $json.status || 'new' }}",
             "journey_step": "={{ $json.journey_step || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "order_type": "={{ $json.order_type || 'unknown' }}",
+            "service_preference": "={{ $json.service_preference || 'unknown' }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
+            "preferred_date": "={{ $json.preferred_date || '' }}",
             "nights_hint": "={{ $json.nights_hint || 0 }}",
             "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
             "raw_text": "={{ $json.raw_text || '' }}",
@@ -332,7 +332,7 @@
             "intent_bonus": "={{ $json.intent_bonus || 0 }}",
             "phone_bonus": "={{ $json.phone_bonus || 0 }}",
             "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "quality_bonus": "={{ $json.quality_bonus || 0 }}",
             "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
             "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
             "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
@@ -351,7 +351,7 @@
             "task_type": "={{ $json.task_type || '' }}",
             "sla_minutes": "={{ $json.sla_minutes || 0 }}",
             "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "quantity": "={{ $json.quantity || $json.quantity_hint || 0 }}",
             "handoff_at": "={{ $json.handoff_at || '' }}"
           },
           "matchingColumns": [
@@ -539,8 +539,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -548,8 +548,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -557,8 +557,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -566,8 +566,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -809,8 +809,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -980,8 +980,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1023,18 +1023,18 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1136316584,
           "mode": "list",
           "cachedResultName": "leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1136316584"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1136316584"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1059,10 +1059,10 @@
             "status": "={{ $json.status || 'new' }}",
             "journey_step": "={{ $json.journey_step || '' }}",
             "budget_signal": "={{ $json.budget_signal || 'unknown' }}",
-            "travel_group": "={{ $json.travel_group || 'unknown' }}",
-            "stars_preference": "={{ $json.stars_preference || 'unknown' }}",
-            "pax_hint": "={{ $json.pax_hint || 0 }}",
-            "check_in_hint": "={{ $json.check_in_hint || '' }}",
+            "order_type": "={{ $json.order_type || 'unknown' }}",
+            "service_preference": "={{ $json.service_preference || 'unknown' }}",
+            "quantity_hint": "={{ $json.quantity_hint || 0 }}",
+            "preferred_date": "={{ $json.preferred_date || '' }}",
             "nights_hint": "={{ $json.nights_hint || 0 }}",
             "last_message": "={{ $json.last_message || $json.message || $json.raw_text || '' }}",
             "raw_text": "={{ $json.raw_text || '' }}",
@@ -1089,7 +1089,7 @@
             "intent_bonus": "={{ $json.intent_bonus || 0 }}",
             "phone_bonus": "={{ $json.phone_bonus || 0 }}",
             "budget_bonus": "={{ $json.budget_bonus || 0 }}",
-            "stars_bonus": "={{ $json.stars_bonus || 0 }}",
+            "quality_bonus": "={{ $json.quality_bonus || 0 }}",
             "inbound_bonus": "={{ $json.inbound_bonus || 0 }}",
             "kw_urgency_bonus": "={{ $json.kw_urgency_bonus || 0 }}",
             "b2b_bonus": "={{ $json.b2b_bonus || 0 }}",
@@ -1108,7 +1108,7 @@
             "task_type": "={{ $json.task_type || '' }}",
             "sla_minutes": "={{ $json.sla_minutes || 0 }}",
             "interaction_count": "={{ $json.interaction_count || 0 }}",
-            "pax": "={{ $json.pax || $json.pax_hint || 0 }}",
+            "quantity": "={{ $json.quantity || $json.quantity_hint || 0 }}",
             "handoff_at": "={{ $json.handoff_at || '' }}"
           },
           "matchingColumns": [
@@ -1296,8 +1296,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "travel_group",
-              "displayName": "travel_group",
+              "id": "order_type",
+              "displayName": "order_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1305,8 +1305,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_preference",
-              "displayName": "stars_preference",
+              "id": "service_preference",
+              "displayName": "service_preference",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1314,8 +1314,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax_hint",
-              "displayName": "pax_hint",
+              "id": "quantity_hint",
+              "displayName": "quantity_hint",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1323,8 +1323,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "check_in_hint",
-              "displayName": "check_in_hint",
+              "id": "preferred_date",
+              "displayName": "preferred_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1566,8 +1566,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "stars_bonus",
-              "displayName": "stars_bonus",
+              "id": "quality_bonus",
+              "displayName": "quality_bonus",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1737,8 +1737,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "pax",
-              "displayName": "pax",
+              "id": "quantity",
+              "displayName": "quantity",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1780,16 +1780,16 @@
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 882831808,
           "mode": "list",
           "cachedResultName": "consent_log",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=882831808"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=882831808"
         },
         "filtersUI": {
           "values": [
@@ -1859,14 +1859,14 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 862175237,
           "mode": "list",
           "cachedResultName": "interactions_log",
@@ -1883,7 +1883,7 @@
             "message_summary": "={{ ($json.message || $json.last_message || '').substring(0,300) }}",
             "intent": "={{ $json.radar_intent || 'unknown' }}",
             "urgency": "={{ $json.radar_urgency || 'unknown' }}",
-            "flow_name": "SaaSAI_F2",
+            "flow_name": "[COMPANY_NAME]_F2",
             "occurred_at": "={{ $json.received_at || $now }}",
             "handled_by": "Flow2_Auto",
             "outcome": "={{ $json.category === 'HOT' ? 'escalated_to_flow3' : 'logged' }}"
@@ -2034,10 +2034,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.srv1332143.hstgr.cloud/webhook/lead-scoring-entry",
+        "url": "[YOUR_WEBHOOK_URL]",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"lead_id\":          \"{{ $json.lead_id }}\",\n  \"phone\":            \"{{ $json.phone }}\",\n  \"name\":             \"{{ $json.name }}\",\n  \"email\":            \"{{ $json.email || '' }}\",\n  \"nationality\":      \"{{ $json.nationality || '' }}\",\n  \"source\":           \"{{ $json.source }}\",\n  \"platform\":         \"{{ $json.platform || '' }}\",\n  \"message\":          \"{{ ($json.message || '').substring(0,300) }}\",\n  \"pax_hint\":         {{ Number($json.pax_hint) || 0 }},\n  \"radar_intent\":     \"{{ $json.radar_intent || '' }}\",\n  \"radar_urgency\":    \"{{ $json.radar_urgency || '' }}\",\n  \"radar_quality\":    {{ Number($json.radar_quality) || 0 }},\n  \"score\":            {{ Number($json.score) || 0 }},\n  \"category\":         \"{{ $json.category || 'COLD' }}\",\n  \"budget_signal\":    \"{{ $json.budget_signal || 'unknown' }}\",\n  \"travel_group\":     \"{{ $json.travel_group || 'unknown' }}\",\n  \"stars_preference\": \"{{ $json.stars_preference || 'unknown' }}\",\n  \"check_in_hint\":    \"{{ $json.check_in_hint || '' }}\",\n  \"nights_hint\":      {{ Number($json.nights_hint) || 0 }},\n  \"journey_step\":     \"{{ $json.journey_step || '' }}\",\n  \"consent\":          \"TRUE\",\n  \"content_hash\":     \"{{ $json.content_hash || '' }}\",\n  \"received_at\":      \"{{ $json.received_at || $now }}\",\n  \"flow_origin\":      \"SaaSAI_F2\"\n}",
+        "jsonBody": "{\n  \"lead_id\":          \"{{ $json.lead_id }}\",\n  \"phone\":            \"{{ $json.phone }}\",\n  \"name\":             \"{{ $json.name }}\",\n  \"email\":            \"{{ $json.email || '' }}\",\n  \"nationality\":      \"{{ $json.nationality || '' }}\",\n  \"source\":           \"{{ $json.source }}\",\n  \"platform\":         \"{{ $json.platform || '' }}\",\n  \"message\":          \"{{ ($json.message || '').substring(0,300) }}\",\n  \"quantity_hint\":         {{ Number($json.quantity_hint) || 0 }},\n  \"radar_intent\":     \"{{ $json.radar_intent || '' }}\",\n  \"radar_urgency\":    \"{{ $json.radar_urgency || '' }}\",\n  \"radar_quality\":    {{ Number($json.radar_quality) || 0 }},\n  \"score\":            {{ Number($json.score) || 0 }},\n  \"category\":         \"{{ $json.category || 'COLD' }}\",\n  \"budget_signal\":    \"{{ $json.budget_signal || 'unknown' }}\",\n  \"order_type\":     \"{{ $json.order_type || 'unknown' }}\",\n  \"service_preference\": \"{{ $json.service_preference || 'unknown' }}\",\n  \"preferred_date\":    \"{{ $json.preferred_date || '' }}\",\n  \"nights_hint\":      {{ Number($json.nights_hint) || 0 }},\n  \"journey_step\":     \"{{ $json.journey_step || '' }}\",\n  \"consent\":          \"TRUE\",\n  \"content_hash\":     \"{{ $json.content_hash || '' }}\",\n  \"received_at\":      \"{{ $json.received_at || $now }}\",\n  \"flow_origin\":      \"[COMPANY_NAME]_F2\"\n}",
         "options": {
           "batching": {
             "batch": {
@@ -2178,14 +2178,14 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1602796460,
           "mode": "list",
           "cachedResultName": "workflow_errors",
@@ -2195,7 +2195,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR2-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F2",
+            "flow_name": "[COMPANY_NAME]_F2",
             "node_name": "={{ $json.execution?.lastNodeExecuted || $json.node?.name || $json.node_name || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || $json.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "={{ /timeout|429|503|network/i.test($json.error?.message||'') ? 'high' : 'medium' }}",
@@ -2439,7 +2439,7 @@
               "phone": "+967772650292"
             },
             "message": {
-              "text": "*_`🍄 الفطر الريشي ( الجانوديرما ) :`_*\n*هو المكون الأساسي لجميع منتجات شركة DXN*\n*فطر غير سام ولا يحدث أي أثار هو جانبية حتى مع الإستخدام الطويل ويجعل وظائف الجسم العامة تعمل بصورة طبيعية 🤍*\n________________________\n\n*_`🍄 من فوائد الفطر الريشي ( الجانوديرما) :`_*\n*✅ تخليص الجسم من السموم.*\n*✅ تعزيز المناعة وتنشيط الدورة الدموية.*\n*✅ تجديد خلايا الجسم الميتة واكساب البشرة النضارة والحيوية.*\n*✅ مفيد لمرضى السكري بانه يعمل على خفض ارتفاع مستوى السكر في الدم.*\n*✅ يساعد الكبد والكلى على التخلص من السموم الموجودة بالجسم.*\n*✅ كما انه مناسب للاطفال ويعمل على زيادة التركيز وتنشيط القوة الذهنية والنمو السليم.*\n________________________\n\n*_`ملاحظه :`_*\n*هذا الفطر منتج طبيعي لا يحتوي على اي مواد كيميائية وهذا الذي يجعل منتجات شركة DXN آمنة وذات جودة عالية 🥰✨*",
+              "text": "*_`🍄 الفطر الريشي ( الجانوديرما ) :`_*\n*هو المكون الأساسي لجميع منتجات شركة DXN*\n*فطر غير سام ولا يحدث أي أثار هو جانبية حتى مع الإستخدام الطويل ويجعل وظائف الجسم العامة تعمل بصورة طبيعية 🤍*\n____\n\n*_`🍄 من فوائد الفطر الريشي ( الجانوديرما) :`_*\n*✅ تخليص الجسم من السموم.*\n*✅ تعزيز المناعة وتنشيط الدورة الدموية.*\n*✅ تجديد خلايا الجسم الميتة واكساب البشرة النضارة والحيوية.*\n*✅ مفيد لمرضى السكري بانه يعمل على خفض ارتفاع مستوى السكر في الدم.*\n*✅ يساعد الكبد والكلى على التخلص من السموم الموجودة بالجسم.*\n*✅ كما انه مناسب للاطفال ويعمل على زيادة التركيز وتنشيط القوة الذهنية والنمو السليم.*\n____\n\n*_`ملاحظه :`_*\n*هذا الفطر منتج طبيعي لا يحتوي على اي مواد كيميائية وهذا الذي يجعل منتجات شركة DXN آمنة وذات جودة عالية 🥰✨*",
               "direction": "received",
               "origin": "synced from WhatsApp",
               "timestamp": "2026-03-20 21:43:43 +0300",
@@ -2461,7 +2461,7 @@
               ]
             }
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/lead-capture-whatsapp",
+          "webhookUrl": "[YOUR_WEBHOOK_URL]",
           "executionMode": "production"
         },
         "pairedItem": {

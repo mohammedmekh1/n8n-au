@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F11 – WordPress Publisher",
+  "name": "[COMPANY_NAME] – F11 – WordPress Publisher",
   "nodes": [
     {
       "parameters": {
@@ -36,22 +36,22 @@
         -992,
         -96
       ],
-      "webhookId": "makkah-wp-publish"
+      "webhookId": "general-wp-publish"
     },
     {
       "parameters": {
         "operation": "getRows",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1427001239,
           "mode": "list",
           "cachedResultName": "articles",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1427001239"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1427001239"
         },
         "filtersUI": {
           "values": [
@@ -280,16 +280,16 @@
       "parameters": {
         "operation": "update",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "id"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1427001239,
           "mode": "name",
           "cachedResultName": "articles",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1427001239"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1427001239"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -387,18 +387,18 @@
       "parameters": {
         "operation": "append",
         "documentId": {
-          "__rl": true,
-          "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
+          "_rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_ID]",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
+          "cachedResultName": "[COMPANY_NAME]_MasterSheets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit?usp=drivesdk"
         },
         "sheetName": {
-          "__rl": true,
+          "_rl": true,
           "value": 1659619068,
           "mode": "list",
           "cachedResultName": "workflow_errors",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=1659619068"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/[YOUR_GOOGLE_SHEET_ID]/edit#gid=1659619068"
         },
         "columns": {
           "mappingMode": "defineBelow",
