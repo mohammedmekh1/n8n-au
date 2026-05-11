@@ -1,28 +1,28 @@
 {
-  "name": "SaaSAI – F5 – Delivery Engine الإرسال",
+  "name": "Bluevia – F5 – Delivery Engine الإرسال",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "makkah-delivery-engine",
+        "path": "bluevia-delivery-engine",
         "options": {}
       },
       "name": "Webhook – Delivery Engine Entry",
-      "type": "n8n-nodes-base.webhook",
+      "type": "Bluevia-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
         -1712,
         -16
       ],
       "id": "b0e24ef5-0a8a-4602-aa0d-1db46d589c87",
-      "webhookId": "makkah-delivery-engine"
+      "webhookId": "bluevia-delivery-engine"
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #5 › Code – Validate Delivery Payload | نظام رادار SaaSAI v4.0 — مُصحح نهائي\n// يتحقق من صحة بيانات طلب الإرسال (يدعم جميع تسميات الحقول والقنوات)\n// ════════════════════════════════════════════════════════════════════════\n\n// ── قراءة البيانات من أي مصدر (Webhook body أو مباشر) ─────────────────\nconst raw = $input.first()?.json || {};\nconst d = (raw.body && typeof raw.body === 'object' && !Array.isArray(raw.body)) \n  ? { ...raw.body, ...raw }  // ✅ دمج body مع الجذر للأمان\n  : { ...raw };\n\n// ── قائمة الحقول الإلزامية (مع دعم أسماء بديلة) ──────────────────────\nconst REQUIRED_FIELDS = [\n  'lead_id',\n  'lead_phone',\n  'channel',\n  // دعم كل من: message / custom_message / text\n  d.message || d.custom_message || d.text ? null : 'message',\n  'action_type',\n  'priority',\n  'template_id'\n].filter(f => f !== null);\n\n// ── القنوات المدعومة (بكل أشكال الكتابة) ────────────────────────────\nconst VALID_CHANNELS = [\n  'whatsapp', 'telegram', 'email', 'sms', \n  'facebook', 'Facebook', 'FACEBOOK',\n  'instagram', 'Instagram', 'INSTAGRAM'\n];\n\n// ── أنواع الإجراءات المدعومة ─────────────────────────────────────────\nconst VALID_ACTIONS = ['transactional', 'marketing', 'notification', 'alert'];\n\n// ── أولويات الإرسال ──────────────────────────────────────────────────\nconst VALID_PRIORITIES = ['urgent', 'high', 'normal', 'low'];\n\n// ── بدء التحقق ───────────────────────────────────────────────────────\nconst errors = [];\n\n// 1. التحقق من الحقول الإلزامية (مع دعم الأسماء البديلة)\nfor (const field of REQUIRED_FIELDS) {\n  // للحقل المرن (رسالة)\n  if (field === 'message') {\n    const value = d.message || d.custom_message || d.text;\n    if (!value || (typeof value === 'string' && value.trim() === '')) {\n      errors.push(`Missing required field: message (or custom_message/text)`);\n    }\n  } \n  // للحقول الأخرى\n  else {\n    const value = d[field];\n    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {\n      errors.push(`Missing required field: ${field}`);\n    }\n  }\n}\n\n// 2. التحقق من صحة القناة (مع تطبيع الحالة)\nconst channelRaw = d.channel || '';\nconst channelNormalized = channelRaw.toLowerCase();\nif (channelRaw && !VALID_CHANNELS.includes(channelRaw) && !VALID_CHANNELS.includes(channelNormalized)) {\n  errors.push(`Invalid channel: ${channelRaw}. Must be one of: whatsapp, telegram, email, sms, facebook, instagram`);\n}\n\n// 3. التحقق من نوع الإجراء\nif (d.action_type && !VALID_ACTIONS.includes(d.action_type.toLowerCase())) {\n  errors.push(`Invalid action_type: ${d.action_type}. Must be one of: ${VALID_ACTIONS.join(', ')}`);\n}\n\n// 4. التحقق من الأولوية\nif (d.priority && !VALID_PRIORITIES.includes(d.priority.toLowerCase())) {\n  errors.push(`Invalid priority: ${d.priority}. Must be one of: ${VALID_PRIORITIES.join(', ')}`);\n}\n\n// 5. التحقق من طول الرسالة (للقنوات النصية)\nconst messageText = d.message || d.custom_message || d.text || '';\nif (['whatsapp', 'telegram', 'sms', 'facebook', 'instagram'].includes(channelNormalized) && messageText) {\n  if (messageText.length > 4000) {\n    errors.push(`Message too long for ${channelRaw}: ${messageText.length} chars (max: 4000)`);\n  }\n}\n\n// 6. التحقق من تنسيق الهاتف للقنوات التي تتطلبه\nif (['whatsapp', 'sms'].includes(channelNormalized) && d.lead_phone) {\n  const phoneRegex = /^\\+\\d{8,15}$/;\n  const cleanPhone = d.lead_phone.replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (!phoneRegex.test(cleanPhone)) {\n    errors.push(`Invalid phone format for ${channelRaw}: ${d.lead_phone}`);\n  }\n}\n\n// 7. التحقق من personalization إذا وُجدت\nif (d.personalization && typeof d.personalization === 'object') {\n  if (d.personalization.name && d.personalization.name.length > 100) {\n    errors.push(`personalization.name too long: ${d.personalization.name.length} chars`);\n  }\n}\n\n// ── تحديد نتيجة التحقق ───────────────────────────────────────────────\nconst is_valid = errors.length === 0;\n\n// ── استخراج الرسالة الموحدة ─────────────────────────────────────────\nconst unifiedMessage = d.message || d.custom_message || d.text || '';\n\n// ── الإخراج النهائي ──────────────────────────────────────────────────\nreturn [{\n  json: {\n    ...d,  // ✅ تمرير جميع الحقول الأصلية\n    // ✅ حقل التحكم الرئيسي للعقدة الشرطية\n    is_valid: is_valid,\n    \n    // تفاصيل التحقق للتقارير\n    validation_errors: is_valid ? [] : errors,\n    error_count: errors.length,\n    validated_at: new Date().toISOString(),\n    \n    // حقول موحدة للمعالجة اللاحقة\n    channel_normalized: channelNormalized,\n    priority_normalized: d.priority?.toLowerCase() || 'normal',\n    action_normalized: d.action_type?.toLowerCase() || 'transactional',\n    message: unifiedMessage,  // ✅ حقل موحد للرسالة\n    \n    // معاينة الرسالة للإرسال\n    message_preview: unifiedMessage ? unifiedMessage.substring(0, 200) + (unifiedMessage.length > 200 ? '...' : '') : '',\n    \n    // طابع زمني للمعالجة\n    processed_at: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #5 › Code – Validate Delivery Payload | نظام رادار Bluevia Travel v4.0 — مُصحح نهائي\n// يتحقق من صحة بيانات طلب الإرسال (يدعم جميع تسميات الحقول والقنوات)\n// ════════════════════════════════════════════════════════════════════════\n\n// ── قراءة البيانات من أي مصدر (Webhook body أو مباشر) ─────────────────\nconst raw = $input.first()?.json || {};\nconst d = (raw.body && typeof raw.body === 'object' && !Array.isArray(raw.body)) \n  ? { ...raw.body, ...raw }  // ✅ دمج body مع الجذر للأمان\n  : { ...raw };\n\n// ── قائمة الحقول الإلزامية (مع دعم أسماء بديلة) ──────────────────────\nconst REQUIRED_FIELDS = [\n  'lead_id',\n  'lead_phone',\n  'channel',\n  // دعم كل من: message / custom_message / text\n  d.message || d.custom_message || d.text ? null : 'message',\n  'action_type',\n  'priority',\n  'template_id'\n].filter(f => f !== null);\n\n// ── القنوات المدعومة (بكل أشكال الكتابة) ────────────────────────────\nconst VALID_CHANNELS = [\n  'whatsapp', 'telegram', 'email', 'sms', \n  'facebook', 'Facebook', 'FACEBOOK',\n  'instagram', 'Instagram', 'INSTAGRAM'\n];\n\n// ── أنواع الإجراءات المدعومة ─────────────────────────────────────────\nconst VALID_ACTIONS = ['transactional', 'marketing', 'notification', 'alert'];\n\n// ── أولويات الإرسال ──────────────────────────────────────────────────\nconst VALID_PRIORITIES = ['urgent', 'high', 'normal', 'low'];\n\n// ── بدء التحقق ───────────────────────────────────────────────────────\nconst errors = [];\n\n// 1. التحقق من الحقول الإلزامية (مع دعم الأسماء البديلة)\nfor (const field of REQUIRED_FIELDS) {\n  // للحقل المرن (رسالة)\n  if (field === 'message') {\n    const value = d.message || d.custom_message || d.text;\n    if (!value || (typeof value === 'string' && value.trim() === '')) {\n      errors.push(`Missing required field: message (or custom_message/text)`);\n    }\n  } \n  // للحقول الأخرى\n  else {\n    const value = d[field];\n    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {\n      errors.push(`Missing required field: ${field}`);\n    }\n  }\n}\n\n// 2. التحقق من صحة القناة (مع تطبيع الحالة)\nconst channelRaw = d.channel || '';\nconst channelNormalized = channelRaw.toLowerCase();\nif (channelRaw && !VALID_CHANNELS.includes(channelRaw) && !VALID_CHANNELS.includes(channelNormalized)) {\n  errors.push(`Invalid channel: ${channelRaw}. Must be one of: whatsapp, telegram, email, sms, facebook, instagram`);\n}\n\n// 3. التحقق من نوع الإجراء\nif (d.action_type && !VALID_ACTIONS.includes(d.action_type.toLowerCase())) {\n  errors.push(`Invalid action_type: ${d.action_type}. Must be one of: ${VALID_ACTIONS.join(', ')}`);\n}\n\n// 4. التحقق من الأولوية\nif (d.priority && !VALID_PRIORITIES.includes(d.priority.toLowerCase())) {\n  errors.push(`Invalid priority: ${d.priority}. Must be one of: ${VALID_PRIORITIES.join(', ')}`);\n}\n\n// 5. التحقق من طول الرسالة (للقنوات النصية)\nconst messageText = d.message || d.custom_message || d.text || '';\nif (['whatsapp', 'telegram', 'sms', 'facebook', 'instagram'].includes(channelNormalized) && messageText) {\n  if (messageText.length > 4000) {\n    errors.push(`Message too long for ${channelRaw}: ${messageText.length} chars (max: 4000)`);\n  }\n}\n\n// 6. التحقق من تنسيق الهاتف للقنوات التي تتطلبه\nif (['whatsapp', 'sms'].includes(channelNormalized) && d.lead_phone) {\n  const phoneRegex = /^\\+\\d{8,15}$/;\n  const cleanPhone = d.lead_phone.replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (!phoneRegex.test(cleanPhone)) {\n    errors.push(`Invalid phone format for ${channelRaw}: ${d.lead_phone}`);\n  }\n}\n\n// 7. التحقق من personalization إذا وُجدت\nif (d.personalization && typeof d.personalization === 'object') {\n  if (d.personalization.name && d.personalization.name.length > 100) {\n    errors.push(`personalization.name too long: ${d.personalization.name.length} chars`);\n  }\n}\n\n// ── تحديد نتيجة التحقق ───────────────────────────────────────────────\nconst is_valid = errors.length === 0;\n\n// ── استخراج الرسالة الموحدة ─────────────────────────────────────────\nconst unifiedMessage = d.message || d.custom_message || d.text || '';\n\n// ── الإخراج النهائي ──────────────────────────────────────────────────\nreturn [{\n  json: {\n    ...d,  // ✅ تمرير جميع الحقول الأصلية\n    // ✅ حقل التحكم الرئيسي للعقدة الشرطية\n    is_valid: is_valid,\n    \n    // تفاصيل التحقق للتقارير\n    validation_errors: is_valid ? [] : errors,\n    error_count: errors.length,\n    validated_at: new Date().toISOString(),\n    \n    // حقول موحدة للمعالجة اللاحقة\n    channel_normalized: channelNormalized,\n    priority_normalized: d.priority?.toLowerCase() || 'normal',\n    action_normalized: d.action_type?.toLowerCase() || 'transactional',\n    message: unifiedMessage,  // ✅ حقل موحد للرسالة\n    \n    // معاينة الرسالة للإرسال\n    message_preview: unifiedMessage ? unifiedMessage.substring(0, 200) + (unifiedMessage.length > 200 ? '...' : '') : '',\n    \n    // طابع زمني للمعالجة\n    processed_at: new Date().toISOString()\n  }\n}];"
       },
       "name": "Code – Validate Delivery Payload",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1472,
@@ -57,7 +57,7 @@
         }
       },
       "name": "If – Payload Valid?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -1232,
@@ -94,7 +94,7 @@
       },
       "id": "70725e78-4b07-4281-8268-003667e5e8e4",
       "name": "GSheets – Check Consent",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -1040,
@@ -114,7 +114,7 @@
         "jsCode": "// ─── Consent + Transactional Check ──────────────────────────────────────────\n// Re-attach original payload (consent query may return empty array)\nconst originalPayload = $('Code – Validate Delivery Payload').first().json;\nconst consentItems = $input.all();\n\n// Has consent if: at least one consent record found OR action is transactional/sales\nconst hasConsent = consentItems.some(i => i.json?.consent_given === true || i.json?.phone);\nconst isTransactional = ['transactional', 'sales'].includes(originalPayload.action_type);\nconst consentOk = hasConsent || isTransactional;\n\nreturn [{ json: {\n  ...originalPayload,\n  consent_ok: consentOk,\n  consent_source: isTransactional ? 'transactional_bypass' : (hasConsent ? 'db_consent' : 'no_consent')\n} }];"
       },
       "name": "Code – Check Consent Result",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -864,
@@ -149,7 +149,7 @@
         }
       },
       "name": "If – Consent OK?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -672,
@@ -162,7 +162,7 @@
         "jsCode": "// ─── Rate Limiter per Recipient ──────────────────────────────────────────────\n// Window: 1 hour (3600s), max: 5 messages per recipient per hour\n// For urgent/transactional: skip rate limit\nconst d = $json;\nconst identifier = d.lead_phone || d.lead_email || 'unknown';\nconst windowMs = 3600 * 1000;\nconst maxPerWindow = d.priority === 'urgent' || d.action_type === 'transactional' ? 999 : 5;\n\nconst now = Date.now();\nconst key = 'dlv_rl:' + identifier;\nconst staticStore = $getWorkflowStaticData('node');\nlet history = staticStore[key] || [];\nhistory = history.filter(ts => now - ts < windowMs);\n\nconst rate_limited = history.length >= maxPerWindow;\n\nif (!rate_limited) {\n  history.push(now);\n  staticStore[key] = history;\n}\n\nreturn [{ json: {\n  ...d,\n  rate_limited,\n  rate_count: history.length,\n  rate_limit_reason: rate_limited ? `${history.length}/${maxPerWindow} messages in 1h` : ''\n} }];"
       },
       "name": "Code – Rate Limit Check",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -448,
@@ -197,7 +197,7 @@
         }
       },
       "name": "If – Not Rate Limited?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -240,
@@ -207,10 +207,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Multi-Channel Router: WhatsApp First + Email + Telegram ───────────────\nconst d = $input.first().json;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 1️⃣ تنسيق رقم الجوال + اكتشاف المفتاح الدولي تلقائيًا\n// ═══════════════════════════════════════════════════════════════════════════\n\n// 🗺️ خريطة الدول العربية (كود الدولة ← الاسم + علم)\nconst COUNTRY_MAP = {\n  '966': 'السعودية 🇸🇦',\n  '967': 'اليمن 🇾🇪',\n  '971': 'الإمارات 🇦🇪',\n  '965': 'الكويت 🇰🇼',\n  '973': 'البحرين 🇧🇭',\n  '974': 'قطر 🇶🇦',\n  '968': 'عمان 🇴🇲',\n  '20': 'مصر 🇪🇬',\n  '962': 'الأردن 🇯🇴',\n  '963': 'سوريا 🇸🇾',\n  '961': 'لبنان 🇱🇧',\n  '212': 'المغرب 🇲🇦',\n  '213': 'الجزائر 🇩🇿',\n  '216': 'تونس 🇹🇳',\n  '249': 'السودان 🇸🇩',\n  '964': 'العراق 🇮🇶',\n  '970': 'فلسطين 🇵🇸',\n  '90': 'تركيا 🇹🇷'\n};\n\n// 📱 دالة تنسيق الرقم واكتشاف الدولة\nconst normalizePhone = (raw) => {\n  if (!raw) return null;\n  \n  // تنظيف: إزالة كل ما عدا الأرقام و +\n  let cleaned = raw.replace(/[^\\d+]/g, '');\n  \n  // تحويل 00 إلى +\n  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);\n  \n  // إذا لم يبدأ بـ +، نحاول استنتاج الدولة من نمط الرقم\n  if (!cleaned.startsWith('+')) {\n    // 🇸🇦 السعودية: يبدأ بـ 5 ويتكون من 9 أرقام (مثل: 05xxxxxxxx)\n    if (/^5\\d{8}$/.test(cleaned)) {\n      cleaned = '+966' + cleaned;\n    }\n    // 🇾🇪 اليمن: يبدأ بـ 7 ويتكون من 9 أرقام (مثل: 07xxxxxxxx)\n    else if (/^7\\d{8}$/.test(cleaned)) {\n      cleaned = '+967' + cleaned;\n    }\n    // 🇦🇪 الإمارات: يبدأ بـ 50/52/54/55/56 ويتكون من 9 أرقام\n    else if (/^(50|52|54|55|56)\\d{7}$/.test(cleaned)) {\n      cleaned = '+971' + cleaned;\n    }\n    // 🇰🇼 الكويت: 8 أرقام يبدأ بـ 5/6/9\n    else if (cleaned.length === 8 && /^[569]\\d{7}$/.test(cleaned)) {\n      cleaned = '+965' + cleaned;\n    }\n    // 🇧🇭 البحرين: 8 أرقام\n    else if (cleaned.length === 8 && /^[369]\\d{7}$/.test(cleaned)) {\n      cleaned = '+973' + cleaned;\n    }\n    // 🇶🇦 قطر: 8 أرقام يبدأ بـ 3/5/6/7\n    else if (cleaned.length === 8 && /^[3567]\\d{7}$/.test(cleaned)) {\n      cleaned = '+974' + cleaned;\n    }\n    // 🇴🇲 عمان: 8 أرقام يبدأ بـ 9\n    else if (cleaned.length === 8 && /^9\\d{7}$/.test(cleaned)) {\n      cleaned = '+968' + cleaned;\n    }\n    // 🇪🇬 مصر: 11 رقم يبدأ بـ 01 (مثل: 010/011/012/015)\n    else if (/^01[0125]\\d{8}$/.test(cleaned)) {\n      cleaned = '+20' + cleaned.slice(1); // نحذف الصفر الأول\n    }\n    // حل عام: إذا كان الرقم ≥ 8 أرقام، نضيف +\n    else if (cleaned.length >= 8) {\n      cleaned = '+' + cleaned;\n    }\n  }\n  \n  // التحقق النهائي: +[كود دولة 1-3 أرقام][8-15 رقم إجمالي]\n  const isValid = cleaned.match(/^\\+\\d{8,15}$/);\n  return isValid ? cleaned : null;\n};\n\n// تطبيق التنسيق على رقم العميل\nconst phoneRaw = d.lead_phone || d.phone || '';\nconst phoneNormalized = normalizePhone(phoneRaw);\n\n// ✅ استخراج كود الدولة بشكل صحيح (1-3 أرقام فقط بعد +)\nconst countryCode = phoneNormalized?.match(/^\\+(\\d{1,3})/)?.[1] || null;\n\n// ✅ تحديد اسم الدولة من الخريطة (الإصلاح: استخدام phoneCountry في المخرجات)\nconst phoneCountry = countryCode ? (COUNTRY_MAP[countryCode] || `أخرى 🌍 (كود: +${countryCode})`) : null;\n\n// ✅ التحقق من صحة الرقم\nconst phoneIsValid = !!phoneNormalized;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 2️⃣ تحديد القنوات المتاحة (متعددة) مع أولوية واتساب\n// ═══════════════════════════════════════════════════════════════════════════\nconst channels = {\n  whatsapp: {\n    available: phoneIsValid,\n    priority: 1, // 🥇 الأولوية القصوى\n    reason: phoneIsValid ? 'phone_number_available' : 'no_valid_phone'\n  },\n  email: {\n    available: !!(d.lead_email || d.email),\n    priority: 2, // 🥈 ثانيًا\n    reason: (d.lead_email || d.email) ? 'email_available' : 'no_email'\n  },\n  telegram: {\n    available: !!(d.telegram_id || d.telegram_username || d.platform === 'telegram'),\n    priority: 3, // 🥉 ثالثًا\n    reason: (d.telegram_id || d.telegram_username) ? 'telegram_available' : 'no_telegram'\n  }\n};\n\n// قائمة القنوات المفعلة (للتكرار عليها في الإرسال)\nconst enabledChannels = Object.entries(channels)\n  .filter(([_, cfg]) => cfg.available)\n  .sort((a, b) => a[1].priority - b[1].priority)\n  .map(([name]) => name);\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 3️⃣ استخراج نية العميل من الرسالة لتخصيص الرد\n// ═══════════════════════════════════════════════════════════════════════════\nconst extractIntent = (msg) => {\n  if (!msg) return 'general_inquiry';\n  const m = msg.toLowerCase();\n  if (m.includes('حجز') || m.includes('أحجز') || m.includes('booking') || m.includes('reserve')) return 'booking_request';\n  if (m.includes('سعر') || m.includes('كم') || m.includes('cost') || m.includes('price')) return 'price_inquiry';\n  if (m.includes('إلغاء') || m.includes('تعديل') || m.includes('cancel') || m.includes('change')) return 'modification_request';\n  if (m.includes('شكوى') || m.includes('مشكلة') || m.includes('complaint')) return 'complaint';\n  if (m.includes('عاجل') || m.includes('فوري') || m.includes('urgent') || m.includes('now')) return 'urgent_request';\n  return 'general_inquiry';\n};\n\nconst intent = extractIntent(d.message || d.custom_message || '');\nconst intentLabel = {\n  'booking_request': '📋 طلب حجز جديد',\n  'price_inquiry': '💰 استفسار عن الأسعار',\n  'modification_request': '🔄 طلب تعديل/إلغاء',\n  'complaint': '⚠️ شكوى أو ملاحظة',\n  'urgent_request': '🔴 طلب عاجل',\n  'general_inquiry': '💬 استفسار عام'\n}[intent];\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 4️⃣ بناء الرسائل الاحترافية لكل قناة\n// ═══════════════════════════════════════════════════════════════════════════\nconst p = d.personalization || {};\nconst prefs = d.preferences || {};\nconst meta = d.metadata || {};\nconst customerName = p.name || d.lead_name || d.name || 'عزيزي';\nconst rawMessage = (d.message || d.custom_message || d.text || '').substring(0, 400);\nconst slaMinutes = meta.sla_minutes || (d.priority === 'urgent' ? 15 : 30);\n\n// 📱 رسالة واتساب (نص واضح، مختصر، مع إيموجي)\nconst buildWhatsAppMessage = () => {\n  return `*أهلاً وسهلاً بك يا ${customerName}* 👋🌹\n\n${intentLabel}\n_\"${rawMessage}\"_\n\n✅ *تم استلام طلبك* وسيتواصل معك فريق المبيعات خلال *${slaMinutes} دقيقة* على الأكثر.\n\n🏨 *تفضيلات إقامتك:*\n• التصنيف: ${prefs.stars === '5star' ? '⭐⭐⭐⭐⭐ 5 نجوم' : prefs.stars === '4star' ? '⭐⭐⭐⭐ 4 نجوم' : 'غير محدد'}\n• الميزانية: ${prefs.budget === 'luxury' ? '💎 فاخر' : prefs.budget === 'mid' ? '💰 متوسط' : 'غير محدد'}\n• عدد الأشخاص: ${p.pax || prefs.group || 'غير محدد'}\n\n🆔 معرف الطلب: \\`${d.lead_id}\\`\n📞 للتواصل: ${phoneNormalized || d.lead_phone} ${phoneCountry?.split(' ')[1] || ''}\n\n_فريق SaaSAI المكرمة — خدمتك أولويتنا_ 🕌`;\n};\n\n// 📧 رسالة الإيميل (HTML احترافي)\nconst buildEmailMessage = () => {\n  const subjectMap = {\n    'booking_request': '✅ تأكيد استلام طلب حجزك في مكة',\n    'price_inquiry': '💰 رد على استفسارك عن أسعار خدمات SaaSAI',\n    'modification_request': '🔄 تحديث حالة طلب التعديل',\n    'complaint': '⚠️ شكرًا لملاحظاتك — جاري المتابعة الفورية',\n    'urgent_request': '🔴 طلبك العاجل تحت المعالجة الآن',\n    'general_inquiry': '💬 شكرًا لتواصلك مع خدمات SaaSAI'\n  };\n  \n  return {\n    subject: subjectMap[intent] || 'شكرًا لتواصلك معنا',\n    html: `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; }\n    .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }\n    .content { padding: 24px; background: #fff; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px; }\n    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }\n    .badge-urgent { background: #ffebee; color: #c62828; }\n    .badge-booking { background: #e8f5e9; color: #2e7d32; }\n    .badge-inquiry { background: #e3f2fd; color: #1565c0; }\n    blockquote { border-right: 4px solid #1a73e8; padding-right: 16px; margin: 16px 0; color: #555; background: #f5f5f5; padding: 12px 16px; border-radius: 4px; }\n    .preferences { background: #f9f9f9; padding: 16px; border-radius: 8px; margin: 16px 0; }\n    .preferences li { margin: 8px 0; }\n    .footer { text-align: center; padding: 16px; color: #666; font-size: 13px; border-top: 1px solid #eee; margin-top: 24px; }\n    code { background: #f1f1f1; padding: 2px 6px; border-radius: 4px; font-family: monospace; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h2 style=\"margin:0;\">🕌 SaaSAI للأتمتة</h2>\n    <p style=\"margin:4px 0 0; opacity:0.9;\">خدمتك أولويتنا</p>\n  </div>\n  <div class=\"content\">\n    <p>أهلاً وسهلاً بك يا <strong>${customerName}</strong> 👋🌹</p>\n    \n    <p>\n      <span class=\"badge ${intent === 'urgent_request' ? 'badge-urgent' : intent === 'booking_request' ? 'badge-booking' : 'badge-inquiry'}\">\n        ${intentLabel}\n      </span>\n    </p>\n    \n    <blockquote>\n      ${rawMessage.replace(/\\n/g, '<br>')}\n    </blockquote>\n    \n    <p>✅ <strong>تم استلام طلبك بنجاح</strong>، وسيتواصل معك فريق المبيعات المختص خلال <strong>${slaMinutes} دقيقة</strong> على الأكثر.</p>\n    \n    <div class=\"preferences\">\n      <h4 style=\"margin:0 0 12px; color:#1a73e8;\">🏨 تفضيلات إقامتك:</h4>\n      <ul style=\"margin:0; padding-right:20px;\">\n        <li>⭐ <strong>التصنيف:</strong> ${prefs.stars === '5star' ? '5 نجوم فاخر' : prefs.stars === '4star' ? '4 نجوم مميز' : 'غير محدد'}</li>\n        <li>💰 <strong>الميزانية:</strong> ${prefs.budget === 'luxury' ? 'فاخر' : prefs.budget === 'mid' ? 'متوسط' : 'غير محدد'}</li>\n        <li>👥 <strong>عدد الأشخاص:</strong> ${p.pax || prefs.group || 'غير محدد'}</li>\n      </ul>\n    </div>\n    \n    <div class=\"footer\">\n      <p style=\"margin:0;\">\n        🆔 معرف الطلب: <code>${d.lead_id}</code><br>\n        📞 للتواصل: ${phoneNormalized || d.lead_phone || 'غير متاح'}<br>\n        🕐 وقت الاستلام: ${new Date(meta.sent_at || Date.now()).toLocaleTimeString('ar-SA')}\n      </p>\n      <p style=\"margin:8px 0 0; font-style:italic;\">\n        🕌 فريق SaaSAI المكرمة — نتمنى لك إقامة طيبة في رحاب البيت الحرام\n      </p>\n    </div>\n  </div>\n</body>\n</html>`\n  };\n};\n\n// ✈️ رسالة تليجرام (ماركداون كامل + إيموجي + تنسيق غني)\nconst buildTelegramMessage = () => {\n  return `*🕌 SaaSAI للأتمتة — تأكيد استلام الطلب*\n\n*أهلاً وسهلاً بك يا ${customerName}* 👋🌹\n\n${intentLabel}\n_${rawMessage.replace(/\\n/g, '\\n')}_\n\n✅ *تم استلام طلبك بنجاح*\n⏱️ سيتواصل معك فريق المبيعات خلال *${slaMinutes} دقيقة* كحد أقصى\n\n*🏨 تفضيلات إقامتك:*\n• ⭐ التصنيف: ${prefs.stars === '5star' ? '⭐⭐⭐⭐⭐ 5 نجوم' : prefs.stars === '4star' ? '⭐⭐⭐⭐ 4 نجوم' : 'غير محدد'}\n• 💰 الميزانية: ${prefs.budget === 'luxury' ? '💎 فاخر' : prefs.budget === 'mid' ? '💰 متوسط' : 'غير محدد'}\n• 👥 العدد: ${p.pax || prefs.group || 'غير محدد'} شخص\n\n🆔 *معرف الطلب:* \\`${d.lead_id}\\`\n📞 *للتواصل:* ${phoneNormalized || d.lead_phone} ${phoneCountry?.split(' ')[1] || ''}\n\n_فريقنا جاهز لخدمتك على مدار الساعة_ 🤲`;\n};\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 5️⃣ تجميع المخرجات النهائية (دعم متعدد القنوات)\n// ═══════════════════════════════════════════════════════════════════════════\n\n// تحضير الرسائل لكل قناة مفعلة\nconst messagesByChannel = {};\nif (channels.whatsapp.available) {\n  messagesByChannel.whatsapp = buildWhatsAppMessage();\n}\nif (channels.email.available) {\n  const email = buildEmailMessage();\n  messagesByChannel.email = {\n    text: email.html.replace(/<[^>]*>/g, '').substring(0, 500),\n    subject: email.subject,\n    html: email.html\n  };\n}\nif (channels.telegram.available) {\n  messagesByChannel.telegram = buildTelegramMessage();\n}\n\n// حساب إحصائيات الرسالة\nconst primaryMessage = messagesByChannel[enabledChannels[0]] || '';\nconst charCount = Buffer.byteLength(typeof primaryMessage === 'string' ? primaryMessage : JSON.stringify(primaryMessage), 'utf8');\n\nreturn [{\n  json: {\n    // === الهوية والبيانات الأساسية ===\n    ...d,\n    \n    // === تنسيق الجوال والدولة ✅ (الإصلاح هنا) ===\n    phone_normalized: phoneNormalized,\n    phone_country_code: countryCode,\n    phone_country: phoneCountry,  // ✅ يستخدم COUNTRY_MAP الكاملة (17+ دولة)\n    phone_is_valid: phoneIsValid,\n    \n    // === القنوات المتاحة والمفعلة ===\n    channels_available: Object.fromEntries(\n      Object.entries(channels).map(([k, v]) => [k, v.available])\n    ),\n    channels_enabled: enabledChannels,\n    primary_channel: enabledChannels[0] || 'none',\n    \n    // === نية العميل ===\n    detected_intent: intent,\n    intent_label: intentLabel,\n    \n    // === الرسائل الجاهزة لكل قناة ===\n    messages: messagesByChannel,\n    \n    // === رسالة افتراضية للعقد التي تدعم قناة واحدة ===\n    final_message: messagesByChannel.whatsapp || messagesByChannel.email?.text || messagesByChannel.telegram || '',\n    \n    // === بيانات الإيميل (إذا وُجد) ===\n    email_subject: messagesByChannel.email?.subject || null,\n    email_html: messagesByChannel.email?.html || null,\n    \n    // === بيانات فنية ===\n    char_count: charCount,\n    is_long_message: charCount > 1000,\n    message_language: 'ar',\n    \n    // === جاهزية الإرسال ===\n    ready_to_send: enabledChannels.length > 0,\n    send_to_multiple: enabledChannels.length > 1,\n    send_error: enabledChannels.length === 0 ? 'no_valid_channel_found' : null,\n    \n    // === للتدقيق والتحليل ===\n    routing_applied_at: new Date().toISOString(),\n    sla_minutes: slaMinutes,\n    priority_score: d.priority === 'urgent' || intent === 'urgent_request' ? 100 : meta.score || 0\n  }\n}];"
+        "jsCode": "// ─── Multi-Channel Router: WhatsApp First + Email + Telegram ───────────────\nconst d = $input.first().json;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 1️⃣ تنسيق رقم الجوال + اكتشاف المفتاح الدولي تلقائيًا\n// ═══════════════════════════════════════════════════════════════════════════\n\n// 🗺️ خريطة الدول العربية (كود الدولة ← الاسم + علم)\nconst COUNTRY_MAP = {\n  '966': 'السعودية 🇸🇦',\n  '967': 'اليمن 🇾🇪',\n  '971': 'الإمارات 🇦🇪',\n  '965': 'الكويت 🇰🇼',\n  '973': 'البحرين 🇧🇭',\n  '974': 'قطر 🇶🇦',\n  '968': 'عمان 🇴🇲',\n  '20': 'مصر 🇪🇬',\n  '962': 'الأردن 🇯🇴',\n  '963': 'سوريا 🇸🇾',\n  '961': 'لبنان 🇱🇧',\n  '212': 'المغرب 🇲🇦',\n  '213': 'الجزائر 🇩🇿',\n  '216': 'تونس 🇹🇳',\n  '249': 'السودان 🇸🇩',\n  '964': 'العراق 🇮🇶',\n  '970': 'فلسطين 🇵🇸',\n  '90': 'تركيا 🇹🇷'\n};\n\n// 📱 دالة تنسيق الرقم واكتشاف الدولة\nconst normalizePhone = (raw) => {\n  if (!raw) return null;\n  \n  // تنظيف: إزالة كل ما عدا الأرقام و +\n  let cleaned = raw.replace(/[^\\d+]/g, '');\n  \n  // تحويل 00 إلى +\n  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);\n  \n  // إذا لم يبدأ بـ +، نحاول استنتاج الدولة من نمط الرقم\n  if (!cleaned.startsWith('+')) {\n    // 🇸🇦 السعودية: يبدأ بـ 5 ويتكون من 9 أرقام (مثل: 05xxxxxxxx)\n    if (/^5\\d{8}$/.test(cleaned)) {\n      cleaned = '+966' + cleaned;\n    }\n    // 🇾🇪 اليمن: يبدأ بـ 7 ويتكون من 9 أرقام (مثل: 07xxxxxxxx)\n    else if (/^7\\d{8}$/.test(cleaned)) {\n      cleaned = '+967' + cleaned;\n    }\n    // 🇦🇪 الإمارات: يبدأ بـ 50/52/54/55/56 ويتكون من 9 أرقام\n    else if (/^(50|52|54|55|56)\\d{7}$/.test(cleaned)) {\n      cleaned = '+971' + cleaned;\n    }\n    // 🇰🇼 الكويت: 8 أرقام يبدأ بـ 5/6/9\n    else if (cleaned.length === 8 && /^[569]\\d{7}$/.test(cleaned)) {\n      cleaned = '+965' + cleaned;\n    }\n    // 🇧🇭 البحرين: 8 أرقام\n    else if (cleaned.length === 8 && /^[369]\\d{7}$/.test(cleaned)) {\n      cleaned = '+973' + cleaned;\n    }\n    // 🇶🇦 قطر: 8 أرقام يبدأ بـ 3/5/6/7\n    else if (cleaned.length === 8 && /^[3567]\\d{7}$/.test(cleaned)) {\n      cleaned = '+974' + cleaned;\n    }\n    // 🇴🇲 عمان: 8 أرقام يبدأ بـ 9\n    else if (cleaned.length === 8 && /^9\\d{7}$/.test(cleaned)) {\n      cleaned = '+968' + cleaned;\n    }\n    // 🇪🇬 مصر: 11 رقم يبدأ بـ 01 (مثل: 010/011/012/015)\n    else if (/^01[0125]\\d{8}$/.test(cleaned)) {\n      cleaned = '+20' + cleaned.slice(1); // نحذف الصفر الأول\n    }\n    // حل عام: إذا كان الرقم ≥ 8 أرقام، نضيف +\n    else if (cleaned.length >= 8) {\n      cleaned = '+' + cleaned;\n    }\n  }\n  \n  // التحقق النهائي: +[كود دولة 1-3 أرقام][8-15 رقم إجمالي]\n  const isValid = cleaned.match(/^\\+\\d{8,15}$/);\n  return isValid ? cleaned : null;\n};\n\n// تطبيق التنسيق على رقم العميل\nconst phoneRaw = d.lead_phone || d.phone || '';\nconst phoneNormalized = normalizePhone(phoneRaw);\n\n// ✅ استخراج كود الدولة بشكل صحيح (1-3 أرقام فقط بعد +)\nconst countryCode = phoneNormalized?.match(/^\\+(\\d{1,3})/)?.[1] || null;\n\n// ✅ تحديد اسم الدولة من الخريطة (الإصلاح: استخدام phoneCountry في المخرجات)\nconst phoneCountry = countryCode ? (COUNTRY_MAP[countryCode] || `أخرى 🌍 (كود: +${countryCode})`) : null;\n\n// ✅ التحقق من صحة الرقم\nconst phoneIsValid = !!phoneNormalized;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 2️⃣ تحديد القنوات المتاحة (متعددة) مع أولوية واتساب\n// ═══════════════════════════════════════════════════════════════════════════\nconst channels = {\n  whatsapp: {\n    available: phoneIsValid,\n    priority: 1, // 🥇 الأولوية القصوى\n    reason: phoneIsValid ? 'phone_number_available' : 'no_valid_phone'\n  },\n  email: {\n    available: !!(d.lead_email || d.email),\n    priority: 2, // 🥈 ثانيًا\n    reason: (d.lead_email || d.email) ? 'email_available' : 'no_email'\n  },\n  telegram: {\n    available: !!(d.telegram_id || d.telegram_username || d.platform === 'telegram'),\n    priority: 3, // 🥉 ثالثًا\n    reason: (d.telegram_id || d.telegram_username) ? 'telegram_available' : 'no_telegram'\n  }\n};\n\n// قائمة القنوات المفعلة (للتكرار عليها في الإرسال)\nconst enabledChannels = Object.entries(channels)\n  .filter(([_, cfg]) => cfg.available)\n  .sort((a, b) => a[1].priority - b[1].priority)\n  .map(([name]) => name);\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 3️⃣ استخراج نية العميل من الرسالة لتخصيص الرد\n// ═══════════════════════════════════════════════════════════════════════════\nconst extractIntent = (msg) => {\n  if (!msg) return 'general_inquiry';\n  const m = msg.toLowerCase();\n  if (m.includes('حجز') || m.includes('أحجز') || m.includes('booking') || m.includes('reserve')) return 'booking_request';\n  if (m.includes('سعر') || m.includes('كم') || m.includes('cost') || m.includes('price')) return 'price_inquiry';\n  if (m.includes('إلغاء') || m.includes('تعديل') || m.includes('cancel') || m.includes('change')) return 'modification_request';\n  if (m.includes('شكوى') || m.includes('مشكلة') || m.includes('complaint')) return 'complaint';\n  if (m.includes('عاجل') || m.includes('فوري') || m.includes('urgent') || m.includes('now')) return 'urgent_request';\n  return 'general_inquiry';\n};\n\nconst intent = extractIntent(d.message || d.custom_message || '');\nconst intentLabel = {\n  'booking_request': '📋 طلب حجز جديد',\n  'price_inquiry': '💰 استفسار عن الأسعار',\n  'modification_request': '🔄 طلب تعديل/إلغاء',\n  'complaint': '⚠️ شكوى أو ملاحظة',\n  'urgent_request': '🔴 طلب عاجل',\n  'general_inquiry': '💬 استفسار عام'\n}[intent];\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 4️⃣ بناء الرسائل الاحترافية لكل قناة\n// ═══════════════════════════════════════════════════════════════════════════\nconst p = d.personalization || {};\nconst prefs = d.preferences || {};\nconst meta = d.metadata || {};\nconst customerName = p.name || d.lead_name || d.name || 'عزيزي';\nconst rawMessage = (d.message || d.custom_message || d.text || '').substring(0, 400);\nconst slaMinutes = meta.sla_minutes || (d.priority === 'urgent' ? 15 : 30);\n\n// 📱 رسالة واتساب (نص واضح، مختصر، مع إيموجي)\nconst buildWhatsAppMessage = () => {\n  return `*أهلاً وسهلاً بك يا ${customerName}* 👋🌹\n\n${intentLabel}\n_\"${rawMessage}\"_\n\n✅ *تم استلام طلبك* وسيتواصل معك فريق المبيعات خلال *${slaMinutes} دقيقة* على الأكثر.\n\n🏨 *تفضيلات إقامتك:*\n• التصنيف: ${prefs.stars === '5star' ? '⭐⭐⭐⭐⭐ 5 نجوم' : prefs.stars === '4star' ? '⭐⭐⭐⭐ 4 نجوم' : 'غير محدد'}\n• الميزانية: ${prefs.budget === 'luxury' ? '💎 فاخر' : prefs.budget === 'mid' ? '💰 متوسط' : 'غير محدد'}\n• عدد الأشخاص: ${p.pax || prefs.group || 'غير محدد'}\n\n🆔 معرف الطلب: \\`${d.lead_id}\\`\n📞 للتواصل: ${phoneNormalized || d.lead_phone} ${phoneCountry?.split(' ')[1] || ''}\n\n_فريق Bluevia Travel — خدمتك أولويتنا_ 🕌`;\n};\n\n// 📧 رسالة الإيميل (HTML احترافي)\nconst buildEmailMessage = () => {\n  const subjectMap = {\n    'booking_request': '✅ تأكيد استلام طلب حجزك في تركيا',\n    'price_inquiry': '💰 رد على استفسارك عن أسعار خدمات Bluevia Travel',\n    'modification_request': '🔄 تحديث حالة طلب التعديل',\n    'complaint': '⚠️ شكرًا لملاحظاتك — جاري المتابعة الفورية',\n    'urgent_request': '🔴 طلبك العاجل تحت المعالجة الآن',\n    'general_inquiry': '💬 شكرًا لتواصلك مع خدمات Bluevia Travel'\n  };\n  \n  return {\n    subject: subjectMap[intent] || 'شكرًا لتواصلك معنا',\n    html: `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; }\n    .header { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }\n    .content { padding: 24px; background: #fff; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px; }\n    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }\n    .badge-urgent { background: #ffebee; color: #c62828; }\n    .badge-booking { background: #e8f5e9; color: #2e7d32; }\n    .badge-inquiry { background: #e3f2fd; color: #1565c0; }\n    blockquote { border-right: 4px solid #1a73e8; padding-right: 16px; margin: 16px 0; color: #555; background: #f5f5f5; padding: 12px 16px; border-radius: 4px; }\n    .preferences { background: #f9f9f9; padding: 16px; border-radius: 8px; margin: 16px 0; }\n    .preferences li { margin: 8px 0; }\n    .footer { text-align: center; padding: 16px; color: #666; font-size: 13px; border-top: 1px solid #eee; margin-top: 24px; }\n    code { background: #f1f1f1; padding: 2px 6px; border-radius: 4px; font-family: monospace; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h2 style=\"margin:0;\">🕌 Bluevia Travel</h2>\n    <p style=\"margin:4px 0 0; opacity:0.9;\">خدمتك أولويتنا</p>\n  </div>\n  <div class=\"content\">\n    <p>أهلاً وسهلاً بك يا <strong>${customerName}</strong> 👋🌹</p>\n    \n    <p>\n      <span class=\"badge ${intent === 'urgent_request' ? 'badge-urgent' : intent === 'booking_request' ? 'badge-booking' : 'badge-inquiry'}\">\n        ${intentLabel}\n      </span>\n    </p>\n    \n    <blockquote>\n      ${rawMessage.replace(/\\n/g, '<br>')}\n    </blockquote>\n    \n    <p>✅ <strong>تم استلام طلبك بنجاح</strong>، وسيتواصل معك فريق المبيعات المختص خلال <strong>${slaMinutes} دقيقة</strong> على الأكثر.</p>\n    \n    <div class=\"preferences\">\n      <h4 style=\"margin:0 0 12px; color:#1a73e8;\">🏨 تفضيلات إقامتك:</h4>\n      <ul style=\"margin:0; padding-right:20px;\">\n        <li>⭐ <strong>التصنيف:</strong> ${prefs.stars === '5star' ? '5 نجوم فاخر' : prefs.stars === '4star' ? '4 نجوم مميز' : 'غير محدد'}</li>\n        <li>💰 <strong>الميزانية:</strong> ${prefs.budget === 'luxury' ? 'فاخر' : prefs.budget === 'mid' ? 'متوسط' : 'غير محدد'}</li>\n        <li>👥 <strong>عدد الأشخاص:</strong> ${p.pax || prefs.group || 'غير محدد'}</li>\n      </ul>\n    </div>\n    \n    <div class=\"footer\">\n      <p style=\"margin:0;\">\n        🆔 معرف الطلب: <code>${d.lead_id}</code><br>\n        📞 للتواصل: ${phoneNormalized || d.lead_phone || 'غير متاح'}<br>\n        🕐 وقت الاستلام: ${new Date(meta.sent_at || Date.now()).toLocaleTimeString('ar-SA')}\n      </p>\n      <p style=\"margin:8px 0 0; font-style:italic;\">\n        🕌 فريق Bluevia Travel — نتمنى لك إقامة طيبة في رحاب تركيا الجميلة\n      </p>\n    </div>\n  </div>\n</body>\n</html>`\n  };\n};\n\n// ✈️ رسالة تليجرام (ماركداون كامل + إيموجي + تنسيق غني)\nconst buildTelegramMessage = () => {\n  return `*🕌 Bluevia Travel — تأكيد استلام الطلب*\n\n*أهلاً وسهلاً بك يا ${customerName}* 👋🌹\n\n${intentLabel}\n_${rawMessage.replace(/\\n/g, '\\n')}_\n\n✅ *تم استلام طلبك بنجاح*\n⏱️ سيتواصل معك فريق المبيعات خلال *${slaMinutes} دقيقة* كحد أقصى\n\n*🏨 تفضيلات إقامتك:*\n• ⭐ التصنيف: ${prefs.stars === '5star' ? '⭐⭐⭐⭐⭐ 5 نجوم' : prefs.stars === '4star' ? '⭐⭐⭐⭐ 4 نجوم' : 'غير محدد'}\n• 💰 الميزانية: ${prefs.budget === 'luxury' ? '💎 فاخر' : prefs.budget === 'mid' ? '💰 متوسط' : 'غير محدد'}\n• 👥 العدد: ${p.pax || prefs.group || 'غير محدد'} شخص\n\n🆔 *معرف الطلب:* \\`${d.lead_id}\\`\n📞 *للتواصل:* ${phoneNormalized || d.lead_phone} ${phoneCountry?.split(' ')[1] || ''}\n\n_فريقنا جاهز لخدمتك على مدار الساعة_ 🤲`;\n};\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 5️⃣ تجميع المخرجات النهائية (دعم متعدد القنوات)\n// ═══════════════════════════════════════════════════════════════════════════\n\n// تحضير الرسائل لكل قناة مفعلة\nconst messagesByChannel = {};\nif (channels.whatsapp.available) {\n  messagesByChannel.whatsapp = buildWhatsAppMessage();\n}\nif (channels.email.available) {\n  const email = buildEmailMessage();\n  messagesByChannel.email = {\n    text: email.html.replace(/<[^>]*>/g, '').substring(0, 500),\n    subject: email.subject,\n    html: email.html\n  };\n}\nif (channels.telegram.available) {\n  messagesByChannel.telegram = buildTelegramMessage();\n}\n\n// حساب إحصائيات الرسالة\nconst primaryMessage = messagesByChannel[enabledChannels[0]] || '';\nconst charCount = Buffer.byteLength(typeof primaryMessage === 'string' ? primaryMessage : JSON.stringify(primaryMessage), 'utf8');\n\nreturn [{\n  json: {\n    // === الهوية والبيانات الأساسية ===\n    ...d,\n    \n    // === تنسيق الجوال والدولة ✅ (الإصلاح هنا) ===\n    phone_normalized: phoneNormalized,\n    phone_country_code: countryCode,\n    phone_country: phoneCountry,  // ✅ يستخدم COUNTRY_MAP الكاملة (17+ دولة)\n    phone_is_valid: phoneIsValid,\n    \n    // === القنوات المتاحة والمفعلة ===\n    channels_available: Object.fromEntries(\n      Object.entries(channels).map(([k, v]) => [k, v.available])\n    ),\n    channels_enabled: enabledChannels,\n    primary_channel: enabledChannels[0] || 'none',\n    \n    // === نية العميل ===\n    detected_intent: intent,\n    intent_label: intentLabel,\n    \n    // === الرسائل الجاهزة لكل قناة ===\n    messages: messagesByChannel,\n    \n    // === رسالة افتراضية للعقد التي تدعم قناة واحدة ===\n    final_message: messagesByChannel.whatsapp || messagesByChannel.email?.text || messagesByChannel.telegram || '',\n    \n    // === بيانات الإيميل (إذا وُجد) ===\n    email_subject: messagesByChannel.email?.subject || null,\n    email_html: messagesByChannel.email?.html || null,\n    \n    // === بيانات فنية ===\n    char_count: charCount,\n    is_long_message: charCount > 1000,\n    message_language: 'ar',\n    \n    // === جاهزية الإرسال ===\n    ready_to_send: enabledChannels.length > 0,\n    send_to_multiple: enabledChannels.length > 1,\n    send_error: enabledChannels.length === 0 ? 'no_valid_channel_found' : null,\n    \n    // === للتدقيق والتحليل ===\n    routing_applied_at: new Date().toISOString(),\n    sla_minutes: slaMinutes,\n    priority_score: d.priority === 'urgent' || intent === 'urgent_request' ? 100 : meta.score || 0\n  }\n}];"
       },
       "name": "Code – Personalize Message",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -48,
@@ -327,7 +327,7 @@
         }
       },
       "name": "Switch – Channel Router",
-      "type": "n8n-nodes-base.switch",
+      "type": "Bluevia-nodes-base.switch",
       "typeVersion": 3,
       "position": [
         128,
@@ -344,7 +344,7 @@
         }
       },
       "name": "Telegram – Send to Lead",
-      "type": "n8n-nodes-base.telegram",
+      "type": "Bluevia-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         368,
@@ -365,7 +365,7 @@
         "jsCode": "// ⏸️ Twilio SMS PAUSED – re-enable when Twilio account ready\nconst d=$input.first().json;\nreturn[{json:{...d,_sms_paused:true,message_status:'queued_paused',sid:null}}];"
       },
       "name": "SMS – Twilio [PAUSED]",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         384,
@@ -377,12 +377,12 @@
     {
       "parameters": {
         "sendTo": "={{ $json.lead_email }}",
-        "subject": "={{ $json.email_subject || ($json.action_type === 'transactional' ? '✅ تأكيد حجزك في مكة المكرمة' : '🕌 عرض مخصص لك – خدمات SaaSAI 2026') }}",
+        "subject": "={{ $json.email_subject || ($json.action_type === 'transactional' ? '✅ تأكيد حجزك في تركيا' : '🕌 عرض مخصص لك – خدمات Bluevia Travel 2026') }}",
         "message": "={{ $json.email_html || $json.final_message || $json.messages?.email?.html || 'مرحباً ' + $json.lead_name }}",
         "options": {}
       },
       "name": "Gmail – Send Email",
-      "type": "n8n-nodes-base.gmail",
+      "type": "Bluevia-nodes-base.gmail",
       "typeVersion": 2,
       "position": [
         384,
@@ -403,7 +403,7 @@
         "jsCode": "// Channel not matched – log as unhandled\nreturn [{ json: { ...$input.first().json, delivery_status: 'unhandled_channel', error: `Unknown channel: ${$json.channel}` } }];"
       },
       "name": "Code – Unhandled Channel",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         384,
@@ -414,7 +414,7 @@
     {
       "parameters": {},
       "name": "Merge Channel Responses",
-      "type": "n8n-nodes-base.merge",
+      "type": "Bluevia-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         576,
@@ -424,10 +424,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Evaluate Delivery Result — Fixed for TimelinesAI + Telegram + Email ─────\nconst d = $input.first().json;\nconst originalPayload = $('Code – Personalize Message').first().json;\n\n// استخراج القناة من البيانات الأصلية (الأكثر موثوقية)\nconst channel = originalPayload.primary_channel || originalPayload.channel || d.channel || 'unknown';\n\nlet success = false;\nlet message_id = '';\nlet error_detail = '';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// ✅ معالجة الاستجابة حسب القناة ونوع الـ API\n// ═══════════════════════════════════════════════════════════════════════════\n\nif (channel === 'whatsapp') {\n  // ── TimelinesAI Format ───────────────────────────────────────────────────\n  // { \"status\": \"ok\", \"data\": { \"message_uid\": \"...\" } }\n  if (d.status === 'ok' && d.data?.message_uid) {\n    success = true;\n    message_id = d.data.message_uid;\n  }\n  // ── Meta Graph API Format (للمقارنة) ─────────────────────────────────────\n  else if (d.messages?.[0]?.id) {\n    success = true;\n    message_id = d.messages[0].id;\n  }\n  // ── fallback: تحقق من رمز الحالة ─────────────────────────────────────────\n  else if (d.statusCode && d.statusCode < 400) {\n    success = true;\n    message_id = d.message_id || d.id || '';\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.error?.message || d.data?.error || JSON.stringify(d).substring(0, 200);\n  }\n\n} else if (channel === 'telegram') {\n  // ── Telegram Bot API Format ──────────────────────────────────────────────\n  // { \"ok\": true, \"result\": { \"message_id\": 12345 } }\n  if (d.ok === true && d.result?.message_id) {\n    success = true;\n    message_id = String(d.result.message_id);\n  }\n  // ── n8n Telegram Node wraps response ─────────────────────────────────────\n  else if (d.message_id) {\n    success = true;\n    message_id = String(d.message_id);\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.description || d.error?.message || JSON.stringify(d).substring(0, 200);\n  }\n\n} else if (channel === 'email') {\n  // ── Gmail / SMTP Format ─────────────────────────────────────────────────\n  // { \"messageId\": \"<xxx@mail.gmail.com>\" } أو { \"id\": \"...\" }\n  if (d.messageId || d.id || d.statusCode === 200 || d.statusCode === 202) {\n    success = true;\n    message_id = d.messageId || d.id || 'sent';\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.error?.message || d.response?.data?.error || JSON.stringify(d).substring(0, 200);\n  }\n\n} else {\n  // قناة غير معروفة\n  error_detail = `unhandled channel: ${channel}`;\n}\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي الموحد\n// ═══════════════════════════════════════════════════════════════════════════\n\nreturn [{\n  json: {\n    // === الحفاظ على كل البيانات الأصلية ===\n    ...originalPayload,\n    \n    // === حالة التسليم ===\n    delivery_status: success ? 'delivered' : 'failed',\n    delivery_channel: channel,\n    message_id: message_id || null,\n    error_detail: error_detail || null,\n    delivered_at: success ? new Date().toISOString() : null,\n    \n    // === الاستجابة الخام للتدقيق ===\n    raw_response: d,\n    \n    // === مفيد للتحليل لاحقًا ===\n    is_first_attempt: true,\n    retry_count: 0,\n    next_retry_at: !success ? new Date(Date.now() + 300000).toISOString() : null // أعد المحاولة بعد 5 دقائق\n  }\n}];"
+        "jsCode": "// ─── Evaluate Delivery Result — Fixed for TimelinesAI + Telegram + Email ─────\nconst d = $input.first().json;\nconst originalPayload = $('Code – Personalize Message').first().json;\n\n// استخراج القناة من البيانات الأصلية (الأكثر موثوقية)\nconst channel = originalPayload.primary_channel || originalPayload.channel || d.channel || 'unknown';\n\nlet success = false;\nlet message_id = '';\nlet error_detail = '';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// ✅ معالجة الاستجابة حسب القناة ونوع الـ API\n// ═══════════════════════════════════════════════════════════════════════════\n\nif (channel === 'whatsapp') {\n  // ── TimelinesAI Format ───────────────────────────────────────────────────\n  // { \"status\": \"ok\", \"data\": { \"message_uid\": \"...\" } }\n  if (d.status === 'ok' && d.data?.message_uid) {\n    success = true;\n    message_id = d.data.message_uid;\n  }\n  // ── Meta Graph API Format (للمقارنة) ─────────────────────────────────────\n  else if (d.messages?.[0]?.id) {\n    success = true;\n    message_id = d.messages[0].id;\n  }\n  // ── fallback: تحقق من رمز الحالة ─────────────────────────────────────────\n  else if (d.statusCode && d.statusCode < 400) {\n    success = true;\n    message_id = d.message_id || d.id || '';\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.error?.message || d.data?.error || JSON.stringify(d).substring(0, 200);\n  }\n\n} else if (channel === 'telegram') {\n  // ── Telegram Bot API Format ──────────────────────────────────────────────\n  // { \"ok\": true, \"result\": { \"message_id\": 12345 } }\n  if (d.ok === true && d.result?.message_id) {\n    success = true;\n    message_id = String(d.result.message_id);\n  }\n  // ── Bluevia Telegram Node wraps response ─────────────────────────────────────\n  else if (d.message_id) {\n    success = true;\n    message_id = String(d.message_id);\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.description || d.error?.message || JSON.stringify(d).substring(0, 200);\n  }\n\n} else if (channel === 'email') {\n  // ── Gmail / SMTP Format ─────────────────────────────────────────────────\n  // { \"messageId\": \"<xxx@mail.gmail.com>\" } أو { \"id\": \"...\" }\n  if (d.messageId || d.id || d.statusCode === 200 || d.statusCode === 202) {\n    success = true;\n    message_id = d.messageId || d.id || 'sent';\n  }\n  // ── فشل ─────────────────────────────────────────────────────────────────\n  else {\n    error_detail = d.error?.message || d.response?.data?.error || JSON.stringify(d).substring(0, 200);\n  }\n\n} else {\n  // قناة غير معروفة\n  error_detail = `unhandled channel: ${channel}`;\n}\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي الموحد\n// ═══════════════════════════════════════════════════════════════════════════\n\nreturn [{\n  json: {\n    // === الحفاظ على كل البيانات الأصلية ===\n    ...originalPayload,\n    \n    // === حالة التسليم ===\n    delivery_status: success ? 'delivered' : 'failed',\n    delivery_channel: channel,\n    message_id: message_id || null,\n    error_detail: error_detail || null,\n    delivered_at: success ? new Date().toISOString() : null,\n    \n    // === الاستجابة الخام للتدقيق ===\n    raw_response: d,\n    \n    // === مفيد للتحليل لاحقًا ===\n    is_first_attempt: true,\n    retry_count: 0,\n    next_retry_at: !success ? new Date(Date.now() + 300000).toISOString() : null // أعد المحاولة بعد 5 دقائق\n  }\n}];"
       },
       "name": "Code – Evaluate Delivery Result",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1680,
@@ -460,7 +460,7 @@
         "options": {}
       },
       "name": "If – Delivery Success?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -1440,
@@ -475,7 +475,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -497,7 +497,7 @@
             "status": "={{ $json.delivery_status }}",
             "error_reason": "={{ $json.error_detail || '' }}",
             "sent_at": "={{ $json.delivered_at || $now }}",
-            "flow_trigger": "={{ $json.metadata?.source || $json.action_type || 'SaaSAI_F5' }}",
+            "flow_trigger": "={{ $json.metadata?.source || $json.action_type || 'Bluevia_F5' }}",
             "rate_limit_ok": "TRUE",
             "consent_ok": "TRUE",
             "personalized": "={{ !!$json.final_message }}",
@@ -650,7 +650,7 @@
       },
       "id": "57c3eb26-78e2-4b99-b1e4-383985609694",
       "name": "GSheets – Log Delivery Success",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -928,
@@ -671,7 +671,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -693,7 +693,7 @@
             "status": "={{ $json.delivery_status || 'failed' }}",
             "error_reason": "={{ $json.error_detail || 'unknown_error' }}",
             "sent_at": "={{ $now }}",
-            "flow_trigger": "={{ $json.metadata?.source || $json.action_type || 'SaaSAI_F5' }}",
+            "flow_trigger": "={{ $json.metadata?.source || $json.action_type || 'Bluevia_F5' }}",
             "rate_limit_ok": "TRUE",
             "consent_ok": "TRUE",
             "personalized": "={{ !!$json.final_message }}",
@@ -849,7 +849,7 @@
       },
       "id": "094c2201-a6fc-4d50-9b7a-2cec68409b50",
       "name": "GSheets – Log Delivery Failure",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -512,
@@ -866,13 +866,13 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "={{ \n  (() => {\n    const d = $json;\n    \n    // 🎨 أيقونات حسب نوع الخطأ\n    const errorIcon = {\n      'timeout': '⏰',\n      'invalid_phone': '📱',\n      'unauthorized': '🔐',\n      'rate_limit': '🚦',\n      'account_disconnected': '🔌',\n      'default': '❌'\n    };\n    \n    // 🔍 استخراج نوع الخطأ من التفاصيل\n    const errorType = (d.error_detail || '').toLowerCase();\n    const icon = errorIcon[Object.keys(errorIcon).find(k => errorType.includes(k)) || 'default'];\n    \n    // 📍 تحديد القناة بالعربية\n    const channelAr = {\n      'whatsapp': 'واتساب 🟢',\n      'telegram': 'تليجرام ✈️',\n      'email': 'بريد إلكتروني 📧',\n      'sms': 'رسالة نصية 📱'\n    }[d.delivery_channel || d.channel] || d.delivery_channel || d.channel || 'غير محدد';\n    \n    // ⏰ تنسيق الوقت\n    const timeOptions = { \n      hour: '2-digit', \n      minute: '2-digit', \n      hour12: true,\n      timeZone: 'Asia/Riyadh'\n    };\n    const timeStr = new Date().toLocaleTimeString('ar-SA', timeOptions);\n    const dateStr = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n    \n    // 📊 تلخيص الخطأ\n    const errorSummary = d.error_detail \n      ? (d.error_detail.length > 150 ? d.error_detail.substring(0, 150) + '...' : d.error_detail)\n      : 'خطأ غير محدد';\n    \n    // 🎯 الإجراء المطلوب\n    const actionRequired = d.delivery_channel === 'whatsapp' \n      ? 'تحقق من ربط حساب واتساب في TimelinesAI'\n      : d.delivery_channel === 'telegram'\n      ? 'تحقق من معرف المستخدم أو توكن البوت'\n      : d.delivery_channel === 'email'\n      ? 'تحقق من صحة البريد الإلكتروني'\n      : 'مراجعة تفاصيل الخطأ أدناه';\n    \n    return `🚨 *تنبيه عاجل — فشل تسليم رسالة للعميل*\n\n━━━━━━━━━━━━━━━━━━\n\n${icon} *تفاصيل العميل*\n👤 الاسم: ${d.lead_name || 'غير محدد'}\n📞 الجوال: ${d.phone_normalized || d.lead_phone || d.lead_email || 'غير متاح'}\n🌍 الدولة: ${d.phone_country || 'غير محدد'}\n\n━━━━━━━━━━━━━━━━━━\n\n📡 *قناة الإرسال:* ${channelAr}\n🆔 *معرف الطلب:* \\`${d.lead_id}\\`\n🎯 *نية العميل:* ${d.intent_label || d.detected_intent || 'غير محدد'}\n⏱️ *مهلة SLA:* ${d.sla_minutes || 15} دقيقة\n\n━━━━━━━━━━━━━━━━━━\n\n❌ *سبب الفشل:*\n_${errorSummary}_\n\n━━━━━━━━━━━━━━━━━━\n\n✅ *الإجراء المطلوب:*\n${actionRequired}\n\n📋 *رقص المحاولة:* ${d.retry_count || 0} من 3\n🕐 *وقت الفشل:* ${timeStr} — ${dateStr}\n\n━━━━━━━━━━━━━━━━━━\n\n_فريق العمليات — نظام حجوزات مكة الآلي_ 🕌`;\n  })()\n}}",
+        "text": "={{ \n  (() => {\n    const d = $json;\n    \n    // 🎨 أيقونات حسب نوع الخطأ\n    const errorIcon = {\n      'timeout': '⏰',\n      'invalid_phone': '📱',\n      'unauthorized': '🔐',\n      'rate_limit': '🚦',\n      'account_disconnected': '🔌',\n      'default': '❌'\n    };\n    \n    // 🔍 استخراج نوع الخطأ من التفاصيل\n    const errorType = (d.error_detail || '').toLowerCase();\n    const icon = errorIcon[Object.keys(errorIcon).find(k => errorType.includes(k)) || 'default'];\n    \n    // 📍 تحديد القناة بالعربية\n    const channelAr = {\n      'whatsapp': 'واتساب 🟢',\n      'telegram': 'تليجرام ✈️',\n      'email': 'بريد إلكتروني 📧',\n      'sms': 'رسالة نصية 📱'\n    }[d.delivery_channel || d.channel] || d.delivery_channel || d.channel || 'غير محدد';\n    \n    // ⏰ تنسيق الوقت\n    const timeOptions = { \n      hour: '2-digit', \n      minute: '2-digit', \n      hour12: true,\n      timeZone: 'Asia/Riyadh'\n    };\n    const timeStr = new Date().toLocaleTimeString('ar-SA', timeOptions);\n    const dateStr = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n    \n    // 📊 تلخيص الخطأ\n    const errorSummary = d.error_detail \n      ? (d.error_detail.length > 150 ? d.error_detail.substring(0, 150) + '...' : d.error_detail)\n      : 'خطأ غير محدد';\n    \n    // 🎯 الإجراء المطلوب\n    const actionRequired = d.delivery_channel === 'whatsapp' \n      ? 'تحقق من ربط حساب واتساب في TimelinesAI'\n      : d.delivery_channel === 'telegram'\n      ? 'تحقق من معرف المستخدم أو توكن البوت'\n      : d.delivery_channel === 'email'\n      ? 'تحقق من صحة البريد الإلكتروني'\n      : 'مراجعة تفاصيل الخطأ أدناه';\n    \n    return `🚨 *تنبيه عاجل — فشل تسليم رسالة للعميل*\n\n━━━━━━━━━━━━━━━━━━\n\n${icon} *تفاصيل العميل*\n👤 الاسم: ${d.lead_name || 'غير محدد'}\n📞 الجوال: ${d.phone_normalized || d.lead_phone || d.lead_email || 'غير متاح'}\n🌍 الدولة: ${d.phone_country || 'غير محدد'}\n\n━━━━━━━━━━━━━━━━━━\n\n📡 *قناة الإرسال:* ${channelAr}\n🆔 *معرف الطلب:* \\`${d.lead_id}\\`\n🎯 *نية العميل:* ${d.intent_label || d.detected_intent || 'غير محدد'}\n⏱️ *مهلة SLA:* ${d.sla_minutes || 15} دقيقة\n\n━━━━━━━━━━━━━━━━━━\n\n❌ *سبب الفشل:*\n_${errorSummary}_\n\n━━━━━━━━━━━━━━━━━━\n\n✅ *الإجراء المطلوب:*\n${actionRequired}\n\n📋 *رقص المحاولة:* ${d.retry_count || 0} من 3\n🕐 *وقت الفشل:* ${timeStr} — ${dateStr}\n\n━━━━━━━━━━━━━━━━━━\n\n_فريق العمليات — Bluevia Travel — نظام العمليات_ 🕌`;\n  })()\n}}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Delivery Failure Alert",
-      "type": "n8n-nodes-base.telegram",
+      "type": "Bluevia-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -48,
@@ -895,7 +895,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -917,7 +917,7 @@
             "status": "consent_blocked",
             "error_reason": "no_consent_found",
             "sent_at": "={{ $now }}",
-            "flow_trigger": "SaaSAI_F5",
+            "flow_trigger": "Bluevia_F5",
             "rate_limit_ok": "={{ $json.block_reason !== 'rate_limit' }}",
             "consent_ok": "FALSE",
             "personalized": "FALSE",
@@ -1073,7 +1073,7 @@
       },
       "id": "b10a0c5a-9ff9-4eb9-8abe-159331de01a0",
       "name": "GSheets – Log Consent Block",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -944,
@@ -1094,7 +1094,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1116,7 +1116,7 @@
             "status": "rate_limited",
             "error_reason": "={{ $json.rate_limit_reason || 'rate_limit_exceeded' }}",
             "sent_at": "={{ $now }}",
-            "flow_trigger": "SaaSAI_F5",
+            "flow_trigger": "Bluevia_F5",
             "rate_limit_ok": "FALSE",
             "consent_ok": "TRUE",
             "personalized": "FALSE",
@@ -1272,7 +1272,7 @@
       },
       "id": "bac98e47-ec24-46cc-a5c7-86b6260f8ecb",
       "name": "GSheets – Log Rate Limit Block",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -576,
@@ -1293,7 +1293,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1315,7 +1315,7 @@
             "status": "invalid",
             "error_reason": "={{ $json.validation_error || 'missing_required_fields' }}",
             "sent_at": "={{ $now }}",
-            "flow_trigger": "SaaSAI_F5",
+            "flow_trigger": "Bluevia_F5",
             "rate_limit_ok": "FALSE",
             "consent_ok": "FALSE",
             "personalized": "FALSE",
@@ -1471,7 +1471,7 @@
       },
       "id": "41e60645-98bf-4ba4-aba5-d446f1e26194",
       "name": "GSheets – Log Invalid Payload",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -1424,
@@ -1488,7 +1488,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "n8n-nodes-base.errorTrigger",
+      "type": "Bluevia-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         -1712,
@@ -1503,7 +1503,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1517,7 +1517,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR5-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F5",
+            "flow_name": "Bluevia_F5",
             "node_name": "={{ $json.execution?.lastNodeExecuted || $json.node?.name || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || $json.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "={{ /timeout|429|503/i.test($json.error?.message||'') ? 'high' : 'medium' }}",
@@ -1625,7 +1625,7 @@
       },
       "id": "2183d837-23ef-4716-a1b2-b361fff82f1b",
       "name": "GSheets – Log Flow Error",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -1472,
@@ -1648,7 +1648,7 @@
         }
       },
       "name": "Telegram – Flow Error Alert",
-      "type": "n8n-nodes-base.telegram",
+      "type": "Bluevia-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -1232,
@@ -1685,10 +1685,10 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"{{ JSON.stringify($json.final_message || $json.messages?.whatsapp || $json.whatsapp || $json.message || 'رسالة تجريبية').slice(1, -1) }}\",\n  \"chat_name\": \"{{ $json.lead_name || $json.name || 'اختبار' }}\",\n  \"label\": \"{{ $json.intent_label || $json.template_id || 'makkah_booking' }}\",\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id || 'TEST-YEMEN-001' }}\",\n    \"journey_step\": \"{{ $json.journey_step || 'testing' }}\",\n    \"campaign\": \"makkah_2026\",\n    \"priority\": \"{{ $json.priority || 'normal' }}\",\n    \"flow_origin\": \"SaaSAI_F5\"\n  }\n}",
+        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"{{ JSON.stringify($json.final_message || $json.messages?.whatsapp || $json.whatsapp || $json.message || 'رسالة تجريبية').slice(1, -1) }}\",\n  \"chat_name\": \"{{ $json.lead_name || $json.name || 'اختبار' }}\",\n  \"label\": \"{{ $json.intent_label || $json.template_id || 'turkey_booking' }}\",\n  \"metadata\": {\n    \"lead_id\": \"{{ $json.lead_id || 'TEST-YEMEN-001' }}\",\n    \"journey_step\": \"{{ $json.journey_step || 'testing' }}\",\n    \"campaign\": \"turkey_2026\",\n    \"priority\": \"{{ $json.priority || 'normal' }}\",\n    \"flow_origin\": \"Bluevia_F5\"\n  }\n}",
         "options": {}
       },
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "Bluevia-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         368,
@@ -1710,7 +1710,7 @@
         "width": 1856,
         "color": 3
       },
-      "type": "n8n-nodes-base.stickyNote",
+      "type": "Bluevia-nodes-base.stickyNote",
       "position": [
         -1728,
         -352
@@ -1726,7 +1726,7 @@
         "width": 1872,
         "color": 5
       },
-      "type": "n8n-nodes-base.stickyNote",
+      "type": "Bluevia-nodes-base.stickyNote",
       "position": [
         -1728,
         160
@@ -1742,7 +1742,7 @@
         "width": 166,
         "color": 6
       },
-      "type": "n8n-nodes-base.stickyNote",
+      "type": "Bluevia-nodes-base.stickyNote",
       "position": [
         336,
         -352
@@ -1757,14 +1757,14 @@
       {
         "json": {
           "headers": {
-            "host": "n8n.srv1332143.hstgr.cloud",
+            "host": "Bluevia.srv1332143.hstgr.cloud",
             "user-agent": "axios/1.13.5",
             "content-length": "1093",
             "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
             "accept-encoding": "gzip, compress, deflate, br",
             "content-type": "application/json",
             "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-host": "Bluevia.srv1332143.hstgr.cloud",
             "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
             "x-forwarded-server": "f81c42443d27",
@@ -1777,7 +1777,7 @@
             "lead_phone": "+966551234567",
             "lead_name": "أبو صالح الغامدي",
             "channel": "Facebook",
-            "custom_message": "أهلاً وسهلاً بك يا أبو صالح الغامدي 👋🌹\n\nنشكر ثقتك الغالية في خدماتنا لحجوزات فنادق مكة المكرمة.\n\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال 15 دقيقة على الأكثر.\n\n🕌 نعدك بتجربة إقامة مميزة، ونسأل الله أن يجعلها رحلة مباركة لك ولأسرتك.\n\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.",
+            "custom_message": "أهلاً وسهلاً بك يا أبو صالح الغامدي 👋🌹\n\nنشكر ثقتك الغالية في خدماتنا لحجوزات فنادق تركيا.\n\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال 15 دقيقة على الأكثر.\n\n🕌 نعدك بتجربة إقامة مميزة، ونسأل الله أن يجعلها رحلة مباركة لك ولأسرتك.\n\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.",
             "personalization": {
               "name": "أبو صالح الغامدي",
               "lead_id": "LD-630956284",
@@ -1796,7 +1796,7 @@
               "sent_at": "2026-03-22T16:18:25.047+01:00"
             }
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+          "webhookUrl": "https://Bluevia.srv1332143.hstgr.cloud/webhook/bluevia-delivery-engine",
           "executionMode": "production"
         },
         "pairedItem": {

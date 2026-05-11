@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F1 – Radar اصطياد العملاء",
+  "name": "Bluevia – F1 – Radar اصطياد العملاء",
   "nodes": [
     {
       "parameters": {
@@ -13,7 +13,7 @@
         }
       },
       "name": "Schedule – Every 6h",
-      "type": "n8n-nodes-base.scheduleTrigger",
+      "type": "Bluevia-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         -1568,
@@ -23,10 +23,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// SaaSAI – F1 Config | نظام رادار SaaSAI v2.0\n// شركة متخصصة في: أتمتة الأعمال، الذكاء الاصطناعي، التسويق الرقمي،\n//   بناء المواقع، SEO، الجرافيك، الفيديو، التدريب، دعوات الزفاف الرقمية\n// ════════════════════════════════════════════════════════════════════════\n\nconst CONFIG = {\n  N8N_BASE_URL:  'https://n8n.srv1332143.hstgr.cloud',\n  SHEET_ID:      '1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA',\n  APIFY_TOKEN:   'apify_api_zlzhmqeZUVzTQHvDKYCtZuuHleTsJ0NudFF',\n  TG_ADMIN_ID:   '5292626260',\n  MIN_QUALITY:   20,\n  HOT_THRESHOLD: 70,\n  COMPANY_NAME:  'SaaSAI',\n  WEBSITE:       'https://saasai.sa',\n  WHATSAPP:      'https://wa.me/966500000000',\n  FLOW3_WEBHOOK: 'https://n8n.srv1332143.hstgr.cloud/webhook/saasai-scoring-entry',\n};\n\nreturn [{ json: {\n  ...CONFIG,\n  run_at: new Date().toISOString(),\n\n  // ── FACEBOOK Groups – خدمات SaaSAI ──────────────────────────────────\n  fb_group_urls: [\n    { url: 'https://www.facebook.com/groups/n8n.arabic' },\n    { url: 'https://www.facebook.com/groups/automation.ksa' },\n    { url: 'https://www.facebook.com/groups/digital.marketing.sa' },\n    { url: 'https://www.facebook.com/groups/seo.arabic' },\n    { url: 'https://www.facebook.com/groups/freelancers.ksa' },\n    { url: 'https://www.facebook.com/groups/wordpress.arabic' },\n    { url: 'https://www.facebook.com/groups/wedding.digital.ksa' },\n    { url: 'https://www.facebook.com/groups/startups.ksa' },\n    { url: 'https://www.facebook.com/groups/ai.tools.arabic' },\n  ],\n  fb_group_keywords: 'أتمتة,n8n,ذكاء اصطناعي,موقع,سيو,تصميم,فيديو,تسويق,محتوى,تدريب,دعوة زفاف,عرس,مناسبة,chatgpt,automation,wordpress',\n\n  // ── INSTAGRAM hashtags – SaaSAI ──────────────────────────────────────\n  ig_hashtags: [\n    'أتمتة_الأعمال', 'n8n_عربي', 'ذكاء_اصطناعي', 'تسويق_رقمي',\n    'تصميم_جرافيك', 'موشن_جرافيك', 'بناء_المواقع', 'تحسين_محركات_البحث',\n    'كتابة_المحتوى', 'تدريب_n8n', 'دعوات_زفاف_رقمية', 'عرس_رقمي',\n    'automation_ksa', 'saas_arabic', 'digital_transformation',\n    'ai_tools', 'chatgpt_arabic', 'freelance_ksa',\n    'SaaSAI', 'digital_wedding_ksa', 'مناسبات_رقمية',\n  ],\n\n  // ── TikTok – استهداف شرائح SaaSAI ────────────────────────────────────\n  tt_profile_urls: [\n    'https://www.tiktok.com/@automation.arabic',\n    'https://www.tiktok.com/@saas.ksa',\n    'https://www.tiktok.com/@n8n.arabic',\n  ],\n\n  // ── Twitter/X – كلمات بحث SaaSAI ─────────────────────────────────────\n  tw_search_terms: [\n    'n8n عربي تدريب', 'أريد أتمتة أعمالي', 'محتاج موقع احترافي',\n    'كيف أتعلم n8n', 'حلول ذكاء اصطناعي للشركات',\n    'تحسين محركات البحث سعودية', 'تصميم هوية بصرية',\n    'إنتاج فيديو احترافي', 'تسويق رقمي للشركات الصغيرة',\n    'دعوة زفاف رقمية', 'دعوة الكترونية زواج', 'بطاقة دعوة رقمية',\n    'automation consulting saudi', 'n8n training arabic',\n    'AI agency saudi arabia', 'digital marketing ksa',\n  ],\n\n  // ── خدمات SaaSAI وكلمات التصنيف ──────────────────────────────────────\n  services_map: {\n    automation: ['أتمتة', 'ن8ن', 'n8n', 'workflow', 'make', 'zapier', 'اوتوماشن', 'تشغيل تلقائي'],\n    ai_solutions: ['ذكاء اصطناعي', 'ai', 'chatgpt', 'claude', 'gemini', 'نموذج لغوي', 'روبوت'],\n    web_dev: ['موقع', 'منصة', 'website', 'wordpress', 'تطبيق', 'app', 'متجر إلكتروني'],\n    seo: ['seo', 'محركات البحث', 'جوجل', 'ترتيب بحثي', 'keywords', 'كلمات مفتاحية'],\n    design: ['تصميم', 'جرافيك', 'هوية بصرية', 'لوجو', 'شعار', 'برشور', 'design'],\n    video: ['فيديو', 'موشن', 'video', 'reels', 'مونتاج', 'يوتيوب', 'تيك توك'],\n    marketing: ['تسويق', 'marketing', 'إعلان', 'ads', 'سوشيال ميديا', 'إدارة حسابات'],\n    content: ['محتوى', 'مقال', 'كتابة', 'content', 'بوست', 'كوبي رايتنج'],\n    training: ['تدريب', 'كورس', 'دورة', 'training', 'تعليم', 'شهادة', 'احتراف'],\n    wedding: ['زفاف', 'دعوة', 'عرس', 'wedding', 'مناسبة', 'invitation', 'ولادة', 'حفل', 'خطوبة'],\n  },\n\n  // ── فلاتر Spam ─────────────────────────────────────────────────────────\n  spam_keywords: [\n    'للبيع', 'عقار', 'ربح سريع', 'استثمار وهمي', 'تداول', 'فوركس',\n    'كسب المال من المنزل', 'ارباح يومية مضمونة',\n  ],\n\n  // ── System Prompt لـ AI (محدّث لـ SaaSAI) ────────────────────────────\n  ai_system_prompt: \\`أنت محلل بيانات محترف لنظام SaaSAI – شركة متخصصة في خدمات الأتمتة الذكية، الذكاء الاصطناعي، التسويق الرقمي، بناء المواقع، SEO، الجرافيك، الفيديو، التدريب، وخدمات دعوات الزفاف الرقمية.\n\nمهمتك: تحليل النص وتحديد الخدمة المطلوبة وجودة العميل المحتمل.\nأجب بـ JSON خام فقط بدون أي نص خارجه، بدون markdown:\n{\n  \"intent\": \"service_inquiry|ready_to_buy|research|complaint|irrelevant\",\n  \"urgency\": \"immediate|soon|planned|unknown\",\n  \"lead_quality\": 0-100,\n  \"service_type\": \"automation|ai_solutions|web_dev|seo|design|video|marketing|content|training|wedding|unknown\",\n  \"service_details\": \"وصف قصير للخدمة المطلوبة\",\n  \"budget_signal\": \"startup|smb|enterprise|unknown\",\n  \"detected_phone\": \"+966XXXXXXXXX أو null\",\n  \"company_size\": \"freelancer|startup|smb|enterprise|unknown\",\n  \"ai_reason\": \"تفسير قصير بالعربية\"\n}\n\nمعايير الجودة:\n- 90-100: هاتف + ready_to_buy + immediate\n- 75-89: service_inquiry واضح + soon\n- 50-74: research + planned\n- 25-49: استفسار عام\n- 1-24: غير ذي صلة\\`,\n}}]};\n"
+        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Bluevia – F1 Config | نظام رادار Bluevia Travel v1.0\n// شركة متخصصة في: السياحة والاصطياف في تركيا، برامج سياحية، عروض VIP،\n//   حجوزات فنادق، سيارات بسائق، سياحة علاجية، وشهر العسل.\n// ════════════════════════════════════════════════════════════════════════\n\nconst CONFIG = {\n  N8N_BASE_URL:  'https://Bluevia.srv1332143.hstgr.cloud',\n  SHEET_ID:      '1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA',\n  APIFY_TOKEN:   'apify_api_zlzhmqeZUVzTQHvDKYCtZuuHleTsJ0NudFF',\n  TG_ADMIN_ID:   '{{TG_ADMIN_ID}}',\n  MIN_QUALITY:   20,\n  HOT_THRESHOLD: 70,\n  COMPANY_NAME:  'Bluevia Travel',\n  WEBSITE:       'https://blueviatravel.com',\n  WHATSAPP:      'https://wa.me/{{WHATSAPP_NUMBER}}',\n  FLOW3_WEBHOOK: 'https://Bluevia.srv1332143.hstgr.cloud/webhook/bluevia-scoring-entry',\n};\n\nreturn [{ json: {\n  ...CONFIG,\n  run_at: new Date().toISOString(),\n\n  // ── FACEBOOK Groups – سياحة تركيا ──────────────────────────────────\n  fb_group_urls: [\n    { url: 'https://www.facebook.com/groups/turkey.tourism.arabic' },\n    { url: 'https://www.facebook.com/groups/istanbul.tourism.arabic' },\n    { url: 'https://www.facebook.com/groups/trabzon.tourism.arabic' },\n    { url: 'https://www.facebook.com/groups/tourism.turkey.gulf' },\n    { url: 'https://www.facebook.com/groups/maghreb.turkey' },\n    { url: 'https://www.facebook.com/groups/turkey.travel.deals' },\n  ],\n  fb_group_keywords: 'حجز,فندق,طيران,سيارة,سائق,برنامج سياحي,رحلة,اسطنبول,طرابزون,بورصة,انطاليا,شهر عسل,سياحة علاجية,تأجير,عرض سياحي,تركيا',\n\n  // ── INSTAGRAM hashtags – Bluevia ──────────────────────────────────────\n  ig_hashtags: [\n    'سياحة_تركيا', 'اسطنبول', 'طرابزون', 'بورصة', 'انطاليا',\n    'الشمال_التركي', 'حجوزات_فنادق', 'عروض_سياحية', 'شهر_عسل',\n    'سياحة_علاجية', 'BlueviaTravel', 'تركيا_بعيون_عربية',\n    'سياحة_الخليج', 'المغرب_تركيا', 'اجازة_تركيا',\n  ],\n\n  // ── TikTok – سياحة تركيا ────────────────────────────────────\n  tt_profile_urls: [\n    'https://www.tiktok.com/@bluevia.travel',\n    'https://www.tiktok.com/@turkey.tourism',\n    'https://www.tiktok.com/@istanbul.explore',\n  ],\n\n  // ── Twitter/X – كلمات بحث سياحية ─────────────────────────────────────\n  tw_search_terms: [\n    'حجز فندق اسطنبول', 'سائق في طرابزون', 'أفضل برامج سياحية تركيا',\n    'عروض رحلات تركيا', 'شهر عسل تركيا', 'سياحة علاجية اسطنبول',\n    'تأجير سيارات انطاليا', 'Travel Turkey VIP', 'Istanbul Luxury Hotels',\n    'عروض الصيف تركيا', 'رحلة الشمال التركي', 'تذاكر طيران تركيا',\n  ],\n\n  // ── خدمات Bluevia وكلمات التصنيف ──────────────────────────────────────\n  services_map: {\n    family_trips: ['عائلي', 'عائلة', 'اطفال', 'برنامج عائلي', 'سياحة عائلية'],\n    honeymoon: ['شهر عسل', 'عرسان', 'رومانسية', 'honeymoon', 'جولة للعرسان'],\n    medical: ['زراعة شعر', 'تجميل', 'علاجية', 'مستشفى', 'اسنان', 'فحص طبي'],\n    transport: ['سيارة', 'سائق', 'توصيل', 'نقل', 'مطار', 'تأجير'],\n    hotels: ['فندق', 'شقة', 'سكن', 'فيلا', 'منتجع', 'hotel', 'اقامة'],\n    flights: ['طيران', 'تذكرة', 'رحلة جوية', 'flight', 'تذاكر'],\n    daily_tours: ['رحلة يومية', 'جولة', 'غروب', 'سهرة', 'بوسفور', 'جولات'],\n  },\n\n  // ── فلاتر Spam ─────────────────────────────────────────────────────────\n  spam_keywords: [\n    'للبيع', 'عقار', 'ربح سريع', 'استثمار وهمي', 'تداول', 'فوركس',\n    'كسب المال من المنزل', 'ارباح يومية مضمونة',\n  ],\n\n  // ── System Prompt لـ AI (محدّث لـ Bluevia Travel) ────────────────────────────\n  ai_system_prompt: \\`أنت محلل بيانات محترف لنظام Bluevia Travel – شركة رائدة في خدمات السياحة الفاخرة في تركيا.\nمهمتك: تحليل النص وتحديد نوع الخدمة السياحية المطلوبة وجودة العميل المحتمل (Lead).\nركز على العملاء من الخليج والمغرب العربي بأسلوب VIP وراقي.\n\nأجب بـ JSON خام فقط بدون أي نص خارجه، بدون markdown:\n{\n  \"intent\": \"booking_ready|research|travel_planning|complaint|irrelevant\",\n  \"urgency\": \"immediate|soon|planned|unknown\",\n  \"lead_quality\": 0-100,\n  \"service_type\": \"family_trips|honeymoon|medical|transport|hotels|flights|daily_tours|unknown\",\n  \"service_details\": \"وصف قصير للطلب السياحي (مثلاً: عائلة 5 أشخاص لطرابزون)\",\n  \"budget_signal\": \"economy|standard|luxury|vip\",\n  \"detected_phone\": \"رقم الهاتف المكتشف أو null\",\n  \"travel_group\": \"family|couple|solo|friends|unknown\",\n  \"pax_count\": 0,\n  \"ai_reason\": \"تفسير قصير بالعربية\"\n}\n\nمعايير الجودة:\n- 90-100: هاتف + booking_ready + immediate\n- 75-89: travel_planning واضح + soon\n- 50-74: research + planned\n- 25-49: استفسار سياحي عام\n- 1-24: غير ذي صلة\\`,\n}}]};"
       },
       "name": "Config – Keywords & Hashtags",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1392,
@@ -36,10 +36,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// وضع التشغيل – اضبط هنا فقط\n// USE_DEMO = false  → Apify الحقيقي ✅ PRODUCTION\n// USE_DEMO = true   → بيانات وهمية   🧪 TESTING ONLY\nconst USE_DEMO = false;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    use_demo: USE_DEMO,\n    mode_label: USE_DEMO ? '🧪 DEMO MODE' : '🚀 PRODUCTION MODE',\n    config_loaded_at: new Date().toISOString()\n  }\n}];\n"
+        "jsCode": "// وضع التشغيل – اضبط هنا فقط\n// USE_DEMO = false  → Apify الحقيقي ✅ PRODUCTION\n// USE_DEMO = true   → بيانات وهمية   🧪 TESTING ONLY\nconst USE_DEMO = false;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    use_demo: USE_DEMO,\n    mode_label: USE_DEMO ? '🧪 Bluevia DEMO' : '🚀 Bluevia PROD',\n    config_loaded_at: new Date().toISOString()\n  }\n}];\n"
       },
       "name": "Mode Switch (Demo vs Production)",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1200,
@@ -73,7 +73,7 @@
         "options": {}
       },
       "name": "IF – Demo Mode?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -1056,
@@ -83,10 +83,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// SaaSAI – Demo Data Generator\nconst leads = [\n  {\n    raw_text: \"السلام عليكم، أحتاج حل أتمتة لشركتي، نريد ربط CRM مع WhatsApp و Excel تلقائياً. ميزانيتنا مرنة. رقمي 0551234567\",\n    username: \"ahmed_tech_sa\", full_name: \"أحمد العمري\",\n    platform: \"Facebook\", source: \"SaaSAI_Radar_FB\", item_type: \"comment\",\n    profile_url: \"https://facebook.com/ahmed_tech_sa\",\n    post_url: \"https://facebook.com/groups/automation.ksa/posts/12345\",\n    phones_found: [\"+966551234567\"]\n  },\n  {\n    raw_text: \"محتاج موقع احترافي لشركتي مع SEO، ميزانية 5000-8000 ريال، تواصلوا معي 0501112233\",\n    username: \"business_sa_2026\", full_name: \"سلطان الغامدي\",\n    platform: \"Instagram\", source: \"SaaSAI_Radar_IG\", item_type: \"comment\",\n    profile_url: \"https://instagram.com/business_sa_2026\",\n    post_url: \"https://instagram.com/p/saasai_web_001\",\n    phones_found: [\"+966501112233\"]\n  },\n  {\n    raw_text: \"أبي دعوة زفاف رقمية راقية لحفل ابني، مع QR code وصفحة تفاعلية. متى أتواصل؟ 0559876543\",\n    username: \"walid_wedding_ksa\", full_name: \"وليد المطيري\",\n    platform: \"Twitter\", source: \"SaaSAI_Radar_TW\", item_type: \"tweet\",\n    profile_url: \"https://twitter.com/walid_wedding\",\n    post_url: \"https://twitter.com/walid_wedding/status/99887\",\n    phones_found: [\"+966559876543\"]\n  },\n  {\n    raw_text: \"نريد تدريب فريقنا على n8n وأتمتة العمليات، نحن شركة 15 موظف. كيف نبدأ؟\",\n    username: \"startup_riyadh\", full_name: \"نورة القحطاني\",\n    platform: \"LinkedIn\", source: \"SaaSAI_Radar_LI\", item_type: \"post\",\n    profile_url: \"https://linkedin.com/in/startup_riyadh\",\n    post_url: \"https://linkedin.com/posts/startup_riyadh_001\",\n    phones_found: []\n  },\n  {\n    raw_text: \"أدور شركة تصميم هوية بصرية كاملة + موشن جرافيك للسوشيال. الميزانية مفتوحة. 0534455667\",\n    username: \"brand_ksa_media\", full_name: \"فيصل الشهراني\",\n    platform: \"TikTok\", source: \"SaaSAI_Radar_TT\", item_type: \"comment\",\n    profile_url: \"https://tiktok.com/@brand_ksa_media\",\n    post_url: \"https://tiktok.com/@saasai_design/video/111222\",\n    phones_found: [\"+966534455667\"]\n  },\n];\nconst now = new Date().toISOString();\nreturn leads.map((lead, i) => ({\n  json: { ...lead, comment_id: `demo_${Date.now()}_${i}`, captured_at: now, is_demo: true, flow_origin: 'SaaSAI_F1_Radar' }\n}));\n"
+        "jsCode": "// Bluevia – Demo Data Generator\nconst leads = [\n  {\n    raw_text: \"السلام عليكم، أحتاج برنامج سياحي لشهر العسل في طرابزون وإسطنبول لمدة 10 أيام. ميزانية VIP. رقمي 0551234567\",\n    username: \"ahmed_travel_sa\", full_name: \"أحمد العمري\",\n    platform: \"Facebook\", source: \"Bluevia_Radar_FB\", item_type: \"comment\",\n    profile_url: \"https://facebook.com/ahmed_travel_sa\",\n    post_url: \"https://facebook.com/groups/turkey.tourism/posts/12345\",\n    phones_found: [\"+966551234567\"]\n  },\n  {\n    raw_text: \"أريد حجز فندق 5 نجوم في تقسيم اسطنبول مع استقبال مطار، تواصلوا معي 0501112233\",\n    username: \"sultan_turkey_2026\", full_name: \"سلطان الغامدي\",\n    platform: \"Instagram\", source: \"Bluevia_Radar_IG\", item_type: \"comment\",\n    profile_url: \"https://instagram.com/sultan_turkey_2026\",\n    post_url: \"https://instagram.com/p/bluevia_istanbul_001\",\n    phones_found: [\"+966501112233\"]\n  },\n  {\n    raw_text: \"محتاج سيارة بسائق في طرابزون لعائلة 6 أشخاص، كم السعر لليوم؟ 0559876543\",\n    username: \"walid_kwt\", full_name: \"وليد المطيري\",\n    platform: \"Twitter\", source: \"Bluevia_Radar_TW\", item_type: \"tweet\",\n    profile_url: \"https://twitter.com/walid_kwt\",\n    post_url: \"https://twitter.com/walid_kwt/status/99887\",\n    phones_found: [\"+966559876543\"]\n  },\n  {\n    raw_text: \"بكم تكلفة زراعة الشعر في اسطنبول شامل السكن والمواصلات؟\",\n    username: \"omar_maghreb\", full_name: \"نورة القحطاني\",\n    platform: \"LinkedIn\", source: \"Bluevia_Radar_LI\", item_type: \"post\",\n    profile_url: \"https://linkedin.com/in/omar_maghreb\",\n    post_url: \"https://linkedin.com/posts/omar_maghreb_001\",\n    phones_found: []\n  },\n  {\n    raw_text: \"أبحث عن رحلة عائلية شاملة لبورصة وأنطاليا الشهر القادم. 0534455667\",\n    username: \"faissal_uae\", full_name: \"فيصل الشهراني\",\n    platform: \"TikTok\", source: \"Bluevia_Radar_TT\", item_type: \"comment\",\n    profile_url: \"https://tiktok.com/@faissal_uae\",\n    post_url: \"https://tiktok.com/@bluevia/video/111222\",\n    phones_found: [\"+966534455667\"]\n  },\n];\nconst now = new Date().toISOString();\nreturn leads.map((lead, i) => ({\n  json: { ...lead, comment_id: `demo_${Date.now()}_${i}`, captured_at: now, is_demo: true, flow_origin: 'Bluevia_F1_Radar' }\n}));\n"
       },
       "name": "🧪 Demo Data Generator (بديل Apify)",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1344,
@@ -110,7 +110,7 @@
         "memory": 1024
       },
       "name": "FB – Groups Scraper",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -140,7 +140,7 @@
         "memory": 512
       },
       "name": "FB – Comments Scraper",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -169,7 +169,7 @@
         "memory": 512
       },
       "name": "Run an Actor and get dataset1",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -197,7 +197,7 @@
         "customBody": "={\n  \"directUrls\": {{ JSON.stringify($('Config – Keywords & Hashtags').first().json.ig_profile_urls) }},\n  \"resultsType\": \"comments\",\n  \"searchType\": \"posts\",\n  \"searchLimit\": 2,\n  \"resultsLimit\": 80,\n  \"checkNewPosts\": true\n}"
       },
       "name": "IG – Comment Scraper",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -227,7 +227,7 @@
         "memory": 256
       },
       "name": "TikTok – Comments Scraper",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -257,7 +257,7 @@
         "memory": 256
       },
       "name": "X/Twitter – Tweets & Replies",
-      "type": "@apify/n8n-nodes-apify.apify",
+      "type": "@apify/Bluevia-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
         -784,
@@ -277,7 +277,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// FB – Normalize Posts (من مجموعات فيسبوك)\n// المدخل: بيانات خام من apify/facebook-groups-scraper\n// المخرج: { raw_text, username, full_name, profile_url, post_url,\n//           comment_id, phones_found, has_phone, platform, source,\n//           item_type, captured_at }\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (/^08\\d{8,11}$/.test(p)) return '+62' + p.slice(1);\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  // النص الرئيسي: نص المنشور أو نص التعليق\n  const postText = (d.text || d.postText || d.caption || '').trim();\n  const commentsArr = Array.isArray(d.topComments) ? d.topComments : (Array.isArray(d.comments) ? d.comments : []);\n  // إذا كان المنشور يحتوي على تعليقات، نعالج كل تعليق بشكل مستقل\n  if (commentsArr.length > 0) {\n    for (const c of commentsArr) {\n      const cText = (c.text || c.body || '').trim();\n      if (!cText || cText.length < 4) continue;\n      const phones = extractPhones(cText);\n      results.push({ json: {\n        raw_text: cText,\n        username: c.profileName || c.author || d.profileName || 'Unknown',\n        full_name: c.profileName || c.author || '',\n        profile_url: c.profileUrl || (c.profileId ? `https://facebook.com/${c.profileId}` : ''),\n        post_url: d.url || d.postUrl || '',\n        post_text: postText.substring(0, 200),\n        comment_id: c.id || c.commentId || '',\n        posted_at: c.date || c.time || '',\n        phones_found: phones,\n        has_phone: phones.length > 0,\n        platform: 'Facebook',\n        source: 'Radar_FB_Groups',\n        item_type: 'comment',\n        captured_at: now\n      }});\n    }\n  } else if (postText.length >= 4) {\n    // معالجة المنشور نفسه كمحتوى\n    const phones = extractPhones(postText);\n    results.push({ json: {\n      raw_text: postText,\n      username: d.profileName || d.user?.name || 'Unknown',\n      full_name: d.profileName || d.user?.name || '',\n      profile_url: d.profileUrl || (d.profileId ? `https://facebook.com/${d.profileId}` : ''),\n      post_url: d.url || '',\n      comment_id: d.id || d.postId || '',\n      posted_at: d.time || d.date || '',\n      phones_found: phones,\n      has_phone: phones.length > 0,\n      platform: 'Facebook',\n      source: 'Radar_FB_Groups',\n      item_type: 'post',\n      captured_at: now\n    }});\n  }\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_FB_Groups', reason: 'no_items' } }];\n"
       },
       "name": "FB – Normalize Posts",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -292,7 +292,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// FB – Normalize Comments (تعليقات صفحة الشركة)\n// المدخل: بيانات من apify/facebook-posts-scraper أو facebook-comments-scraper\n// المخرج: { raw_text, username, full_name, profile_url, post_url,\n//           comment_id, phones_found, has_phone, platform, source, item_type, captured_at }\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (/^08\\d{8,11}$/.test(p)) return '+62' + p.slice(1);\n  if (/^01\\d{7,9}$/.test(p)) return '+60' + p.slice(1);\n  if (/^03\\d{9}$/.test(p)) return '+92' + p.slice(1);\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  // دعم هيكليات متعددة: facebook-posts-scraper + facebook-comments-scraper\n  const text = (d.text || d.message || d.body || d.commentText || '').trim();\n  if (!text || text.length < 4) continue;\n  const phones = extractPhones(text);\n  // فلتر: إما هناك رقم هاتف، أو نية شراء واضحة\n  const hasBuyerIntent = /بكم|سعر|كم|احجز|متاح|تواصل|رقمي|واتساب|عندكم|فندق|غرفة|حجز|أبغى|أريد/gi.test(text);\n  if (phones.length === 0 && !hasBuyerIntent) continue;\n  results.push({ json: {\n    raw_text: text,\n    username: d.profileName || d.author || d.user?.name || 'Unknown',\n    full_name: d.profileName || d.author || '',\n    profile_url: d.profileUrl || (d.profileId ? `https://facebook.com/${d.profileId}` : ''),\n    post_url: d.commentUrl || d.url || d.postUrl || d.facebookUrl || '',\n    post_text: (d.postTitle || d.parentText || '').substring(0, 200),\n    comment_id: d.id || d.commentId || d.facebookId || '',\n    posted_at: d.date || d.time || '',\n    likes_count: Number(d.likesCount) || 0,\n    phones_found: phones,\n    has_phone: phones.length > 0,\n    platform: 'Facebook',\n    source: 'Radar_FB_Comments',\n    item_type: 'comment',\n    captured_at: now\n  }});\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_FB_Comments', reason: 'no_customer_leads_found' } }];\n"
       },
       "name": "FB – Normalize Comments",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -305,7 +305,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// FB – Normalize Comments v2 (لعقدة Run an Actor and get dataset1)\n// المدخل: apify/facebook-comments-scraper\n// الحقول الخاصة بهذا الأكتور: facebookUrl, id, feedbackId, date, text,\n//   profileUrl, profileId, profileName, profilePicture, likesCount,\n//   threadingDepth, facebookId, postTitle, inputUrl\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (/^08\\d{8,11}$/.test(p)) return '+62' + p.slice(1);\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  const text = (d.text || '').trim();\n  if (!text || text.length < 4) continue;\n  const phones = extractPhones(text);\n  const hasBuyerIntent = /بكم|سعر|كم|احجز|متاح|تواصل|رقمي|واتساب|عندكم|فندق|غرفة|حجز|أبغى|أريد|كيف الاسعار|كم الاقامة/gi.test(text);\n  if (phones.length === 0 && !hasBuyerIntent) continue;\n  results.push({ json: {\n    raw_text: text,\n    username: d.profileName || 'Unknown',\n    full_name: d.profileName || '',\n    profile_url: d.profileUrl || (d.profileId ? `https://facebook.com/${d.profileId}` : ''),\n    post_url: d.facebookUrl || d.inputUrl || '',\n    post_text: (d.postTitle || '').substring(0, 200),\n    comment_id: d.id || d.facebookId || '',\n    posted_at: d.date || '',\n    likes_count: Number(d.likesCount) || 0,\n    phones_found: phones,\n    has_phone: phones.length > 0,\n    platform: 'Facebook',\n    source: 'Radar_FB_PostComments',\n    item_type: 'comment',\n    captured_at: now\n  }});\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_FB_PostComments', reason: 'no_items' } }];\n"
       },
       "name": "IG – Normalize Posts",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -319,7 +319,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// IG – Normalize Comments\n// المدخل: apify/instagram-comment-scraper\n// الحقول: id, text, timestamp, ownerUsername, ownerUserId,\n//         postUrl, postShortcode, likesCount, parentCommentId\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (/^7\\d{8}$/.test(p))  return '+967' + p;\n  if (/^07[789]\\d{7}$/.test(p)) return '+962' + p.slice(1);\n  if (/^08\\d{8,11}$/.test(p)) return '+62' + p.slice(1);\n  if (/^01\\d{7,9}$/.test(p)) return '+60' + p.slice(1);\n  if (/^03\\d{9}$/.test(p)) return '+92' + p.slice(1);\n  if (p.length === 8 && /^[3-9]/.test(p)) return '+965' + p;\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  const text = (d.text || d.caption || '').trim();\n  if (!text || text.length < 4) continue;\n  const phones = extractPhones(text);\n  const isReply = !!d.parentCommentId;\n  results.push({ json: {\n    raw_text: text,\n    username: d.ownerUsername || '',\n    full_name: d.ownerUsername || '',\n    profile_url: d.ownerUsername ? `https://www.instagram.com/${d.ownerUsername}/` : '',\n    post_url: d.postUrl || (d.postShortcode ? `https://www.instagram.com/p/${d.postShortcode}/` : ''),\n    comment_id: d.id || '',\n    posted_at: d.timestamp || '',\n    likes_count: Number(d.likesCount) || 0,\n    is_reply: isReply,\n    parent_id: d.parentCommentId || '',\n    phones_found: phones,\n    has_phone: phones.length > 0,\n    platform: 'Instagram',\n    source: isReply ? 'Radar_Instagram_Reply' : 'Radar_Instagram_Comments',\n    item_type: isReply ? 'reply' : 'comment',\n    captured_at: now\n  }});\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_Instagram_Comments', reason: 'no_valid_items' } }];\n"
       },
       "name": "IG – Normalize Comments",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -332,7 +332,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// TikTok – Normalize Comments\n// المدخل: clockworks/tiktok-comments-scraper\n// الحقول: text, cid, id, createTime, createTimeISO, diggCount, replyCount\n//         author.uniqueId, author.nickname, awemeId, videoUrl\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  const text = (d.text || d.commentText || '').trim();\n  if (!text || text.length < 3) continue;\n  const phones = extractPhones(text);\n  const author = d.author || d.user || {};\n  const username = author.uniqueId || d.uniqueId || d.authorUniqueId || '';\n  const nickname = author.nickname || d.nickname || d.authorNickname || username;\n  const videoUrl = d.videoUrl || (d.awemeId ? `https://www.tiktok.com/video/${d.awemeId}` : '');\n  const replyTexts = (d.replies || []).map(r => (r.text || '').trim()).filter(t => t.length >= 5);\n  results.push({ json: {\n    raw_text: text,\n    username: username,\n    full_name: nickname,\n    profile_url: username ? `https://www.tiktok.com/@${username}` : '',\n    post_url: videoUrl,\n    comment_id: d.cid || d.id || '',\n    posted_at: d.createTimeISO || (d.createTime ? new Date(d.createTime * 1000).toISOString() : ''),\n    likes_count: Number(d.diggCount) || 0,\n    reply_count: Number(d.replyCount) || (d.replies || []).length,\n    reply_texts: replyTexts,\n    phones_found: phones,\n    has_phone: phones.length > 0,\n    platform: 'TikTok',\n    source: 'Radar_TikTok_Comments',\n    item_type: 'comment',\n    captured_at: now\n  }});\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_TikTok_Comments', reason: 'no_valid_items' } }];\n"
       },
       "name": "TikTok – Normalize Comments",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -345,7 +345,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Twitter – Normalize\n// المدخل: apidojo/tweet-scraper\n// الحقول: fullText, text, id, id_str, author.userName, author.name,\n//         inReplyToStatusId, isRetweet, lang\n// ════════════════════════════════════════════════════════════════════════\nconst items = $input.all();\nconst results = [];\n\nfunction normalizePhone(raw) {\n  if (!raw) return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{8,15}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+9665' + p.slice(1);\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^07\\d{8}$/.test(p)) return '+967' + p.slice(1);\n  if (p.length >= 8) return '+' + p;\n  return null;\n}\nfunction extractPhones(text) {\n  if (!text) return [];\n  const regex = /((?:\\+|00)?\\d{1,3}[\\s\\-\\.]?[\\d]{1,3}[\\s\\-\\.]?[\\d\\s\\-\\.]{6,14})/g;\n  return [...new Set((text.match(regex) || []).map(normalizePhone).filter(Boolean))];\n}\n\nconst now = new Date().toISOString();\nfor (const item of items) {\n  const d = item.json;\n  if (d.error || d.errorMessage || d.skip) continue;\n  const text = (d.fullText || d.text || d.rawContent || '').trim();\n  if (!text || text.length < 5) continue;\n  if (d.isRetweet || text.startsWith('RT @')) continue;\n  const phones = extractPhones(text);\n  const author = d.author || d.user || {};\n  const screenName = author.userName || author.screen_name || '';\n  const fullName = author.name || author.displayName || '';\n  const tweetId = d.id || d.id_str || '';\n  const tweetUrl = screenName && tweetId ? `https://x.com/${screenName}/status/${tweetId}` : '';\n  results.push({ json: {\n    raw_text: text,\n    username: screenName,\n    full_name: fullName,\n    profile_url: screenName ? `https://x.com/${screenName}` : '',\n    post_url: tweetUrl,\n    comment_id: tweetId,\n    posted_at: d.createdAt || '',\n    likes_count: Number(d.likeCount) || 0,\n    reply_count: Number(d.replyCount) || 0,\n    phones_found: phones,\n    has_phone: phones.length > 0,\n    platform: 'X (Twitter)',\n    source: 'Radar_Twitter',\n    item_type: 'tweet',\n    captured_at: now\n  }});\n}\nreturn results.length > 0 ? results : [{ json: { skip: true, source: 'Radar_Twitter', reason: 'no_valid_items' } }];\n"
       },
       "name": "Twitter – Normalize",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -512,
@@ -358,7 +358,7 @@
       "parameters": {
         "numberInputs": 7
       },
-      "type": "n8n-nodes-base.merge",
+      "type": "Bluevia-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
         -240,
@@ -372,7 +372,7 @@
         "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Code – Filter Spam & Hash (مُحسَّن)\n// الوظيفة:\n//   1. استبعاد السبام والنصوص الفارغة\n//   2. توليد content_hash فريد لمنع التكرار\n//   3. تمرير جميع حقول البيانات الأصلية كاملة\n// ════════════════════════════════════════════════════════════════════════\n\nconst items = $input.all();\nconst results = [];\n\nconst BLACKLIST_PATTERNS = [\n  /follow\\s*me/i, /check\\s*my\\s*bio/i, /buy\\s+followers/i,\n  /كسب\\s+المال/, /ربح\\s+من\\s+المنزل/, /اشتراك\\s+مجاني/,\n  /t\\.me\\//i, /ارباح\\s+يومية/, /استثمار\\s+مضمون/,\n  /فرصة\\s+عمل/, /مندوب/, /اضغط\\s+هنا/,\n  /^[آأا]+[هه]+[!؟]*$/, /^\\d+$/, /^[👍❤️🙏]+$/u\n];\n\nconst seenHashes = new Set();\nconst now = new Date().toISOString();\n\nfor (const item of items) {\n  const d = item.json;\n  // تخطي عناصر skip\n  if (d.skip === true) continue;\n  \n  const text = (d.raw_text || d.text || d.message || '').trim();\n  \n  // فلترة الحجم: 4 حروف كحد أدنى، 600 كحد أقصى\n  if (!text || text.length < 4 || text.length > 600) continue;\n\n  // استبعاد السبام\n  if (BLACKLIST_PATTERNS.some(p => p.test(text))) continue;\n\n  // توليد الهاش\n  const hashBase = [d.platform || '', d.username || '', text.substring(0, 80)].join('|');\n  let h = 0;\n  for (let i = 0; i < hashBase.length; i++) h = Math.imul(31, h) + hashBase.charCodeAt(i) | 0;\n  const contentHash = `CH-${Math.abs(h).toString(36).toUpperCase().padStart(8, '0')}`;\n\n  if (seenHashes.has(contentHash)) continue;\n  seenHashes.add(contentHash);\n\n  // ✅ تمرير جميع الحقول الأصلية + إضافة content_hash\n  results.push({\n    json: {\n      // ── جميع حقول المصدر (محفوظة كاملة) ────────────────\n      raw_text:     text,\n      username:     d.username     || '',\n      full_name:    d.full_name    || d.username || '',\n      profile_url:  d.profile_url  || '',\n      post_url:     d.post_url     || '',\n      post_text:    d.post_text    || '',\n      comment_id:   d.comment_id   || '',\n      posted_at:    d.posted_at    || '',\n      likes_count:  d.likes_count  || 0,\n      reply_count:  d.reply_count  || 0,\n      phones_found: Array.isArray(d.phones_found) ? d.phones_found : [],\n      has_phone:    d.has_phone    || false,\n      platform:     d.platform     || 'Unknown',\n      source:       d.source       || 'Radar',\n      item_type:    d.item_type    || 'comment',\n      is_demo:      d.is_demo      || false,\n      // ── حقول مُضافة ────────────────────────────────────\n      content_hash: contentHash,\n      text_length:  text.length,\n      captured_at:  d.captured_at  || now,\n      status:       'Potential Lead'\n    }\n  });\n}\n\nconsole.log(`✅ Filter: ${results.length} leads passed out of ${items.length} inputs`);\nreturn results.length > 0 ? results : [];\n"
       },
       "name": "Code – Filter Spam & Hash",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -96,
@@ -385,7 +385,7 @@
         "batchSize": 3,
         "options": {}
       },
-      "type": "n8n-nodes-base.splitInBatches",
+      "type": "Bluevia-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
         80,
@@ -398,7 +398,7 @@
       "parameters": {
         "amount": 65
       },
-      "type": "n8n-nodes-base.wait",
+      "type": "Bluevia-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
         240,
@@ -425,7 +425,7 @@
           "delayBetweenBatches": 3000
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "type": "@Bluevia/Bluevia-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
         384,
@@ -441,7 +441,7 @@
           "maxOutputTokens": 2000
         }
       },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "type": "@Bluevia/Bluevia-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
         432,
@@ -458,10 +458,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// ╔═════════════════════════════════════════════════════════════════════════════\n// ║ 🎯 Code – Parse AI & Enrich | نظام رادار SaaSAI\n// ║ الوظيفة: تحليل مخرجات Gemini + دمجها مع البيانات الأصلية\n// ║ المدخل: مخرج Basic LLM Chain\n// ║ المخرج: سجل موحد كامل جاهز للشيت والوورك التالي\n// ╚═════════════════════════════════════════════════════════════════════════════\n\nconst aiItems  = $input.all();\nconst loopNode = $('Loop Over Items');\nconst loopItems = loopNode.all ? loopNode.all() : [];\n\n// ── تحليل مخرجات AI ──────────────────────────────────────────────────\nfunction parseAIOutput(raw) {\n  if (!raw) return {};\n  try {\n    let clean = String(raw)\n      .replace(/```json\\s*/gi, '').replace(/```\\s*/gi, '').trim();\n    // قد تكون مصفوفة\n    let parsed = JSON.parse(clean);\n    if (Array.isArray(parsed)) parsed = parsed[0] || {};\n    return parsed || {};\n  } catch (e) {\n    // محاولة استخراج أول JSON كائن\n    const match = String(raw).match(/\\{[\\s\\S]*?\\}/);\n    if (match) { try { return JSON.parse(match[0]); } catch { return {}; } }\n    return {};\n  }\n}\n\n// ── توحيد الأرقام ────────────────────────────────────────────────────\nfunction normalizePhone(raw) {\n  if (!raw || raw === 'null' || raw === 'false') return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  // استبعاد آيديات فيسبوك الطويلة\n  if (p.length > 15) return null;\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{10,14}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+966' + p;\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (p.length >= 9 && p.length <= 12) return '+' + p;\n  return null;\n}\n\n// ── استخراج البيانات الأصلية من Loop ─────────────────────────────────\nfunction getOriginalData(aiItem, index, loopItems) {\n  if (loopItems[index]?.json?.raw_text) return loopItems[index].json;\n  if (aiItem._orig?.raw_text) return aiItem._orig;\n  return {\n    raw_text: '', full_name: '', username: '', profile_url: '', post_url: '',\n    comment_id: '', platform: 'Unknown', source: 'Radar',\n    phones_found: [], captured_at: new Date().toISOString(),\n    _missing: true\n  };\n}\n\n// ── المعالجة الرئيسية ────────────────────────────────────────────────\nconst results = [];\nconst now = new Date().toISOString();\n\nfor (let index = 0; index < aiItems.length; index++) {\n  const aiItem = aiItems[index].json;\n  const orig    = getOriginalData(aiItem, index, loopItems);\n  \n  // تحليل AI\n  const aiRaw  = aiItem.text || aiItem.output || '';\n  const ai     = parseAIOutput(aiRaw);\n  \n  // الحقول من AI (مع قيم افتراضية)\n  const intent  = ai.intent   || 'info_seeking';\n  const urgency = ai.urgency  || 'unknown';\n  const quality = Math.max(0, Math.min(100, Number(ai.lead_quality) || 20));\n  const reason  = ai.ai_reason || 'تحليل غير متاح';\n  \n  // الهواتف: من AI + من الأصل\n  const aiPhone    = normalizePhone(ai.detected_phone);\n  const origPhones = Array.isArray(orig.phones_found) ? orig.phones_found : [];\n  const allPhones  = [...new Set([...origPhones, aiPhone].filter(Boolean))];\n  const phone      = allPhones[0] || 'empty';\n  \n  // ✅ رفع الجودة تلقائياً إذا وجد هاتف\n  const finalQuality = allPhones.length > 0 ? Math.max(quality, 80) : quality;\n  \n  // التصنيف\n  let category = 'COLD';\n  if (finalQuality >= 70) category = 'HOT';\n  else if (finalQuality >= 40) category = 'WARM';\n  \n  // رحلة العميل\n  const journeyMap = {\n    booking_ready:       'hot_booking',\n    booking_research:    'warm_research',\n    travel_planning:     'planning',\n    info_seeking:        'cold_info',\n    complaint_competitor:'cold_competitor',\n    irrelevant:          'filtered'\n  };\n  const journeyStep = journeyMap[intent] || 'awareness';\n  \n  // lead_id\n  const ts    = Date.now().toString(36).toUpperCase();\n  const rand  = Math.random().toString(36).slice(2, 5).toUpperCase();\n  const leadId = orig.lead_id || `LD-${ts.slice(-5)}-${rand}`;\n  \n  // النص المنظف\n  const cleanText = (orig.raw_text || '').replace(/https?:\\/\\/[^\\s]+/g, '').trim();\n  \n  results.push({ json: {\n    // ── هوية العميل ───────────────────────────────────────────────\n    lead_id:       leadId,\n    content_hash:  orig.content_hash || `CH-${ts.slice(-8)}`,\n    name:          orig.full_name || orig.username || 'عميل غير معروف',\n    full_name:     orig.full_name || '',\n    username:      orig.username  || '',\n    // ── الهاتف ─────────────────────────────────────────────────\n    phone:         phone,\n    phones_found:  allPhones,\n    has_phone:     allPhones.length > 0,\n    phone_count:   allPhones.length,\n    // ── بيانات إضافية ────────────────────────────────────────\n    email:         orig.email       || '',\n    nationality:   orig.nationality || '',\n    // ── المصدر ──────────────────────────────────────────────\n    source:        orig.source   || 'Radar',\n    platform:      orig.platform || 'Unknown',\n    item_type:     orig.item_type || 'comment',\n    // ── تحليل AI ─────────────────────────────────────────────\n    radar_intent:  intent,\n    radar_urgency: urgency,\n    radar_quality: finalQuality,\n    lead_quality:  finalQuality,\n    score:         finalQuality,\n    final_score:   finalQuality,\n    ai_reason:     reason,\n    notes:         reason,\n    // ── التصنيف ──────────────────────────────────────────────\n    category:      category,\n    lead_category: category,\n    journey_step:  journeyStep,\n    // ── تفضيلات السفر ─────────────────────────────────────\n    budget_signal:    ai.budget_signal    || 'unknown',\n    travel_group:     ai.travel_group     || 'unknown',\n    stars_preference: String(ai.stars_preference || 'unknown'),\n    pax_hint:         Math.max(0, Number(ai.pax_count)  || 0),\n    check_in_hint:    ai.check_in_hint    || '',\n    nights_hint:      Math.max(0, Number(ai.nights_hint) || 0),\n    // ── المحتوى ──────────────────────────────────────────────\n    raw_text:      orig.raw_text  || '',\n    last_message:  cleanText,\n    message:       cleanText,\n    // ── الروابط ───────────────────────────────────────────\n    profile_url:   orig.profile_url  || '',\n    post_url:      orig.post_url     || '',\n    comment_id:    orig.comment_id   || '',\n    likes_count:   Number(orig.likes_count)  || 0,\n    reply_count:   Number(orig.reply_count)  || 0,\n    // ── توقيت ────────────────────────────────────────────\n    consent:       allPhones.length > 0,\n    created_at:    orig.captured_at || now,\n    captured_at:   orig.captured_at || now,\n    updated_at:    now,\n    archived_at:   '',\n    assigned_to:   '',\n    // ── أعلام النظام ─────────────────────────────────────\n    is_demo:       orig.is_demo   || false,\n    flow_origin:   'SaaSAI_F1_Radar',\n    is_radar:      true,\n    is_direct_inbound: false\n  }});\n}\n\nconsole.log(`✅ Enriched: ${results.length} | HOT: ${results.filter(r=>r.json.category==='HOT').length} | WARM: ${results.filter(r=>r.json.category==='WARM').length}`);\nreturn results;\n"
+        "jsCode": "// ╔═════════════════════════════════════════════════════════════════════════════\n// ║ 🎯 Code – Parse AI & Enrich | نظام رادار Bluevia Travel\n// ║ الوظيفة: تحليل مخرجات Gemini + دمجها مع البيانات الأصلية\n// ║ المدخل: مخرج Basic LLM Chain\n// ║ المخرج: سجل موحد كامل جاهز للشيت والوورك التالي\n// ╚═════════════════════════════════════════════════════════════════════════════\n\nconst aiItems  = $input.all();\nconst loopNode = $('Loop Over Items');\nconst loopItems = loopNode.all ? loopNode.all() : [];\n\n// ── تحليل مخرجات AI ──────────────────────────────────────────────────\nfunction parseAIOutput(raw) {\n  if (!raw) return {};\n  try {\n    let clean = String(raw)\n      .replace(/```json\\s*/gi, '').replace(/```\\s*/gi, '').trim();\n    // قد تكون مصفوفة\n    let parsed = JSON.parse(clean);\n    if (Array.isArray(parsed)) parsed = parsed[0] || {};\n    return parsed || {};\n  } catch (e) {\n    // محاولة استخراج أول JSON كائن\n    const match = String(raw).match(/\\{[\\s\\S]*?\\}/);\n    if (match) { try { return JSON.parse(match[0]); } catch { return {}; } }\n    return {};\n  }\n}\n\n// ── توحيد الأرقام ────────────────────────────────────────────────────\nfunction normalizePhone(raw) {\n  if (!raw || raw === 'null' || raw === 'false') return null;\n  let p = String(raw).replace(/[\\s\\-\\.\\(\\)]/g, '');\n  // استبعاد آيديات فيسبوك الطويلة\n  if (p.length > 15) return null;\n  if (p.startsWith('00')) p = '+' + p.slice(2);\n  if (p.startsWith('+')) return /^\\+\\d{10,14}$/.test(p) ? p : null;\n  if (/^05\\d{8}$/.test(p)) return '+966' + p.slice(1);\n  if (/^5\\d{8}$/.test(p))  return '+966' + p;\n  if (/^966\\d{9}$/.test(p)) return '+' + p;\n  if (/^01[0125]\\d{8}$/.test(p)) return '+20' + p.slice(1);\n  if (/^(50|52|54|55|56)\\d{7}$/.test(p)) return '+971' + p;\n  if (p.length >= 9 && p.length <= 12) return '+' + p;\n  return null;\n}\n\n// ── استخراج البيانات الأصلية من Loop ─────────────────────────────────\nfunction getOriginalData(aiItem, index, loopItems) {\n  if (loopItems[index]?.json?.raw_text) return loopItems[index].json;\n  if (aiItem._orig?.raw_text) return aiItem._orig;\n  return {\n    raw_text: '', full_name: '', username: '', profile_url: '', post_url: '',\n    comment_id: '', platform: 'Unknown', source: 'Radar',\n    phones_found: [], captured_at: new Date().toISOString(),\n    _missing: true\n  };\n}\n\n// ── المعالجة الرئيسية ────────────────────────────────────────────────\nconst results = [];\nconst now = new Date().toISOString();\n\nfor (let index = 0; index < aiItems.length; index++) {\n  const aiItem = aiItems[index].json;\n  const orig    = getOriginalData(aiItem, index, loopItems);\n  \n  // تحليل AI\n  const aiRaw  = aiItem.text || aiItem.output || '';\n  const ai     = parseAIOutput(aiRaw);\n  \n  // الحقول من AI (مع قيم افتراضية)\n  const intent  = ai.intent   || 'info_seeking';\n  const urgency = ai.urgency  || 'unknown';\n  const quality = Math.max(0, Math.min(100, Number(ai.lead_quality) || 20));\n  const reason  = ai.ai_reason || 'تحليل غير متاح';\n  \n  // الهواتف: من AI + من الأصل\n  const aiPhone    = normalizePhone(ai.detected_phone);\n  const origPhones = Array.isArray(orig.phones_found) ? orig.phones_found : [];\n  const allPhones  = [...new Set([...origPhones, aiPhone].filter(Boolean))];\n  const phone      = allPhones[0] || 'empty';\n  \n  // ✅ رفع الجودة تلقائياً إذا وجد هاتف\n  const finalQuality = allPhones.length > 0 ? Math.max(quality, 80) : quality;\n  \n  // التصنيف\n  let category = 'COLD';\n  if (finalQuality >= 70) category = 'HOT';\n  else if (finalQuality >= 40) category = 'WARM';\n  \n  // رحلة العميل\n  const journeyMap = {\n    booking_ready:       'hot_booking',\n    booking_research:    'warm_research',\n    travel_planning:     'planning',\n    info_seeking:        'cold_info',\n    complaint_competitor:'cold_competitor',\n    irrelevant:          'filtered'\n  };\n  const journeyStep = journeyMap[intent] || 'awareness';\n  \n  // lead_id\n  const ts    = Date.now().toString(36).toUpperCase();\n  const rand  = Math.random().toString(36).slice(2, 5).toUpperCase();\n  const leadId = orig.lead_id || `LD-${ts.slice(-5)}-${rand}`;\n  \n  // النص المنظف\n  const cleanText = (orig.raw_text || '').replace(/https?:\\/\\/[^\\s]+/g, '').trim();\n  \n  results.push({ json: {\n    // ── هوية العميل ───────────────────────────────────────────────\n    lead_id:       leadId,\n    content_hash:  orig.content_hash || `CH-${ts.slice(-8)}`,\n    name:          orig.full_name || orig.username || 'عميل غير معروف',\n    full_name:     orig.full_name || '',\n    username:      orig.username  || '',\n    // ── الهاتف ─────────────────────────────────────────────────\n    phone:         phone,\n    phones_found:  allPhones,\n    has_phone:     allPhones.length > 0,\n    phone_count:   allPhones.length,\n    // ── بيانات إضافية ────────────────────────────────────────\n    email:         orig.email       || '',\n    nationality:   orig.nationality || '',\n    // ── المصدر ──────────────────────────────────────────────\n    source:        orig.source   || 'Radar',\n    platform:      orig.platform || 'Unknown',\n    item_type:     orig.item_type || 'comment',\n    // ── تحليل AI ─────────────────────────────────────────────\n    radar_intent:  intent,\n    radar_urgency: urgency,\n    radar_quality: finalQuality,\n    lead_quality:  finalQuality,\n    score:         finalQuality,\n    final_score:   finalQuality,\n    ai_reason:     reason,\n    notes:         reason,\n    // ── التصنيف ──────────────────────────────────────────────\n    category:      category,\n    lead_category: category,\n    journey_step:  journeyStep,\n    // ── تفضيلات السفر ─────────────────────────────────────\n    budget_signal:    ai.budget_signal    || 'unknown',\n    travel_group:     ai.travel_group     || 'unknown',\n    stars_preference: String(ai.stars_preference || 'unknown'),\n    pax_hint:         Math.max(0, Number(ai.pax_count)  || 0),\n    check_in_hint:    ai.check_in_hint    || '',\n    nights_hint:      Math.max(0, Number(ai.nights_hint) || 0),\n    // ── المحتوى ──────────────────────────────────────────────\n    raw_text:      orig.raw_text  || '',\n    last_message:  cleanText,\n    message:       cleanText,\n    // ── الروابط ───────────────────────────────────────────\n    profile_url:   orig.profile_url  || '',\n    post_url:      orig.post_url     || '',\n    comment_id:    orig.comment_id   || '',\n    likes_count:   Number(orig.likes_count)  || 0,\n    reply_count:   Number(orig.reply_count)  || 0,\n    // ── توقيت ────────────────────────────────────────────\n    consent:       allPhones.length > 0,\n    created_at:    orig.captured_at || now,\n    captured_at:   orig.captured_at || now,\n    updated_at:    now,\n    archived_at:   '',\n    assigned_to:   '',\n    // ── أعلام النظام ─────────────────────────────────────\n    is_demo:       orig.is_demo   || false,\n    flow_origin:   'Bluevia_F1_Radar',\n    is_radar:      true,\n    is_direct_inbound: false\n  }});\n}\n\nconsole.log(`✅ Enriched: ${results.length} | HOT: ${results.filter(r=>r.json.category==='HOT').length} | WARM: ${results.filter(r=>r.json.category==='WARM').length}`);\nreturn results;\n"
       },
       "name": "Code – Parse AI & Enrich",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         656,
@@ -494,7 +494,7 @@
         "options": {}
       },
       "name": "IF – Quality > 20?",
-      "type": "n8n-nodes-base.if",
+      "type": "Bluevia-nodes-base.if",
       "typeVersion": 2,
       "position": [
         800,
@@ -623,7 +623,7 @@
         }
       },
       "name": "Switch – Intent Router",
-      "type": "n8n-nodes-base.switch",
+      "type": "Bluevia-nodes-base.switch",
       "typeVersion": 3,
       "position": [
         -96,
@@ -638,7 +638,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1374,7 +1374,7 @@
       },
       "id": "f094e27a-84a7-437f-b664-f45d18cfba7d",
       "name": "GSheets – Archive Lead",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         144,
@@ -1397,7 +1397,7 @@
       },
       "id": "84981327-5e0f-4e1f-a4a1-724cba0bad58",
       "name": "Code – Batch Progress Logger",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         560,
@@ -1407,10 +1407,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
+        "url": "=https://Bluevia.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"lead_id\":        \"{{ $json.lead_id || '' }}\",\n  \"content_hash\":   \"{{ $json.content_hash || '' }}\",\n  \"phone\":          \"{{ $json.phone || '' }}\",\n  \"name\":           \"{{ $json.name || '' }}\",\n  \"full_name\":      \"{{ $json.full_name || '' }}\",\n  \"username\":       \"{{ $json.username || '' }}\",\n  \"email\":          \"{{ $json.email || '' }}\",\n  \"nationality\":    \"{{ $json.nationality || '' }}\",\n  \"source\":         \"{{ $json.source || 'Radar' }}\",\n  \"platform\":       \"{{ $json.platform || 'Unknown' }}\",\n  \"radar_intent\":   \"{{ $json.radar_intent || '' }}\",\n  \"radar_urgency\":  \"{{ $json.radar_urgency || '' }}\",\n  \"radar_quality\":  {{ Number($json.radar_quality) || 0 }},\n  \"lead_quality\":   {{ Number($json.lead_quality)  || 0 }},\n  \"score\":          {{ Number($json.score)          || 0 }},\n  \"final_score\":    {{ Number($json.final_score)    || 0 }},\n  \"category\":       \"{{ $json.category || 'WARM' }}\",\n  \"budget_signal\":  \"{{ $json.budget_signal || 'unknown' }}\",\n  \"travel_group\":   \"{{ $json.travel_group || 'unknown' }}\",\n  \"stars_preference\": \"{{ $json.stars_preference || 'unknown' }}\",\n  \"pax_hint\":       {{ Number($json.pax_hint)   || 0 }},\n  \"check_in_hint\":  \"{{ $json.check_in_hint || '' }}\",\n  \"nights_hint\":    {{ Number($json.nights_hint) || 0 }},\n  \"raw_text\":       {{ JSON.stringify($json.raw_text   || '') }},\n  \"last_message\":   {{ JSON.stringify($json.last_message || $json.raw_text || '') }},\n  \"message\":        {{ JSON.stringify($json.message || $json.raw_text || '') }},\n  \"journey_step\":   \"{{ $json.journey_step || 'awareness' }}\",\n  \"consent\":        {{ Boolean($json.consent) }},\n  \"created_at\":     \"{{ $json.created_at || '' }}\",\n  \"updated_at\":     \"{{ $json.updated_at || '' }}\",\n  \"notes\":          {{ JSON.stringify($json.notes || $json.ai_reason || '') }},\n  \"ai_reason\":      {{ JSON.stringify($json.ai_reason || '') }},\n  \"profile_url\":    \"{{ $json.profile_url || '' }}\",\n  \"post_url\":       \"{{ $json.post_url || '' }}\",\n  \"phones_found\":   {{ JSON.stringify($json.phones_found || []) }},\n  \"has_phone\":      {{ Boolean($json.has_phone) }},\n  \"phone_count\":    {{ Number($json.phone_count) || 0 }},\n  \"likes_count\":    {{ Number($json.likes_count) || 0 }},\n  \"captured_at\":    \"{{ $json.captured_at || '' }}\",\n  \"flow_origin\":    \"SaaSAI_F1_Radar\",\n  \"is_demo\":        {{ Boolean($json.is_demo) }},\n  \"received_at\":    \"{{ $now }}\"\n}",
+        "jsonBody": "={\n  \"lead_id\":        \"{{ $json.lead_id || '' }}\",\n  \"content_hash\":   \"{{ $json.content_hash || '' }}\",\n  \"phone\":          \"{{ $json.phone || '' }}\",\n  \"name\":           \"{{ $json.name || '' }}\",\n  \"full_name\":      \"{{ $json.full_name || '' }}\",\n  \"username\":       \"{{ $json.username || '' }}\",\n  \"email\":          \"{{ $json.email || '' }}\",\n  \"nationality\":    \"{{ $json.nationality || '' }}\",\n  \"source\":         \"{{ $json.source || 'Radar' }}\",\n  \"platform\":       \"{{ $json.platform || 'Unknown' }}\",\n  \"radar_intent\":   \"{{ $json.radar_intent || '' }}\",\n  \"radar_urgency\":  \"{{ $json.radar_urgency || '' }}\",\n  \"radar_quality\":  {{ Number($json.radar_quality) || 0 }},\n  \"lead_quality\":   {{ Number($json.lead_quality)  || 0 }},\n  \"score\":          {{ Number($json.score)          || 0 }},\n  \"final_score\":    {{ Number($json.final_score)    || 0 }},\n  \"category\":       \"{{ $json.category || 'WARM' }}\",\n  \"budget_signal\":  \"{{ $json.budget_signal || 'unknown' }}\",\n  \"travel_group\":   \"{{ $json.travel_group || 'unknown' }}\",\n  \"stars_preference\": \"{{ $json.stars_preference || 'unknown' }}\",\n  \"pax_hint\":       {{ Number($json.pax_hint)   || 0 }},\n  \"check_in_hint\":  \"{{ $json.check_in_hint || '' }}\",\n  \"nights_hint\":    {{ Number($json.nights_hint) || 0 }},\n  \"raw_text\":       {{ JSON.stringify($json.raw_text   || '') }},\n  \"last_message\":   {{ JSON.stringify($json.last_message || $json.raw_text || '') }},\n  \"message\":        {{ JSON.stringify($json.message || $json.raw_text || '') }},\n  \"journey_step\":   \"{{ $json.journey_step || 'awareness' }}\",\n  \"consent\":        {{ Boolean($json.consent) }},\n  \"created_at\":     \"{{ $json.created_at || '' }}\",\n  \"updated_at\":     \"{{ $json.updated_at || '' }}\",\n  \"notes\":          {{ JSON.stringify($json.notes || $json.ai_reason || '') }},\n  \"ai_reason\":      {{ JSON.stringify($json.ai_reason || '') }},\n  \"profile_url\":    \"{{ $json.profile_url || '' }}\",\n  \"post_url\":       \"{{ $json.post_url || '' }}\",\n  \"phones_found\":   {{ JSON.stringify($json.phones_found || []) }},\n  \"has_phone\":      {{ Boolean($json.has_phone) }},\n  \"phone_count\":    {{ Number($json.phone_count) || 0 }},\n  \"likes_count\":    {{ Number($json.likes_count) || 0 }},\n  \"captured_at\":    \"{{ $json.captured_at || '' }}\",\n  \"flow_origin\":    \"Bluevia_F1_Radar\",\n  \"is_demo\":        {{ Boolean($json.is_demo) }},\n  \"received_at\":    \"{{ $now }}\"\n}",
         "options": {
           "batching": {
             "batch": {
@@ -1427,7 +1427,7 @@
         }
       },
       "name": "Execute Flow #3 (Scoring)",
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "Bluevia-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         320,
@@ -1438,8 +1438,8 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "=🤖 <b>SaaSAI Radar 🔔 Lead جديد</b>\n\n{{ $json.category === 'HOT' ? '🔥 HOT LEAD – إجراء فوري' : ($json.category === 'WARM' ? '🌟 WARM LEAD' : '❄️ COLD LEAD') }}\n\n📱 <b>الهاتف:</b> <code>{{ $json.phone && $json.phone !== 'empty' ? $json.phone : 'غير متاح' }}</code>\n👤 <b>الاسم:</b> {{ $json.full_name || $json.name || 'غير معروف' }}\n🌐 <b>المنصة:</b> {{ $json.platform }} | {{ $json.source }}\n\n💼 <b>الخدمة المطلوبة:</b> {{ $json.service_type || $json.radar_intent || 'غير محدد' }}\n📝 <b>تفاصيل الطلب:</b>\n<i>{{ ($json.raw_text || 'بدون نص').substring(0, 250) }}</i>\n\n🎯 <b>النية:</b> {{ $json.radar_intent || 'غير محدد' }}\n⏰ <b>الإلحاح:</b> {{ $json.radar_urgency || 'غير معروف' }}\n⭐ <b>جودة Lead:</b> {{ $json.radar_quality || 0 }}%\n💰 <b>حجم العميل:</b> {{ $json.budget_signal || 'غير معروف' }}\n\n💡 <b>تحليل AI:</b>\n<i>{{ ($json.ai_reason || $json.notes || 'غير متاح').substring(0, 200) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n{{ $json.profile_url ? '<a href=\"' + $json.profile_url + '\">🔍 البروفايل</a>' : '' }}\n{{ $json.post_url ? ' | <a href=\"' + $json.post_url + '\">📌 المنشور</a>' : '' }}\n{{ $json.phone && $json.phone !== 'empty' ? '\n<a href=\"https://wa.me/' + $json.phone.replace(/[^\\d]/g,'') + '?text=أهلاً، رأيت استفسارك عن خدمات SaaSAI\">📲 واتساب SaaSAI</a>' : '\n📞 رقم غير متاح' }}\n\n🕐 <code>{{ $json.captured_at || $now }}</code>",
+        "chatId": "={{ $('Config – Keywords & Hashtags').first().json.TG_ADMIN_ID }}",
+        "text": "=🌍 <b>Bluevia Travel Radar 🔔 Lead سياحي جديد</b>\n\n{{ $json.category === 'HOT' ? '🔥 طلب عاجل – VIP' : ($json.category === 'WARM' ? '🌟 مهتم بالسياحة' : '❄️ استفسار عام') }}\n\n📱 <b>الهاتف:</b> <code>{{ $json.phone && $json.phone !== 'empty' ? $json.phone : 'غير متاح' }}</code>\n👤 <b>الاسم:</b> {{ $json.full_name || $json.name || 'غير معروف' }}\n🌐 <b>المنصة:</b> {{ $json.platform }} | {{ $json.source }}\n\n💼 <b>نوع الخدمة:</b> {{ $json.service_type || $json.radar_intent || 'غير محدد' }}\n📝 <b>تفاصيل الطلب:</b>\n<i>{{ ($json.raw_text || 'بدون نص').substring(0, 250) }}</i>\n\n🎯 <b>النية:</b> {{ $json.radar_intent || 'غير محدد' }}\n⏰ <b>التوقيت المتوقع:</b> {{ $json.radar_urgency || 'غير معروف' }}\n⭐ <b>جودة Lead:</b> {{ $json.radar_quality || 0 }}%\n💰 <b>ميزانية العميل:</b> {{ $json.budget_signal || 'غير معروف' }}\n\n💡 <b>رؤية Bluevia AI:</b>\n<i>{{ ($json.ai_reason || $json.notes || 'غير متاح').substring(0, 200) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n{{ $json.profile_url ? '<a href=\"' + $json.profile_url + '\">🔍 البروفايل</a>' : '' }}\n{{ $json.post_url ? ' | <a href=\"' + $json.post_url + '\">📌 المنشور</a>' : '' }}\n{{ $json.phone && $json.phone !== 'empty' ? '\n<a href=\"https://wa.me/' + $json.phone.replace(/[^\\d]/g,'') + '?text=أهلاً بك في Bluevia Travel، يسعدنا تلبية طلبكم بخصوص: ' + ($json.service_details || 'السياحة في تركيا') + '\">📲 تواصل واتساب VIP</a>' : '\n📞 رقم غير متاح' }}\n\n🕐 <code>{{ $json.captured_at || $now }}</code>",
         "additionalFields": {
           "appendAttribution": false,
           "disable_web_page_preview": true,
@@ -1447,7 +1447,7 @@
         }
       },
       "name": "Telegram – Lead Alert",
-      "type": "n8n-nodes-base.telegram",
+      "type": "Bluevia-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         800,
@@ -1467,7 +1467,7 @@
         "jsCode": "const items = $input.all();\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    filter_reason: `quality=${item.json.lead_quality} <= 20 or intent=irrelevant`,\n    filtered_at: new Date().toISOString()\n  }\n}));"
       },
       "name": "Code – Log Low Quality",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         640,
@@ -1477,10 +1477,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Code – Log Error\nconst items = $input.all();\nconst errorLogs = [];\nfunction genErrorId() {\n  const ts = Date.now().toString(36).toUpperCase();\n  const rand = Math.random().toString(36).slice(2,6).toUpperCase();\n  return `ERR-${ts}-${rand}`;\n}\nfor (const item of items) {\n  const d = item.json;\n  let severity = 'medium';\n  const errMsg = d.error || d.message || d.error_message || JSON.stringify(d).substring(0, 300);\n  if (/apify|scraper|timeout|429|503/i.test(errMsg)) severity = 'high';\n  if (/low.quality|filtered|spam/i.test(errMsg)) severity = 'low';\n  errorLogs.push({ json: {\n    error_id:    genErrorId(),\n    flow_name:   'SaaSAI_F1_Radar',\n    node_name:   d.node_name || d.source || 'Unknown Node',\n    error_msg:   errMsg,\n    severity:    severity,\n    occurred_at: new Date().toISOString(),\n    resolved_at: '', resolved_by: '',\n    notes: `platform=${d.platform || 'N/A'}`\n  }});\n}\nreturn errorLogs;\n"
+        "jsCode": "// Code – Log Error\nconst items = $input.all();\nconst errorLogs = [];\nfunction genErrorId() {\n  const ts = Date.now().toString(36).toUpperCase();\n  const rand = Math.random().toString(36).slice(2,6).toUpperCase();\n  return `ERR-${ts}-${rand}`;\n}\nfor (const item of items) {\n  const d = item.json;\n  let severity = 'medium';\n  const errMsg = d.error || d.message || d.error_message || JSON.stringify(d).substring(0, 300);\n  if (/apify|scraper|timeout|429|503/i.test(errMsg)) severity = 'high';\n  if (/low.quality|filtered|spam/i.test(errMsg)) severity = 'low';\n  errorLogs.push({ json: {\n    error_id:    genErrorId(),\n    flow_name:   'Bluevia_F1_Radar',\n    node_name:   d.node_name || d.source || 'Unknown Node',\n    error_msg:   errMsg,\n    severity:    severity,\n    occurred_at: new Date().toISOString(),\n    resolved_at: '', resolved_by: '',\n    notes: `platform=${d.platform || 'N/A'}`\n  }});\n}\nreturn errorLogs;\n"
       },
       "name": "Code – Log Error",
-      "type": "n8n-nodes-base.code",
+      "type": "Bluevia-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -160,
@@ -1495,7 +1495,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets"
+          "cachedResultName": "Bluevia_MasterSheets"
         },
         "sheetName": {
           "__rl": true,
@@ -1607,7 +1607,7 @@
       },
       "id": "49eef506-ad8d-4803-a4e8-d7e7e60f462b",
       "name": "GSheets – Log Error",
-      "type": "n8n-nodes-base.googleSheets",
+      "type": "Bluevia-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         224,
@@ -1624,13 +1624,13 @@
     {
       "parameters": {
         "chatId": "=5292626260",
-        "text": "={{ `⚠️ <b>خطأ في Radar Workflow</b>\\n📅 ${$json.occurred_at}\\n🔌 Node: ${$json.node_name}\\n❌ ${$json.error_msg.substring(0,200)}\\n🔴 Severity: ${$json.severity}` }}",
+        "text": "={{ `⚠️ <b>خطأ في Bluevia Radar</b>\\n📅 ${$json.occurred_at}\\n🔌 Node: ${$json.node_name}\\n❌ ${$json.error_msg.substring(0,200)}\\n🔴 Severity: ${$json.severity}` }}",
         "additionalFields": {
           "parse_mode": "HTML"
         }
       },
       "name": "Telegram – Error Alert",
-      "type": "n8n-nodes-base.telegram",
+      "type": "Bluevia-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         432,
