@@ -13,7 +13,7 @@
         }
       },
       "name": "Schedule – Daily 8AM Riyadh",
-      "type": "Bluevia-nodes-base.scheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         -96,
@@ -28,7 +28,7 @@
         "options": {}
       },
       "name": "Webhook – Manual Report Trigger",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
         -96,
@@ -40,7 +40,7 @@
     {
       "parameters": {},
       "name": "Merge Triggers",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         112,
@@ -53,7 +53,7 @@
         "jsCode": "// ─── Set Report Date Ranges – Improved Version ─────────────────────────────\nconst now = new Date();\n\n// ✅ استخدام timeZone بدلاً من الأوفست اليدوي (أكثر موثوقية)\nconst riyadhNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));\n\nconst todayStr = riyadhNow.toISOString().split('T')[0];\nconst yesterdayStr = new Date(riyadhNow.getTime() - 86400000).toISOString().split('T')[0];\nconst weekAgoStr = new Date(riyadhNow.getTime() - 7 * 86400000).toISOString().split('T')[0];\nconst monthAgoStr = new Date(riyadhNow.getTime() - 30 * 86400000).toISOString().split('T')[0];\n\n// ✅ تنسيق التاريخ بالعربية\nconst reportDateAr = riyadhNow.toLocaleDateString('ar-SA', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric' \n});\n\n// ✅ وقت التنفيذ بتوقيت الرياض للتدقيق\nconst generatedAtRiyadh = new Date().toLocaleString('en-CA', { \n  timeZone: 'Asia/Riyadh',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false\n}).replace(',', 'T');\n\nreturn [{ json: {\n  today: todayStr,           // \"2026-03-19\"\n  yesterday: yesterdayStr,   // \"2026-03-18\"\n  week_ago: weekAgoStr,      // \"2026-03-12\"\n  month_ago: monthAgoStr,    // \"2026-02-17\" (30 يوم، ليس شهرًا قمريًا)\n  report_date_ar: reportDateAr, // \"الخميس، ١٩ مارس ٢٠٢٦\"\n  report_date_iso: todayStr,    // للمقارنة مع التواريخ الأيزو\n  generated_at: generatedAtRiyadh, // \"2026-03-19T20:53:44\" بتوقيت الرياض\n  timezone: 'Asia/Riyadh'    // للتدقيق\n} }];"
       },
       "name": "Code – Set Report Dates",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         272,
@@ -86,7 +86,7 @@
       },
       "id": "53bd8796-8367-4ed6-ba2f-45885a60f639",
       "name": "GSheets – Read Leads Tab",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         496,
@@ -126,7 +126,7 @@
       },
       "id": "ce12165c-7f2d-49fc-9434-46c990050776",
       "name": "GSheets – Read Delivery Tab",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         496,
@@ -166,7 +166,7 @@
       },
       "id": "1541df8f-1b62-4acf-9822-d9f5eefe7b8b",
       "name": "GSheets – Read Sales Tasks Tab",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         496,
@@ -206,7 +206,7 @@
       },
       "id": "de6cf3b0-57a9-4842-9602-1ed7acda8a28",
       "name": "GSheets – Read Bookings",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         496,
@@ -246,7 +246,7 @@
       },
       "id": "17bf055c-973f-4c25-bda3-c4a337d5d290",
       "name": "GSheets – Read 7-Day Leads",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         496,
@@ -266,7 +266,7 @@
         "jsCode": "// ─── Calculate All KPIs – FINAL FIXED VERSION ─────────────────────────────\nconst dates = $('Code – Set Report Dates').first().json;\nconst allItems = $input.all();\n\n// 🔍 تسجيل خروج للتدقيق\nconsole.log('🔍 DEBUG: Total items received:', allItems.length);\n\n// 🔧 دوال مساعدة\nconst clean = (val) => val?.toString().trim().toLowerCase() || '';\nconst getDate = (item) => {\n  const d = item?.created_at || item?.captured_at || item?.sent_at || item?.updated_at;\n  return d?.toString().split('T')[0] || null;\n};\nconst isToday = (dateStr) => dateStr === dates.today;\nconst isThisWeek = (dateStr) => dateStr && dateStr >= dates.week_ago && dateStr <= dates.today;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 🔍 فصل البيانات حسب المصدر\n// ═════════════════════════════════════════════════════════════════════════\n\n// 1️⃣ بيانات العملاء (Leads)\nconst leadsRaw = allItems\n  .filter(i => i.json?.journey_step !== undefined || i.json?.radar_intent !== undefined || i.json?.score !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id);\n\nconsole.log('👥 Leads found:', leadsRaw.length);\n\n// 2️⃣ بيانات الإرسال (Delivery) — ✅ إصلاح phone.includes\nconst delivRaw = allItems\n  .filter(i => i.json?.delivery_id !== undefined || i.json?.message_preview !== undefined)\n  .map(i => i.json)\n  .filter(j => {\n    const phone = j?.phone?.toString() || '';\n    return phone && !phone.includes('#ERROR!');\n  });\n\nconsole.log('📨 Deliveries found:', delivRaw.length);\n\n// 3️⃣ مهام المبيعات (Tasks)\nconst tasksRaw = allItems\n  .filter(i => i.json?.task_id !== undefined || i.json?.task_type !== undefined)\n  .map(i => i.json)\n  .filter(j => j?.lead_id || j?.task_id);\n\nconsole.log('📋 Tasks found:', tasksRaw.length);\n\n// 4️⃣ الحجوزات (Bookings)\nconst bookingsRaw = allItems\n  .filter(i => {\n    const j = i.json;\n    return j?.status !== undefined && \n           j?.journey_step === undefined &&\n           j?.delivery_id === undefined &&\n           j?.task_id === undefined &&\n           j?.lead_id !== undefined;\n  })\n  .map(i => i.json);\n\nconsole.log('💰 Bookings found:', bookingsRaw.length);\n\n// 5️⃣ بيانات الأسبوع\nconst weekRaw = leadsRaw;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 1️⃣ معالجة بيانات العملاء\n// ═════════════════════════════════════════════════════════════════════════\n\nconst uniqueLeads = {};\nleadsRaw.forEach(l => {\n  const id = l.lead_id;\n  if (!id) return;\n  const updatedAt = new Date(l.updated_at || l.created_at || 0);\n  if (!uniqueLeads[id] || updatedAt > new Date(uniqueLeads[id].updated_at || uniqueLeads[id].created_at || 0)) {\n    uniqueLeads[id] = l;\n  }\n});\nconst leadsArray = Object.values(uniqueLeads);\nconsole.log('✨ Unique leads after dedup:', leadsArray.length);\n\nconst todayLeads = leadsArray.filter(l => isToday(getDate(l)));\nconsole.log('📅 Today leads:', todayLeads.length, '(date:', dates.today + ')');\n\nconst weekLeadsArray = leadsArray.filter(l => isThisWeek(getDate(l)));\n\nconst total_leads = todayLeads.length;\nconst hot_leads = todayLeads.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst warm_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('warm') || clean(l.status) === 'warm').length;\nconst cold_leads = todayLeads.filter(l => clean(l.journey_step)?.includes('cold') || clean(l.status) === 'cold').length;\n\nconst avg_score = todayLeads.length > 0 \n  ? (todayLeads.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / todayLeads.length).toFixed(1)\n  : '0';\n\nconst from_radar = todayLeads.filter(l => clean(l.source)?.includes('radar')).length;\nconst from_whatsapp = todayLeads.filter(l => clean(l.source)?.includes('whatsapp')).length;\nconst from_form = todayLeads.filter(l => clean(l.source) === 'form').length;\nconst from_telegram = todayLeads.filter(l => clean(l.source)?.includes('telegram')).length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 2️⃣ معالجة بيانات الإرسال\n// ═════════════════════════════════════════════════════════════════════════\n\nconst validDeliveries = delivRaw.filter(d => {\n  if (!d.sent_at) return false;\n  if (d.lead_id?.toString()?.includes('test_') || d.flow_trigger === 'manual_test') return false;\n  return isToday(getDate(d)) && clean(d.status) !== 'empty';\n});\n\nconst total_deliveries = validDeliveries.length;\nconst delivered = validDeliveries.filter(d => clean(d.status) === 'delivered').length;\nconst failed = validDeliveries.filter(d => clean(d.status) === 'failed').length;\nconst delivery_rate = total_deliveries > 0 ? ((delivered / total_deliveries) * 100).toFixed(1) : '0';\n\nconst wa_delivered = validDeliveries.filter(d => clean(d.channel) === 'whatsapp' && clean(d.status) === 'delivered').length;\nconst tg_delivered = validDeliveries.filter(d => clean(d.channel) === 'telegram' && clean(d.status) === 'delivered').length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 3️⃣ معالجة مهام المبيعات\n// ═════════════════════════════════════════════════════════════════════════\n\nconst cleanTasks = tasksRaw.map(t => ({\n  ...t,\n  priority: clean(t.priority),\n  status: clean(t.status)\n}));\n\nconst todayTasks = cleanTasks.filter(t => {\n  const d = t.created_at?.split('T')[0];\n  return d === dates.today || d === dates.yesterday;\n});\n\nconst open_tasks = todayTasks.filter(t => t.status === 'open').length;\nconst closed_tasks = todayTasks.filter(t => t.status === 'closed').length;\nconst escalated = todayTasks.filter(t => t.priority === 'urgent' && t.status !== 'closed').length;\n\nconst total_handled = open_tasks + closed_tasks + todayTasks.filter(t => t.status === 'in_progress').length;\nconst task_close_rate = total_handled > 0 ? ((closed_tasks / total_handled) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 4️⃣ معالجة الحجوزات\n// ═════════════════════════════════════════════════════════════════════════\n\nconst validBookings = bookingsRaw.filter(b => {\n  return clean(b.status) === 'booked' && isToday(getDate(b)) && !b.archived_at;\n});\n\nconst uniqueBookings = {};\nvalidBookings.forEach(b => {\n  if (!b.lead_id) return;\n  uniqueBookings[b.lead_id] = b;\n});\nconst finalBookings = Object.values(uniqueBookings);\n\nconst bookings = finalBookings.length;\nconst b2b_booked = finalBookings.filter(b => clean(b.category)?.includes('b2b')).length;\nconst b2c_booked = finalBookings.filter(b => clean(b.category)?.includes('b2c')).length;\n\n// ═════════════════════════════════════════════════════════════════════════\n// 5️⃣ معالجة بيانات الأسبوع\n// ═════════════════════════════════════════════════════════════════════════\n\nconst week_leads = weekLeadsArray.length;\nconst week_hot = weekLeadsArray.filter(l => clean(l.journey_step) === 'hot_contacted' || clean(l.status) === 'hot').length;\nconst week_booked = weekLeadsArray.filter(l => clean(l.status) === 'booked').length;\nconst week_avg_score = weekLeadsArray.length > 0 \n  ? (weekLeadsArray.reduce((sum, l) => sum + (parseFloat(l.score) || 0), 0) / weekLeadsArray.length).toFixed(1)\n  : '0';\nconst week_conv_rate = week_leads > 0 ? ((week_booked / week_leads) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 📊 معدلات التحويل\n// ═════════════════════════════════════════════════════════════════════════\n\nconst lead_to_booking_rate = total_leads > 0 ? ((bookings / total_leads) * 100).toFixed(1) : '0';\nconst hot_to_booking_rate = hot_leads > 0 ? ((bookings / hot_leads) * 100).toFixed(1) : '0';\n\n// ═════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═════════════════════════════════════════════════════════════════════════\n\nreturn [{ json: {\n  report_date_ar: dates.report_date_ar,\n  report_date_iso: dates.report_date_iso,\n  generated_at: dates.generated_at,\n\n  total_leads, hot_leads, warm_leads, cold_leads, avg_score,\n  from_radar, from_whatsapp, from_form, from_telegram,\n\n  total_deliveries, delivered, failed, delivery_rate, wa_delivered, tg_delivered,\n\n  open_tasks, closed_tasks, escalated, task_close_rate,\n\n  bookings, b2b_booked, b2c_booked, lead_to_booking_rate, hot_to_booking_rate,\n\n  week_leads, week_hot, week_booked, week_avg_score, week_conv_rate,\n\n  _debug: {\n    total_items_received: allItems.length,\n    leads_found: leadsRaw.length,\n    deliveries_found: delivRaw.length,\n    tasks_found: tasksRaw.length,\n    bookings_found: bookingsRaw.length,\n    unique_leads_count: leadsArray.length,\n    today_leads_count: total_leads,\n    valid_deliveries_count: validDeliveries.length,\n    valid_bookings_count: finalBookings.length,\n    filters_applied: {\n      today: dates.today,\n      week_ago: dates.week_ago,\n      bookings_status_required: 'booked'\n    }\n  }\n} }];"
       },
       "name": "Code – Calculate All KPIs",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         832,
@@ -279,7 +279,7 @@
         "jsCode": "// ─── Generate Smart Insights – ROBUST VERSION ────────────────────────────\nconst k = $input.first().json;\n\n// 🔧 دالة مساعدة لتحويل القيم لأرقام بأمان\nconst num = (val, def = 0) => {\n  const n = parseFloat(val);\n  return isNaN(n) ? def : n;\n};\n\nconst insights = [];\nlet overall_rating = '✅ جيد';\nlet action_items = [];\n\n// ═══════════════════════════════════════════════════════════════════════\n// 1️⃣ حجم العملاء الجدد\n// ═══════════════════════════════════════════════════════════════════════\nconst total_leads = num(k.total_leads);\nif (total_leads === 0) {\n  insights.push('⚠️ لا يوجد عملاء جدد اليوم – تحقق من عمل Flow #1 Radar و Flow #2');\n  overall_rating = '🔴 تنبيه';\n  action_items.push('تحقق من تشغيل Flow #1 Radar');\n} else if (total_leads >= 20) {\n  insights.push(`🚀 يوم ممتاز! ${total_leads} عميل جديد`);\n} else if (total_leads >= 10) {\n  insights.push(`📈 أداء جيد – ${total_leads} عميل جديد`);\n} else {\n  insights.push(`📊 ${total_leads} عميل اليوم – أداء طبيعي`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 2️⃣ نسبة العملاء الساخنين (جودة الـ Leads)\n// ═══════════════════════════════════════════════════════════════════════\nconst hot_leads = num(k.hot_leads);\nif (total_leads > 0) {\n  const hotRatio = Math.round((hot_leads / total_leads) * 100);\n  if (hotRatio >= 30) insights.push(`🔥 ${hotRatio}% من الـ Leads كانوا Hot – جودة ممتازة!`);\n  else if (hotRatio >= 15) insights.push(`🌡️ ${hotRatio}% Leads Hot – جيد`);\n  else insights.push(`❄️ نسبة Hot منخفضة ${hotRatio}% – راجع إعدادات Radar`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 3️⃣ معدل التحويل (حجوزات / عملاء)\n// ═══════════════════════════════════════════════════════════════════════\nconst convRate = num(k.lead_to_booking_rate);\nif (convRate >= 15) { \n  insights.push(`💰 تحويل ممتاز ${convRate}%!`); \n  overall_rating = '🟢 ممتاز'; \n}\nelse if (convRate >= 8) { \n  insights.push(`💼 تحويل جيد ${convRate}%`); \n}\nelse if (convRate > 0) { \n  insights.push(`📉 تحويل ${convRate}% – فرصة للتحسين`); \n}\nelse if (total_leads > 0) { \n  insights.push('⚠️ لا يوجد حجوزات اليوم – راجع فريق المبيعات'); \n  action_items.push('متابعة Hot Leads المفتوحة'); \n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 4️⃣ معدل نجاح الإرسال\n// ═══════════════════════════════════════════════════════════════════════\nconst deliveryRate = num(k.delivery_rate);\nconst total_deliveries = num(k.total_deliveries);\nif (deliveryRate < 80 && total_deliveries > 5) {\n  insights.push(`📨 معدل الإرسال ${deliveryRate}% – راجع إعدادات WhatsApp/Telegram`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('مراجعة delivery_log للفشل');\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 5️⃣ المهام المصعّدة\n// ═══════════════════════════════════════════════════════════════════════\nconst escalated = num(k.escalated);\nif (escalated > 0) {\n  insights.push(`🚨 ${escalated} مهمة مبيعات تم تصعيدها – يحتاج متابعة فورية!`);\n  overall_rating = overall_rating === '🟢 ممتاز' ? '🟡 يحتاج متابعة' : overall_rating;\n  action_items.push('إغلاق المهام المصعّدة');\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 6️⃣ متوسط جودة الـ Leads\n// ═══════════════════════════════════════════════════════════════════════\nconst avgScore = num(k.avg_score);\nif (avgScore > 0) {\n  const scoreStatus = avgScore >= 70 ? 'مرتفع 🟢' : avgScore >= 50 ? 'متوسط 🟡' : 'منخفض 🔴';\n  insights.push(`📊 متوسط جودة الـ Leads: ${avgScore}/100 – ${scoreStatus}`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 7️⃣ مقارنة مع متوسط الأسبوع (إضافة اختيارية)\n// ═══════════════════════════════════════════════════════════════════════\nconst week_leads = num(k.week_leads);\nconst weekAvg = week_leads > 0 ? Math.round(week_leads / 7) : 0;\nconst todayVsWeek = total_leads - weekAvg;\n\nif (week_leads > 0 && Math.abs(todayVsWeek) >= 2) {\n  const direction = todayVsWeek > 0 ? '📈 أعلى' : '📉 أقل';\n  insights.push(`${direction} من متوسط الأسبوع بـ ${Math.abs(todayVsWeek)} عميل`);\n}\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═══════════════════════════════════════════════════════════════════════\nreturn [{ json: {\n  ...k,\n  insights: insights.join('\\n'),\n  overall_rating,\n  action_items: action_items.length > 0 \n    ? '⚡ إجراءات مطلوبة:\\n' + action_items.map((a,i) => `${i+1}. ${a}`).join('\\n') \n    : ''\n} }];"
       },
       "name": "Code – Generate Smart Insights",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1024,
@@ -524,7 +524,7 @@
       },
       "id": "dc1c95cd-d7c9-42af-b646-3c3ff96d4307",
       "name": "GSheets – Save Daily Report",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         1200,
@@ -774,7 +774,7 @@
         "options": {}
       },
       "name": "Google Sheets – Export to Dashboard",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         1376,
@@ -791,7 +791,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ \n  (() => {\n    const k = $json || {};\n    \n    // 🔧 دالة مساعدة للأرقام\n    const num = (val, def = 0) => {\n      const n = parseFloat(val);\n      return (n != null && !isNaN(n)) ? n : def;\n    };\n    \n    // ✅ حماية من rating غير موجود\n    const rating = k.overall_rating || 'جديد';\n    const ratingBg = rating.includes('ممتاز') ? '🟢' : rating.includes('تنبيه') ? '🔴' : '🟡';\n    \n    let report = `📊 *تقرير الأداء اليومي – Bluevia Travel*\\n`;\n    report += `📅 ${k.report_date_ar || 'غير متاح'}\\n`;\n    report += `${ratingBg} التقييم: *${rating}*\\n\\n`;\n\n    report += `━━━ 👥 *العملاء المحتملون* ━━━\\n`;\n    report += `📥 إجمالي: *${num(k.total_leads)}* | 🔥 Hot: *${num(k.hot_leads)}* | 🌿 Warm: *${num(k.warm_leads)}*\\n`;\n    report += `📡 Radar: ${num(k.from_radar)} | 💬 WA: ${num(k.from_whatsapp)} | 🌐 Form: ${num(k.from_form)} | ✈️ TG: ${num(k.from_telegram)}\\n`;\n    report += `📈 متوسط الدرجة: *${num(k.avg_score, '0')}/100*\\n\\n`;\n\n    report += `━━━ 💰 *الحجوزات والتحويل* ━━━\\n`;\n    report += `✅ حجوزات: *${num(k.bookings)}* (B2C: ${num(k.b2c_booked, 0)} | B2B: ${num(k.b2b_booked, 0)})\\n`;\n    report += `📊 Lead → حجز: *${num(k.lead_to_booking_rate, '0')}%* | Hot → حجز: *${num(k.hot_to_booking_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 📨 *الإرسال* ━━━\\n`;\n    report += `📤 إجمالي: ${num(k.total_deliveries)} | ✅ ناجح: ${num(k.delivered, 0)} | ❌ فشل: ${num(k.failed, 0)}\\n`;\n    report += `معدل النجاح: *${num(k.delivery_rate, '0')}%* | WA: ${num(k.wa_delivered, 0)} | TG: ${num(k.tg_delivered, 0)}\\n\\n`;\n\n    report += `━━━ 📋 *مهام المبيعات* ━━━\\n`;\n    report += `🟢 مغلقة: ${num(k.closed_tasks)} | 🟡 مفتوحة: ${num(k.open_tasks)} | 🔴 مصعّدة: ${num(k.escalated, 0)}\\n`;\n    if (k.avg_close_min > 0) report += `⏱️ متوسط الإغلاق: ${k.avg_close_min} دقيقة\\n`;\n    report += `\\n━━━ 📅 *آخر 7 أيام* ━━━\\n`;\n    report += `👥 ${num(k.week_leads)} lead | 🔥 ${num(k.week_hot, 0)} hot | ✅ ${num(k.week_booked, 0)} حجز | نسبة: *${num(k.week_conv_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 💡 *التحليل* ━━━\\n`;\n    report += k.insights || '📊 جاري تحليل البيانات...';\n    \n    if (k.action_items) {\n      report += `\\n\\n${k.action_items}`;\n    }\n    \n    // ✅ السطر الأهم: إرجاع النص النهائي\n    return report;\n  })()\n}}",
         "additionalFields": {
           "disable_notification": true,
@@ -799,7 +799,7 @@
         }
       },
       "name": "Telegram – Send Daily Report",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1552,
@@ -818,7 +818,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         848,
@@ -947,7 +947,7 @@
       },
       "id": "e2a3d7a0-55b3-4067-a79d-c7f217c31a1b",
       "name": "GSheets – Log Flow Error",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         1232,
@@ -963,14 +963,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #9 – Performance Dashboard*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Flow Error Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1552,
@@ -990,7 +990,7 @@
       "parameters": {
         "numberInputs": 5
       },
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
         688,
@@ -1006,7 +1006,7 @@
         "width": 944,
         "color": 2
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         784,
         16
@@ -1022,7 +1022,7 @@
         "width": 928,
         "color": 4
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         784,
         -192
@@ -1038,7 +1038,7 @@
         "width": 512,
         "color": 3
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         -144,
         -32

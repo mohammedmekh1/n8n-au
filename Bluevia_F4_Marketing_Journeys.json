@@ -8,7 +8,7 @@
         "options": {}
       },
       "name": "Webhook – From Flow #3 (Scoring)",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
         -448,
@@ -46,7 +46,7 @@
       },
       "id": "67662620-0f6d-4dac-8e01-0c0a9a7b3744",
       "name": "GSheets – Get Lead Profile",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -208,
@@ -66,7 +66,7 @@
         "jsCode": "// ─── Normalize Journey Data v4 — Fixed Webhook Structure ───────────────────\nconst webhook = $('Webhook – From Flow #3 (Scoring)')?.first()?.json || {};\n\n// ✅ استخراج البيانات الفعلية من داخل body\nconst incoming = webhook.body || webhook;\n\n// ✅ جلب الملف الشخصي من جوجل شيت (إن وُجد)\nconst profileItems = $input.all();\nconst profile = (profileItems?.[0]?.json?.phone) ? profileItems[0].json : {};\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 1️⃣ استخراج الهوية والبيانات الأساسية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phone = incoming.phone || incoming.lead_phone || profile.phone || profile.lead_phone || '';\nconst name = incoming.name || incoming.lead_name || incoming.full_name || profile.name || profile.lead_name || 'عميل جديد';\nconst email = incoming.email || incoming.lead_email || profile.email || '';\nconst source = incoming.source || profile.source || 'unknown';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 2️⃣ الدرجة والحالة\n// ═══════════════════════════════════════════════════════════════════════════\nconst final_score = incoming.score || incoming.final_score || profile.final_score || profile.score || 0;\nconst status = incoming.status || incoming.lead_status || profile.status || 'New';\nconst lead_category = incoming.category || incoming.lead_category || profile.category || profile.lead_category || 'B2C_solo';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 3️⃣ نية العميل والأولوية\n// ═══════════════════════════════════════════════════════════════════════════\nconst radar_intent = incoming.radar_intent || profile.radar_intent || 'general_inquiry';\nconst radar_urgency = incoming.radar_urgency || profile.radar_urgency || 'normal';\nconst budget_signal = incoming.budget_signal || profile.budget_signal || 'unknown';\nconst travel_group = incoming.travel_group || profile.travel_group || 'unknown';\nconst stars_preference = incoming.stars_preference || profile.stars_preference || 'any';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 4️⃣ بيانات الاتصال الإضافية\n// ═══════════════════════════════════════════════════════════════════════════\nconst phones_found = incoming.phones_found || profile.phones_found || (phone ? [phone] : []);\nconst pax_hint = incoming.pax || incoming.pax_hint || profile.pax || profile.pax_hint || 0;\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 5️⃣ منطق خطوة الرحلة (Journey Step)\n// ═══════════════════════════════════════════════════════════════════════════\nconst storedStep = profile.journey_step || 'new';\nconst isHot = status === 'Hot' || final_score >= 85;\nconst isB2B = lead_category.toUpperCase().startsWith('B2B');\nconst isFamily = lead_category.toLowerCase().includes('family') || travel_group === 'family';\n\nlet journey_step;\nif (isHot) {\n  journey_step = 'hot_contacted';\n} else if (isB2B) {\n  journey_step = 'b2b_nurturing';\n} else if (status === 'Warm' && final_score >= 60) {\n  journey_step = 'warm_followup';\n} else if (status === 'Cold' || final_score < 40) {\n  journey_step = 'cold_archive';\n} else {\n  journey_step = storedStep !== 'new' ? storedStep : 'new_lead';\n}\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 6️⃣ القناة المفضلة + توقيت المتابعة\n// ═══════════════════════════════════════════════════════════════════════════\nconst preferred_channel = incoming.preferred_channel || profile.preferred_channel || \n  (phone ? 'whatsapp' : email ? 'email' : 'telegram');\n\nconst lastContact = profile.last_contacted_at ? new Date(profile.last_contacted_at) : null;\nconst now = new Date();\nconst hours_since_last = lastContact ? Math.round((now - lastContact) / 36e5) : 999;\nconst tooSoon = hours_since_last < 24 && status !== 'Hot';\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 7️⃣ الإجراء الموصى به\n// ═══════════════════════════════════════════════════════════════════════════\nconst recommended_action = incoming.recommended_action || \n  (isHot ? 'immediate_call' : \n   status === 'Warm' ? 'whatsapp_followup_24h' : \n   'email_nurture');\n\n// ═══════════════════════════════════════════════════════════════════════════\n// 📦 المخرج النهائي\n// ═══════════════════════════════════════════════════════════════════════════\nreturn [{\n  json: {\n    // === الهوية ===\n    phone,\n    name,\n    email,\n    source,\n    \n    // === التقييم ===\n    final_score: Number(final_score),\n    status,\n    lead_category,\n    \n    // === النية والأولوية ===\n    radar_intent,\n    radar_urgency,\n    budget_signal,\n    travel_group,\n    stars_preference,\n    \n    // === الاتصال ===\n    pax_hint: Number(pax_hint),\n    phones_found: Array.isArray(phones_found) ? phones_found : [phones_found].filter(Boolean),\n    preferred_channel,\n    \n    // === الرحلة ===\n    journey_step,\n    recommended_action,\n    \n    // === التوقيت ===\n    tooSoon,\n    hours_since_last,\n    now_iso: now.toISOString(),\n    \n    // === للتدقيق ===\n    _debug: {\n      incoming_keys: Object.keys(incoming),\n      profile_keys: Object.keys(profile),\n      score_used: final_score,\n      category_used: lead_category,\n      using_body_wrapper: !!(webhook.body)\n    }\n  }\n}];"
       },
       "name": "Code – Normalize Journey Data",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         32,
@@ -101,7 +101,7 @@
         }
       },
       "name": "If – Too Soon to Send?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         272,
@@ -270,7 +270,7 @@
       },
       "id": "57fbb9ac-3084-43c6-be95-bacc6c066e02",
       "name": "GSheets – Log Skip (Too Soon)",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         512,
@@ -420,7 +420,7 @@
         }
       },
       "name": "Switch – Journey Step Router",
-      "type": "Bluevia-nodes-base.switch",
+      "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
         448,
@@ -433,7 +433,7 @@
         "jsCode": "// ── HOT LEAD – إجراء فوري وتحويل مباشر ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst phone = d.phone_normalized || d.phone || d.lead_phone || '';\n\n// 🚨 خط الاستعجال\nconst urgencyLine = d.radar_urgency === 'immediate' \n  ? '🔴 نفهم أنك تحتاج للحجز *الآن* — وسنساعدك فورًا!' \n  : '⚡ طلبك مهم بالنسبة لنا، وسنبدأ المعالجة فورًا.';\n\n// 💰 خط الميزانية المخصص\nconst budgetLine = d.budget_signal === 'luxury' \n  ? '✨ نعرض لك أفضل فنادق 5 نجوم بإطلالة مباشرة على تركيا.' \n  : d.budget_signal === 'mid'\n  ? '💎 نوفر لك خيارات 4 نجوم متميزة بأفضل قيمة.'\n  : d.budget_signal === 'budget'\n  ? '🎯 لدينا عروض توفير ممتازة بأسعار تنافسية.'\n  : '💰 نملك خيارات متنوعة تناسب جميع الميزانيات.';\n\n// 👥 خط عدد الأشخاص\nconst paxLine = d.pax_hint && d.pax_hint > 1 \n  ? `\\n👨‍👩‍👧‍👦 نخصص لك غرفًا مناسبة لمجموعتك (${d.pax_hint} أشخاص).` \n  : d.pax_hint === 1\n  ? '\\n👤 نوفر لك إقامة مريحة ومناسبة لفرد واحد.'\n  : '';\n\n// 🕌 خط تفضيل النجوم\nconst starsLine = d.stars_preference === '5star'\n  ? '\\n⭐ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n⭐ خيارات 4 نجوم مريحة وبموقع ممتاز.'\n  : '';\n\n// 🎯 دعوة للإجراء عاجلة ومباشرة (تحويل فوري)\nconst cta = `\n🚀 *لتأكيد حجزك خلال دقائق*، اختر واحدًا:\n\n1️⃣ 📞 أريد اتصالاً فوريًا من خبير الرحلات\n2️⃣ 💬 أريد عرضًا سريعًا مع الأسعار عبر واتساب\n3️⃣ 🗓️ أريد حجزًا مباشرًا (أرسل تواريخي)\n\n_فقط أرسل الرقم (1 أو 2 أو 3) وسنبدأ فورًا!_ ⏱️`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🌍 أهلاً بك في Bluevia Travel يا ${customerName}!\n\n${urgencyLine}\n\n${budgetLine}${starsLine}${paxLine}\n\nنحن متخصصون في حجوزات Bluevia Travel 2026، وجاهزون لخدمتك الآن.\n\n${cta}\n\n🆔 مرجع الطلب العاجل: ${leadId}\n📞 للطوارئ: اضغط هنا للاتصال مباشرة: https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}\n\nقسم السفر VIP — Bluevia Travel 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'hot_immediate',\n  next_journey_step: 'hot_contacted',\n  priority: 'urgent',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والسياحة ===\n  hot_lead_type: d.radar_urgency === 'immediate' ? 'urgent_booking' : 'high_interest',\n  expected_response_window_minutes: 15,  // نتوقع ردًا خلال 15 دقيقة\n  escalate_if_no_reply_minutes: 30,      // تصعيد لمسؤول إذا لم يرد خلال 30د\n  cta_options: ['1', '2', '3'],          // خيارات الاستجابة الفورية\n  conversion_goal: 'immediate_booking',   // هدف التحويل: حجز فوري\n  whatsapp_click_to_call_url: `https://wa.me/${phone?.replace(/\\+/g,'')}?text=طلب_عاجل_${leadId}`,\n  whatsapp_ready: true,                   // جاهز للإرسال عبر واتساب\n  auto_escalate: true                     // تفعيل التصعيد التلقائي عند عدم الرد\n} }];"
       },
       "name": "Code – Hot Immediate Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -446,7 +446,7 @@
         "jsCode": "// ── B2B – شراكة تجارية احترافية ────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || d.company_name || 'شركتنا الكريمة';\nconst companyName = d.company_name || 'شركتكم الموقرة';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'قناتنا الرسمية';\n\n// 🏢 تخصيص خطاب الفئة\nconst catLine = d.lead_category === 'B2B_government' \n  ? 'للجهات الحكومية والوزارات الموقرة' \n  : d.lead_category === 'B2B_conference'\n  ? 'لتنظيم المؤتمرات والفعاليات الاحترافية'\n  : d.lead_category === 'B2B_travel_agency'\n  ? 'لشركات السياحة ووكالات السفر المعتمدة'\n  : 'لشركائنا الاستراتيجيين في قطاع السياحة';\n\n// 💼 مزايا مخصصة حسب نوع الشراكة\nconst benefits = {\n  'B2B_government': [\n    'عقود سنوية معتمدة وفق الأنظمة الحكومية',\n    'فواتير رسمية وضريبية موحدة',\n    'مدير حساب متخصص للجهات الحكومية',\n    'أولوية قصوى في مواسم الذروة والحج'\n  ],\n  'B2B_conference': [\n    'باقات مؤتمرات شاملة (قاعات + إقامة + خدمة)',\n    'تنسيق لوجستي كامل للوفود والمشاركين',\n    'خصومات حجمية حسب عدد الحضور',\n    'دعم فني 24/7 خلال فترة الفعالية'\n  ],\n  'B2B_travel_agency': [\n    'عمولات تنافسية على كل حجز مؤكد',\n    'لوحة تحكم خاصة لمتابعة الحجوزات',\n    'تأكيد فوري وتذاكر إلكترونية',\n    'دعم متعدد اللغات لعملائكم الدوليين'\n  ],\n  'default': [\n    'عقود مرنة بأسعار شراكة حصرية',\n    'أولوية في التخصيص خلال المواسم',\n    'مدير حساب مخصص لمتابعة احتياجاتكم',\n    'تقارير أداء شهرية وفواتير احترافية'\n  ]\n};\n\nconst benefitList = benefits[d.lead_category] || benefits['default'];\n\n// 📅 اقتراح مواعيد ذكي (اختياري)\nconst suggestedTimes = [\n  'الأحد - الثلاثاء 10ص-2م',\n  'الأربعاء - الخميس 4م-8م',\n  'موعد مخصص يناسب جدولكم'\n];\n\n// 🎯 دعوة للإجراء احترافية لقطاع الأعمال\nconst cta = `📋 *لبدء شراكة مثمرة*، يسعدنا تحديد موعد قصير (15 دقيقة) لمناقشة:\n\n• احتياجاتكم الخاصة لموسم 2026\n• الباقات الأنسب لنوع نشاطكم\n• آلية التعاون والتكامل الفني\n\n🗓️ *مواعيد مقترحة*: ${suggestedTimes.join(' | ')}\n\n_أو ردوا بـ \"موعد\" وسنتواصل معكم لتنسيق الوقت الأنسب_ 🤝`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🤝 أهلاً وسهلاً بكم في ${companyName}،\n\nنرحب بكم ${catLine} في منظومة Bluevia Travel 2026.\n\n✨ *مزايا الشراكة معنا:*\n${benefitList.map(b => `• ${b}`).join('\\n')}\n\n${cta}\n\n🆔 مرجع الشراكة: ${leadId}\n📧 للتواصل المباشر: b2b@blueviatravel.com\n\nمع خالص التقدير،  \nفريق شراكات الأعمال — Bluevia Travel 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'b2b_partnership',\n  next_journey_step: 'b2b_meeting_requested',\n  priority: 'high',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والسياحة ===\n  partnership_type: d.lead_category || 'general_b2b',\n  expected_response_window_hours: 48,  // نتوقع ردًا خلال يومين عمل\n  follow_up_if_no_reply: true,          // إرسال تذكير احترافي إذا لم يردوا\n  meeting_duration_minutes: 15,         // مدة المكالمة المقترحة\n  cta_keyword: 'موعد',                  // كلمة الاستجابة المتوقعة\n  contact_email: 'b2b@blueviatravel.com', // بديل للتواصل\n  whatsapp_ready: true,                 // جاهز للإرسال عبر واتساب\n  b2b_priority_score: d.final_score || 80 // درجة أولوية الشراكة\n} }];"
       },
       "name": "Code – B2B Partnership Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -459,7 +459,7 @@
         "jsCode": "// ── WARM NEW – ترحيب أولي ذكي ───────────────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\nconst source = d.source || 'موقعنا';\n\n// 🏨 تخصيص خط النجوم\nconst starsLine = d.stars_preference === '5star' \n  ? 'فنادق 5 نجوم فاخرة قريبة من تركيا 🌟' \n  : d.stars_preference === '4star'\n  ? 'فنادق 4 نجوم مريحة بموقع ممتاز ✨'\n  : 'أفضل خدمات Bluevia Travel بمختلف الفئات لتناسب احتياجاتك 💰';\n\n// 👥 تخصيص خط المجموعة\nconst groupLine = d.travel_group === 'family' \n  ? 'مع خيارات غرف عائلية واسعة 🧒👧' \n  : d.travel_group === 'couple'\n  ? 'مع خصوصية وهدوء يناسبكما 💑'\n  : d.travel_group === 'group'\n  ? 'مع تنسيق خاص للمجموعات 👥'\n  : '';\n\n// 💎 ملاحظة الميزانية (اختياري)\nconst budgetNote = d.budget_signal === 'luxury'\n  ? '\\n🎁 نضمن لك أفضل قيمة مقابل الفخامة التي تبحث عنها.'\n  : d.budget_signal === 'mid'\n  ? '\\n🎁 نوفر لك التوازن المثالي بين الجودة والسعر.'\n  : '';\n\n// 🎯 دعوة للإجراء مبسطة وتفاعلية\nconst cta = `📌 *للحصول على عرضك المخصص خلال دقائق*، اختر رقمًا:\n\n1️⃣ 🗓️ أريد تحديد تواريخ إقامتي\n2️⃣ 👥 أريد معرفة الأسعار حسب عدد الأشخاص  \n3️⃣ 🕌 أريد فندقًا قريبًا جدًا من تركيا\n4️⃣ 💬 أريد التحدث مع مستشار حجوزات\n\n_فقط أرسل الرقم المطلوب وسنبدأ فورًا!_ 😊`;\n\n// 📝 بناء الرسالة النهائية (بدون {{}} — استخدم ${} لجافاسكريبت)\nconst message = `🕌 أهلاً بك في عالم Bluevia Travel،  ${customerName}،\n\nشكرًا لاهتمامك بحجوزات Bluevia Travel عبر ${source}! 🙏\n\n✨ نخصص لك ${starsLine} ${groupLine} بأفضل الأسعار لموسم 2026.${budgetNote}\n\n${cta}\n\n🆔 مرجع طلبك: ${leadId}\n\nBluevia Travel — اكتشف تركيا بأسلوبك 🤲`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_welcome',\n  next_journey_step: 'warm_followup',\n  priority: d.final_score >= 70 ? 'high' : 'normal', // رفع الأولوية للدرجات الجيدة\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والسياحة ===\n  welcome_type: 'interactive_menu',  // نوع الترحيب: قائمة تفاعلية\n  expected_response_window_hours: 24, // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,        // إرسال تذكير إذا لم يرد\n  cta_options: ['1', '2', '3', '4'],  // خيارات الاستجابة المتوقعة\n  collection_fields: ['dates', 'pax', 'preferences'], // البيانات التي نجمعها\n  whatsapp_ready: true                // جاهز للإرسال عبر واتساب\n} }];"
       },
       "name": "Code – Warm Welcome Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -472,7 +472,7 @@
         "jsCode": "// ── WARM FOLLOWUP – متابعة دافئة مخصصة ─────────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب الميزانية\nconst offerLine = d.budget_signal === 'luxury' \n  ? 'عرض VIP خاص على فنادق 5 نجوم بإطلالة على تركيا 🌟' \n  : d.budget_signal === 'mid'\n  ? 'عرض حصري بخصم يصل 30% على فنادق 4 نجوم مميزة 💎'\n  : 'عرض توفير بخصم حتى 40% على خيارات مريحة ومناسبة 💰';\n\n// 🏨 ملاحظة حسب تفضيل النجوم\nconst starsNote = d.stars_preference === '5star'\n  ? '\\n✨ جميع خياراتنا 5 نجوم مع خدمات حصرية.'\n  : d.stars_preference === '4star'\n  ? '\\n✨ خيارات 4 نجوم مريحة وبأسعار منافسة.'\n  : '';\n\n// 🧒 ملاحظة للعائلات\nconst familyNote = (d.travel_group === 'family' || d.lead_category?.includes('family'))\n  ? '\\n👨‍👩‍👧‍👦 نوفر غرفًا عائلية واسعة وخدمات مناسبة للأطفال.'\n  : '';\n\n// 📝 إصلاح عرض \"عدد الأشخاص\" عندما يكون 0 أو فارغ\nconst displayPax = d.travel_group === 'family' \n  ? 'عائلتك' \n  : d.pax_hint && d.pax_hint > 1 \n  ? `${d.pax_hint} أشخاص` \n  : 'إقامتك';\n\n// 🆔 مرجع بديل إذا فُقد lead_id\nconst displayLeadId = leadId !== 'غير متاح' ? leadId : 'J-' + Date.now().toString(36).toUpperCase();\n\n// 📝 بناء الرسالة النهائية\nconst message = `🌟 مرحباً ${customerName}،\n\nنتمنى أن تكونوا بخير وعافية!\n\nلدينا ${offerLine} في تركيا 2026 محجوز خصيصاً لـ ${displayPax}.${starsNote}${familyNote}\n\n⏰ *العرض متاح لفترة محدودة فقط* (48 ساعة).\n\n🎁 *مزايا الحجز الآن:*\n• تأكيد فوري للحجز\n• إلغاء مجاني قبل 24 ساعة\n• دعم 24/7 عبر واتساب\n\nهل تريد التفاصيل الكاملة والأسعار؟ \n📲 فقط أرسل \"نعم\" أو تواصل معنا مباشرة 🏨\n\n🆔 مرجع العرض: ${displayLeadId}\n\nBluevia Travel — رحلتك القادمة تبدأ هنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'warm_followup',\n  next_journey_step: 'warm_offer_sent',\n  priority: d.final_score >= 75 ? 'high' : 'normal',\n  text: message,\n  \n  // === بيانات إضافية للتحليل ===\n  offer_type: d.budget_signal || 'standard',\n  expected_response_window_hours: 48,\n  follow_up_if_no_reply: true,\n  offer_expiry_iso: new Date(Date.now() + 48 * 36e5).toISOString(),\n  cta_keyword: 'نعم',\n  whatsapp_ready: true\n} }];"
       },
       "name": "Code – Warm Followup Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -485,7 +485,7 @@
         "jsCode": "// ── COLD RE-ENGAGE – إعادة تفعيل (مُحسّن) ─────────────────────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج الاسم بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي';\nconst leadId = d.lead_id || 'غير متاح';\n\n// 🎁 عرض مخصص حسب بيانات العميل (اختياري)\nconst offerText = d.budget_signal === 'luxury'\n  ? 'باقات فاخرة بأسعار حصرية للموسم القادم 🌟'\n  : d.stars_preference === '5star'\n  ? 'غرف 5 نجوم بإطلالة على تركيا بخصم ترحيبي 🕌'\n  : 'عروض موسمية تناسب جميع الميزانيات 💰';\n\n// 📝 بناء الرسالة النهائية\nconst message = `👋 مرحباً ${customerName}،\n\nمنذ فترة لم نتواصل – نأمل أن تكون رحلتك لتركيا ما زالت ضمن خططك!\n\n🎁 ${offerText}\n\nإذا كنت لا تزال مهتماً بالحجز، نسعد بمساعدتك في أي وقت.\n\n📲 أرسل \"مهتم\" وسنتواصل معك فوراً 🕌\n\n🆔 مرجع: ${leadId}`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'cold_reengage',\n  next_journey_step: 'cold_reengaged',\n  priority: 'low',\n  text: message,  // ✅ الرسالة جاهزة للإرسال الفعلي\n  // === بيانات إضافية للتحليل ===\n  reengage_reason: 'long_no_contact',\n  offer_type: d.budget_signal || 'general',\n  expected_response_window_hours: 72,  // نتوقع ردًا خلال 3 أيام\n  follow_up_if_no_reply: true  // إذا لم يرد، نرسل تذكيرًا لاحقًا\n} }];"
       },
       "name": "Code – Cold Re-engagement Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -498,7 +498,7 @@
         "jsCode": "// ── FALLBACK – مسار غير معروف (رسالة آمنة + إعادة توجيه) ───────────────────\nconst d = $input.first().json;\n\n// ✅ استخراج البيانات بأمان\nconst customerName = d.name || d.lead_name || 'عزيزي العميل';\nconst leadId = d.lead_id || 'غير متاح';\nconst journeyStep = d.journey_step || 'unknown';\nconst source = d.source || 'قناتنا';\n\n// 📝 رسالة عامة آمنة وموجهة لجمع البيانات\nconst message = `🏨 أهلاً وسهلاً بك يا ${customerName}،\n\nشكرًا لتواصلك معنا بخصوص Bluevia Travel 2026 عبر ${source}. 🙏\n\nنحن هنا لمساعدتك في العثور على أفضل إقامة قريبة من تركيا الساحرة، بأسعار تناسب احتياجاتك.\n\n✨ *لنبدأ معًا*، أخبرنا قليلاً عن رحلتك:\n\n🗓️ ما هو تاريخ وصولك المتوقع؟\n👥 كم عدد الأشخاص في مجموعتك؟\n⭐ هل تفضل فنادق 5 نجوم، 4 نجوم، أو خيارات اقتصادية؟\n\n_فقط أرسل إجاباتك وسنجهّز لك عرضًا مخصصًا خلال دقائق!_ 😊\n\n🆔 مرجع استفسارك: ${leadId}\n\nفريق Bluevia Travel — خدمتك أولويتنا 🕌`;\n\nreturn [{ json: {\n  ...d,\n  message_template: 'generic_intro',\n  next_journey_step: 'warm_new',  // إعادة توجيه آمن لمسار الترحيب وجمع البيانات\n  priority: 'normal',\n  \n  // ✅ الرسالة جاهزة للإرسال الفعلي\n  text: message,\n  \n  // === بيانات إضافية للتحليل والسياحة ===\n  fallback_reason: 'unknown_journey_step',  // سبب استخدام المسار الاحتياطي\n  original_journey_step: journeyStep,       // حفظ القيمة الأصلية للتدقيق\n  auto_reroute_to: 'warm_new',              // المسار الذي سيُعاد التوجيه إليه\n  data_collection_mode: true,               // تفعيل وضع جمع البيانات\n  expected_response_window_hours: 24,       // نتوقع ردًا خلال يوم\n  follow_up_if_no_reply: true,              // إرسال تذكير إذا لم يرد\n  whatsapp_ready: true,                     // جاهز للإرسال عبر واتساب\n  \n  // === للتدقيق الفني ===\n  _debug: {\n    fallback_triggered_at: new Date().toISOString(),\n    missing_journey_mapping: journeyStep,\n    safe_mode_enabled: true\n  }\n} }];"
       },
       "name": "Code – Fallback Generic Message",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         752,
@@ -509,7 +509,7 @@
     {
       "parameters": {},
       "name": "Merge All Message Branches",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         992,
@@ -628,7 +628,7 @@
         }
       },
       "name": "Switch – Preferred Channel",
-      "type": "Bluevia-nodes-base.switch",
+      "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
         1392,
@@ -659,7 +659,7 @@
         }
       },
       "name": "HTTP – Deliver via WhatsApp",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -686,7 +686,7 @@
         }
       },
       "name": "HTTP – Deliver via Telegram",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -707,7 +707,7 @@
         }
       },
       "name": "HTTP – Deliver via SMS",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -728,7 +728,7 @@
         }
       },
       "name": "HTTP – Deliver via Email",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -749,7 +749,7 @@
         }
       },
       "name": "HTTP – Deliver Fallback (WhatsApp)",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -761,7 +761,7 @@
     {
       "parameters": {},
       "name": "Merge Delivery Responses",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         1952,
@@ -1512,7 +1512,7 @@
       },
       "id": "6b74f82b-b42f-4d0d-a5e4-e522e3c22247",
       "name": "GSheets – Update Journey Step",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         2160,
@@ -1687,7 +1687,7 @@
       },
       "id": "ff39f9b1-e9d0-436e-a982-33bf08e2362a",
       "name": "GSheets – Log Journey Event",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         2160,
@@ -1703,14 +1703,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ \n  (() => {\n    const stepEmoji = { hot: '🔥', b2b: '🏢', warm_new: '🌱', warm_followup: '🌿', cold_reengage: '❄️', hot_contacted: '✅' };\n    const chanEmoji = { whatsapp: '💬', telegram: '✈️', sms: '📱', email: '📧' };\n    const step = $json.journey_step || '';\n    const cat = $json.lead_category || '';\n    return `${stepEmoji[step]||'📩'} *Journey Message Sent*\\n\\n` +\n      `👤 ${$json.name} | 📞 ${$json.phone}\\n` +\n      `${chanEmoji[$json.preferred_channel]||'📨'} Channel: ${$json.preferred_channel}\\n` +\n      `🗺️ Step: ${step} → ${$json.next_journey_step}\\n` +\n      `📂 Category: ${cat}\\n` +\n      `📊 Score: ${$json.final_score}/100\\n\\n` +\n      `💬 _${($json.text||'').substring(0,120)}_`;\n  })()\n}}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Journey Confirmation",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         2400,
@@ -1729,7 +1729,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         -448,
@@ -1858,7 +1858,7 @@
       },
       "id": "0fd0c4de-64fe-4639-8531-d67cc53180d8",
       "name": "GSheets – Log Flow Error",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -208,
@@ -1874,14 +1874,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #4 – Marketing Journeys*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Flow Error Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         32,

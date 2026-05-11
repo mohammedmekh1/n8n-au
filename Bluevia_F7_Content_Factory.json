@@ -4,7 +4,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         1440,
@@ -133,7 +133,7 @@
       },
       "id": "3f1af6ef-776e-4085-ba3d-79257b88e75c",
       "name": "GSheets – Log Flow Error",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         1664,
@@ -149,14 +149,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #7 – Content Management*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Flow Error Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1920,
@@ -185,7 +185,7 @@
       },
       "id": "af0c15ce-f71d-4d4e-9e28-e85fe2171cfc",
       "name": "Schedule – يومي 7 صباحاً",
-      "type": "Bluevia-nodes-base.scheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         656,
@@ -202,7 +202,7 @@
       },
       "id": "ce6cc43c-0ad2-4792-8614-8a1cf77b833e",
       "name": "Webhook – توليد يدوي",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         672,
@@ -216,7 +216,7 @@
       },
       "id": "c4883953-c0f6-4b7a-867f-e5f40b4cd653",
       "name": "Code – تحديد موضوعات اليوم",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         656,
@@ -229,7 +229,7 @@
       },
       "id": "3d1a6768-6815-4cf2-8bf9-4fdf362db378",
       "name": "Split – موضوع واحد في المرة",
-      "type": "Bluevia-nodes-base.splitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
         880,
@@ -242,7 +242,7 @@
       },
       "id": "d06f75f8-6460-4839-b200-164dad68d686",
       "name": "Code – تحليل رد Claude وبناء المنشورات",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1440,
@@ -472,7 +472,7 @@
       },
       "id": "61c3d138-d634-4fcc-8fc1-a80e1fabc5d3",
       "name": "GSheets – حفظ المنشور في social_posts",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         1680,
@@ -488,7 +488,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `📝 *محتوى جديد جاهز – Flow #7*\n\n📌 *الموضوع:* ${$json.ar_title}\n🎯 *النوع:* ${$json.content_type} | ${$json.angle}\n⭐ *النقاط:* ${$json.content_score}/100\n⏰ *أفضل وقت للنشر:* ${$json.best_posting_time}\n\n📱 *منشور X:*\n${$json.x_post}\n\n🖼 *وصف الصورة المطلوبة:*\n${$json.image_prompt_ar}\n\n📝 *نص القالب:* ${$json.template_text_ar}\n\n✅ الحالة: ready_to_publish – سيتم النشر غداً عبر Flow #8\n_لتعديل الحالة افتح Google Sheets > social_posts_` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -496,7 +496,7 @@
       },
       "id": "af3b7628-64e3-43ec-9c5b-e584ad43364b",
       "name": "Telegram – إشعار مراجعة المحتوى",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1920,
@@ -517,7 +517,7 @@
       },
       "id": "99e5b2a3-8e55-4c77-8fc4-ef482d99dd61",
       "name": "Code – إعداد تقرير اليوم",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         912,
@@ -526,7 +526,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `✅ *Flow #7 – تقرير التوليد اليومي*\n\n📊 المنشورات المولَّدة: ${$json.total_generated}\n⭐ متوسط النقاط: ${$json.avg_score}/100\n📅 التاريخ: ${$json.generated_date}\n\n🔄 Flow #8 سيسحب المنشورات غداً للنشر التلقائي\n📋 راجع الشيت لمراجعة أو تعديل المحتوى قبل النشر` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -534,7 +534,7 @@
       },
       "id": "e94ea6d2-fa73-4fb0-b518-4baff534e967",
       "name": "Telegram – تقرير توليد المحتوى",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1120,
@@ -558,7 +558,7 @@
       },
       "id": "c73f5e5c-516d-4068-a679-967c8f883e60",
       "name": "📌 دليل Flow #7 v2",
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         608,
@@ -571,7 +571,7 @@
         "text": "=\"{{ `أنت مسوّق رقمي خبير متخصص في Bluevia Travel.\\n\\nالفندق: ${$json.hotel_context.name}\\nالموقع: ${$json.hotel_context.location_desc}\\nالنجوم: ${$json.hotel_context.stars}\\nميزة التنافسية: ${$json.hotel_context.usp}\\nرابط الحجز: ${$json.hotel_context.booking_link}\\n\\nالموضوع المطلوب: ${$json.topic}\\nنوع المحتوى: ${$json.content_type}\\nالزاوية التسويقية: ${$json.angle}\\n\\nأنشئ محتوى تسويقياً احترافياً لـ 6 منصات. أجب بـ JSON فقط بدون أي نص خارجه:\\n\\n{\\n  \\\"ar_title\\\": \\\"عنوان عربي جذاب للمحتوى (10-15 كلمة)\\\",\\n  \\\"ar_body\\\": \\\"وصف تفصيلي بالعربية (30-50 كلمة) يصف قيمة الفندق والعرض\\\",\\n  \\\"x_post\\\": \\\"منشور تويتر ≤ 265 حرف – جذاب + 3 هاشتاجات: #فنادق_تركيا #سياحة_تركيا #TurkeyHotel\\\",\\n  \\\"instagram_post\\\": \\\"منشور انستغرام 150-200 حرف + 3 إيموجي + 10 هاشتاجات عربية وإنجليزية\\\",\\n  \\\"facebook_post\\\": \\\"منشور فيسبوك 200-300 حرف – ودود ومقنع + دعوة للتعليق\\\",\\n  \\\"whatsapp_broadcast\\\": \\\"رسالة واتساب 200-350 حرف – شخصية ودافئة + رابط الحجز بدون هاشتاجات\\\",\\n  \\\"telegram_post\\\": \\\"منشور تيليغرام 150-250 حرف – رسمي قليلاً + رابط\\\",\\n  \\\"tiktok_caption\\\": \\\"كابشن تيكتوك ≤ 150 حرف + 5 هاشتاجات ترند\\\",\\n  \\\"image_prompt_ar\\\": \\\"وصف الصورة المطلوبة بالعربية لفريق التصميم\\\",\\n  \\\"image_prompt_en\\\": \\\"Detailed English prompt for AI image generation: luxury hotel exterior near Masjid al-Bosphorus, golden hour lighting, professional photography, 16:9 ratio, photorealistic\\\",\\n  \\\"template_text_ar\\\": \\\"النص الذي سيُكتب فوق قالب الصورة (سطر واحد، 5-8 كلمات كحد أقصى، مؤثر)\\\",\\n  \\\"template_subtext_ar\\\": \\\"نص ثانوي للقالب (رابط أو هاتف أو شعار، ≤ 30 حرف)\\\",\\n  \\\"best_posting_time\\\": \\\"HH:MM\\\",\\n  \\\"content_score\\\": 85,\\n  \\\"target_emotion\\\": \\\"excitement|trust|urgency|inspiration|curiosity\\\",\\n  \\\"cta\\\": \\\"دعوة للإجراء مباشرة (5-8 كلمات)\\\"\\n}` }}\"",
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
         1104,
@@ -584,7 +584,7 @@
       "parameters": {
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.lmChatGoogleGemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
         1344,
@@ -608,7 +608,7 @@
       },
       "id": "ef5553bb-d72b-45b9-9258-f2593c08ea9a",
       "name": "📌 دليل Flow #7 v",
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         608,

@@ -1,0 +1,53 @@
+{
+  "name": "Bluevia – F0 – Master Config الإعدادات المركزية",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Bluevia Travel – Master Configuration v1.0\n// هذا الوورك فلو هو المرجع الأساسي لكافة الإعدادات والروابط والتوكنز\n// ════════════════════════════════════════════════════════════════════════\n\nconst MASTER_CONFIG = {\n  // ── معلومات الشركة ──────────────────────────────────────────────────\n  company: {\n    name: 'Bluevia Travel',\n    website: 'https://blueviatravel.com',\n    main_whatsapp: '+90XXXXXXXXXX',\n    main_telegram_bot: '@BlueviaTravelBot',\n    brand_color: '#0056b3',\n    vision: 'تقديم أرقى الخدمات السياحية في تركيا بلمسة VIP للجمهور العربي.'\n  },\n\n  // ── الإعدادات التقنية ───────────────────────────────────────────────\n  tech: {\n    n8n_url: 'https://n8n.srv1332143.hstgr.cloud',\n    sheet_id: '1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA',\n    google_sheets_gid_leads: '1136316584',\n    google_sheets_gid_errors: '1602796460',\n    apify_token: 'YOUR_APIFY_TOKEN',\n    tg_admin_chat_id: 'REDACTED_CHAT_ID'\n  },\n\n  // ── التخصصات والموظفين (F6 Handoff) ─────────────────────────────────\n  agents: [\n    { id: 'agent_istanbul', name: 'أحمد - خبير إسطنبول', specialty: 'hotels|daily_tours', regions: ['istanbul', 'bursa'], phone: '+905551112233' },\n    { id: 'agent_trabzon',  name: 'خالد - خبير الشمال',  specialty: 'family_trips|transport', regions: ['trabzon', 'rize'], phone: '+905554445566' },\n    { id: 'agent_medical',  name: 'د. سارة - السياحة العلاجية', specialty: 'medical', regions: ['istanbul'], phone: '+905557778899' },\n    { id: 'agent_vip',      name: 'ليلى - قسم VIP',       specialty: 'honeymoon|vip_travel', regions: ['all'], phone: '+905550009988' }\n  ],\n\n  // ── كلمات البحث والرصد (F1 Radar) ───────────────────────────────────\n  keywords: {\n    tourism: 'حجز,فندق,طيران,سيارة,سائق,برنامج سياحي,رحلة,اسطنبول,طرابزون,بورصة,انطاليا,شهر عسل,سياحة علاجية,تأجير,عرض سياحي,تركيا',\n    hashtags: ['سياحة_تركيا', 'اسطنبول', 'طرابزون', 'بورصة', 'انطاليا', 'الشمال_التركي', 'حجوزات_فنادق', 'BlueviaTravel'],\n    spam: ['للبيع', 'عقار', 'تداول', 'فوركس', 'ربح سريع', 'وظائف']\n  }\n};\n\nreturn [{ json: MASTER_CONFIG }];\n"
+      },
+      "name": "Global Config Store",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        240
+      ],
+      "id": "master-config-node"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get-master-config",
+        "options": {}
+      },
+      "name": "Webhook – Get Config",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        240
+      ],
+      "id": "webhook-get-config",
+      "webhookId": "get-master-config"
+    }
+  ],
+  "connections": {
+    "Webhook – Get Config": {
+      "main": [
+        [
+          {
+            "node": "Global Config Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "Bluevia-F0",
+  "tags": []
+}

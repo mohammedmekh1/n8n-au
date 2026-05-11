@@ -4,7 +4,7 @@
     {
       "id": "wed-wh-001",
       "name": "Webhook – VIP Travel Order",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
@@ -19,7 +19,7 @@
     {
       "id": "wed-code-001",
       "name": "Code – Normalize VIP Travel Order",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         220,
@@ -32,20 +32,20 @@
     {
       "id": "wed-code-002",
       "name": "Code – Validate Order",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         440,
         0
       ],
       "parameters": {
-        "jsCode": "\n// Bluevia – F12 – Validate Wedding Order\nconst d = $input.first().json;\nconst errors = [];\n\nif (!d.phone || d.phone.length < 10) errors.push('رقم الهاتف مفقود أو غير صالح');\nif (!d.name || d.name.length < 2)    errors.push('اسم العريس/العروس مفقود');\nif (!d.wedding_date)                  errors.push('تاريخ السفر مفقود');\nif (!d.package_type)                  errors.push('نوع الباقة غير محدد');\n\nconst valid = errors.length === 0;\nreturn [{ json: { ...d, is_valid: valid, validation_errors: errors.join(' | ') }}];\n"
+        "jsCode": "\n// Bluevia – F12 – Validate طلب سفر VIP\nconst d = $input.first().json;\nconst errors = [];\n\nif (!d.phone || d.phone.length < 10) errors.push('رقم الهاتف مفقود أو غير صالح');\nif (!d.name || d.name.length < 2)    errors.push('اسم العميل VIP مفقود');\nif (!d.travel_date)                  errors.push('تاريخ السفر مفقود');\nif (!d.package_type)                  errors.push('نوع الباقة غير محدد');\n\nconst valid = errors.length === 0;\nreturn [{ json: { ...d, is_valid: valid, validation_errors: errors.join(' | ') }}];\n"
       }
     },
     {
       "id": "wed-if-001",
       "name": "IF – Valid Order?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         660,
@@ -78,14 +78,14 @@
     {
       "id": "wed-tg-invalid",
       "name": "Telegram – Invalid Order Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         880,
         200
       ],
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "=❌ <b>طلب دعوة غير مكتمل</b>\\n🆔 {{ $json.order_id }}\\n❌ {{ $json.validation_errors }}\\n📞 {{ $json.phone }}",
         "additionalFields": {
           "parse_mode": "HTML",
@@ -103,7 +103,7 @@
     {
       "id": "wed-gs-001",
       "name": "GSheets – Save VIP Order",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         880,
@@ -139,7 +139,7 @@
             "special_requests": "={{ $json.special_requests || '' }}",
             "page_url": "={{ $json.page_url || '' }}",
             "qr_url": "={{ $json.qr_url || '' }}",
-            "wedding_slug": "={{ $json.wedding_slug || '' }}",
+            "trip_slug": "={{ $json.trip_slug || '' }}",
             "status": "={{ $json.status || 'new' }}",
             "payment_status": "={{ $json.payment_status || 'pending' }}",
             "source": "={{ $json.source || 'Website' }}",
@@ -149,7 +149,7 @@
             "updated_at": "={{ $now }}",
             "notes": "={{ $json.validation_errors || '' }}",
             "flow_origin": "Bluevia_F12_VIP",
-            "travel_date": "={{ $json.wedding_date || '' }}",
+            "travel_date": "={{ $json.travel_date || '' }}",
             "destination": "={{ $json.venue || '' }}"
           },
           "matchingColumns": [
@@ -211,8 +211,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_date",
-              "displayName": "wedding_date",
+              "id": "travel_date",
+              "displayName": "travel_date",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -292,8 +292,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_slug",
-              "displayName": "wedding_slug",
+              "id": "trip_slug",
+              "displayName": "trip_slug",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -397,7 +397,7 @@
     {
       "id": "wed-code-003",
       "name": "Code – Generate Travel Itinerary",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1100,
@@ -410,7 +410,7 @@
     {
       "id": "wed-gs-002",
       "name": "GSheets – Update with Page URL",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         1320,
@@ -427,7 +427,7 @@
           "__rl": true,
           "value": 2001234568,
           "mode": "list",
-          "cachedResultName": "wedding_orders",
+          "cachedResultName": "vip_travel_orders",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit#gid=2001234568"
         },
         "columns": {
@@ -436,7 +436,7 @@
             "order_id": "={{ $json.order_id }}",
             "page_url": "={{ $json.page_url }}",
             "qr_url": "={{ $json.qr_url }}",
-            "wedding_slug": "={{ $json.wedding_slug }}",
+            "trip_slug": "={{ $json.trip_slug }}",
             "status": "=page_created",
             "updated_at": "={{ $now }}"
           },
@@ -472,8 +472,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "wedding_slug",
-              "displayName": "wedding_slug",
+              "id": "trip_slug",
+              "displayName": "trip_slug",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -514,7 +514,7 @@
     {
       "id": "wed-gs-003",
       "name": "GSheets – Update Lead Status",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         1320,
@@ -539,8 +539,8 @@
           "value": {
             "lead_id": "={{ $json.lead_id }}",
             "status": "=in_progress",
-            "service_type": "=wedding",
-            "journey_step": "=wedding_active",
+            "service_type": "=vip_travel",
+            "journey_step": "=vip_travel_active",
             "updated_at": "={{ $now }}"
           },
           "matchingColumns": [
@@ -608,15 +608,15 @@
     {
       "id": "wed-tg-001",
       "name": "Telegram – New Order Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1540,
         0
       ],
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "=🎊 <b>طلب سفر VIP جديد – Bluevia Travel</b>\n\n👤 <b>العميل:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📱 <b>الهاتف:</b> <code>{{ $json.phone }}</code>\n📅 <b>تاريخ السفر:</b> {{ $json.wedding_date || 'غير محدد' }}\n📍 <b>الوجهة:</b> {{ $json.venue || 'غير محدد' }}\n\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n📋 <b>التفاصيل:</b> {{ $json.package_desc }}\n\n🆔 <b>رقم الطلب:</b> <code>{{ $json.order_id }}</code>\n🔗 <b>رابط البرنامج:</b> {{ $json.page_url || 'قيد الإنشاء' }}\n\n💬 <b>طلبات خاصة:</b> <i>{{ $json.special_requests || 'لا يوجد' }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n<a href=\"https://wa.me/{{ $json.phone.replace(/[^\\d]/g,'') }}?text=مرحباً {{ $json.name }}، استلمنا طلب دعوتك الرقمية رقم {{ $json.order_id }} وسنتواصل معك خلال 24 ساعة لتأكيد التفاصيل.\">📲 واتساب العميل</a>\n\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "chatId": "REDACTED_CHAT_ID",
+        "text": "=🎊 <b>طلب سفر VIP جديد – Bluevia Travel</b>\n\n👤 <b>العميل:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📱 <b>الهاتف:</b> <code>{{ $json.phone }}</code>\n📅 <b>تاريخ السفر:</b> {{ $json.travel_date || 'غير محدد' }}\n📍 <b>الوجهة:</b> {{ $json.venue || 'غير محدد' }}\n\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n📋 <b>التفاصيل:</b> {{ $json.package_desc }}\n\n🆔 <b>رقم الطلب:</b> <code>{{ $json.order_id }}</code>\n🔗 <b>رابط البرنامج:</b> {{ $json.page_url || 'قيد الإنشاء' }}\n\n💬 <b>طلبات خاصة:</b> <i>{{ $json.special_requests || 'لا يوجد' }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n<a href=\"https://wa.me/{{ $json.phone.replace(/[^\\d]/g,'') }}?text=مرحباً {{ $json.name }}، استلمنا طلب برنامجك السياحي VIP رقم {{ $json.order_id }} وسنتواصل معك خلال 24 ساعة لتأكيد التفاصيل.\">📲 واتساب العميل</a>\n\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
           "disable_web_page_preview": true
@@ -633,7 +633,7 @@
     {
       "id": "wed-http-001",
       "name": "HTTP – Send Confirmation WhatsApp",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         1760,
@@ -645,22 +645,22 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"{{ $json.phone.replace(/[^\\\\d]/g,'') }}\",\n  \"text\": \"{{ $json.share_message || ('مرحباً ' + $json.name + '، تم إنشاء دعوتك الرقمية! رابطها: ' + $json.page_url) }}\",\n  \"chat_name\": \"{{ $json.name }}\",\n  \"label\": \"wedding_confirmation\",\n  \"metadata\": { \"order_id\": \"{{ $json.order_id }}\", \"service\": \"wedding\" }\n}"
+        "jsonBody": "={\n  \"phone\": \"{{ $json.phone.replace(/[^\\\\d]/g,'') }}\",\n  \"text\": \"{{ $json.share_message || ('مرحباً ' + $json.name + '، تم إنشاء برنامجك السياحي VIP! رابطها: ' + $json.page_url) }}\",\n  \"chat_name\": \"{{ $json.name }}\",\n  \"label\": \"vip_travel_confirmation\",\n  \"metadata\": { \"order_id\": \"{{ $json.order_id }}\", \"service\": \"vip_travel\" }\n}"
       },
       "continueOnFail": true
     },
     {
       "id": "wed-tg-002",
       "name": "Telegram – Confirm to Admin",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         1760,
         200
       ],
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "=✅ <b>تأكيد طلب الدعوة الرقمية</b>\n\n🎊 تم إنشاء صفحة دعوتك الرقمية بنجاح!\n\n💍 <b>العريس/العروس:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📅 <b>تاريخ الزفاف:</b> {{ $json.wedding_date || 'قريباً' }}\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n\n🔗 <b>رابط دعوتك:</b> {{ $json.page_url }}\n📱 <b>QR Code:</b> {{ $json.qr_url }}\n\n✨ <b>رسالة المشاركة جاهزة:</b>\n<i>{{ ($json.share_message || '').substring(0, 300) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n🆔 {{ $json.order_id }}\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
+        "chatId": "REDACTED_CHAT_ID",
+        "text": "=✅ <b>تأكيد طلب الدعوة الرقمية</b>\n\n🎊 تم إنشاء صفحة برنامجك السياحي VIP بنجاح!\n\n💍 <b>العميل VIP:</b> {{ $json.name }}{{ $json.partner_name ? ' &amp; ' + $json.partner_name : '' }}\n📅 <b>تاريخ السفر:</b> {{ $json.travel_date || 'قريباً' }}\n📦 <b>الباقة:</b> {{ $json.package_type }} – {{ $json.package_price }} ريال\n\n🔗 <b>رابط البرنامج:</b> {{ $json.page_url }}\n📱 <b>QR Code:</b> {{ $json.qr_url }}\n\n✨ <b>رسالة المشاركة جاهزة:</b>\n<i>{{ ($json.share_message || '').substring(0, 300) }}</i>\n\n━━━━━━━━━━━━━━━━━━━\n🆔 {{ $json.order_id }}\n🕐 {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
           "disable_web_page_preview": true
@@ -677,7 +677,7 @@
     {
       "id": "wed-err-001",
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         0,
@@ -687,8 +687,8 @@
     },
     {
       "id": "wed-gs-err",
-      "name": "GSheets – Log Wedding Error",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "name": "GSheets – Log VIP_Travel Error",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         220,
@@ -712,7 +712,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR-WED-' + Date.now().toString(36).toUpperCase() }}",
-            "flow_name": "=Bluevia Travel_F12_Wedding",
+            "flow_name": "=Bluevia Travel_F12_VIP_Travel",
             "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,300) }}",
             "severity": "=high",
@@ -820,14 +820,14 @@
     {
       "id": "wed-tg-err",
       "name": "Telegram – VIP Order Error Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         440,
         400
       ],
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "=❌ <b>خطأ في Flow #12 – VIP Travel</b>\\n\\n{{ $json.error?.message || 'خطأ غير معروف' }}\\n🔧 {{ $json.execution?.lastNodeExecuted || 'Unknown' }}\\n⏱️ {{ new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'}) }}",
         "additionalFields": {
           "parse_mode": "HTML",
@@ -844,18 +844,18 @@
     }
   ],
   "connections": {
-    "Webhook – Wedding Order Entry": {
+    "Webhook – طلب سفر VIP Entry": {
       "main": [
         [
           {
-            "node": "Code – Normalize Wedding Order",
+            "node": "Code – Normalize طلب سفر VIP",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code – Normalize Wedding Order": {
+    "Code – Normalize طلب سفر VIP": {
       "main": [
         [
           {
@@ -881,7 +881,7 @@
       "main": [
         [
           {
-            "node": "GSheets – Save Wedding Order",
+            "node": "GSheets – Save طلب سفر VIP",
             "type": "main",
             "index": 0
           }
@@ -895,18 +895,18 @@
         ]
       ]
     },
-    "GSheets – Save Wedding Order": {
+    "GSheets – Save طلب سفر VIP": {
       "main": [
         [
           {
-            "node": "Code – Generate Wedding Page",
+            "node": "Code – Generate VIP_Travel Page",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code – Generate Wedding Page": {
+    "Code – Generate VIP_Travel Page": {
       "main": [
         [
           {
@@ -959,18 +959,18 @@
       "main": [
         [
           {
-            "node": "GSheets – Log Wedding Error",
+            "node": "GSheets – Log VIP_Travel Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "GSheets – Log Wedding Error": {
+    "GSheets – Log VIP_Travel Error": {
       "main": [
         [
           {
-            "node": "Telegram – Wedding Error Alert",
+            "node": "Telegram – VIP_Travel Error Alert",
             "type": "main",
             "index": 0
           }
@@ -985,7 +985,7 @@
     "saveDataErrorExecution": "all"
   },
   "meta": {
-    "instanceId": "saasai-system"
+    "instanceId": "bluevia-system"
   },
   "tags": []
 }

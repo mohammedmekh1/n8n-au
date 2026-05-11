@@ -14,7 +14,7 @@
       },
       "id": "d9eae7d2-1750-4dc3-9477-77ff988333b4",
       "name": "Schedule – نشر يومي 9 صباحاً",
-      "type": "Bluevia-nodes-base.scheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         -1376,
@@ -30,7 +30,7 @@
       },
       "id": "0195c2fe-04b3-4887-bea2-1b56b6690d3f",
       "name": "Webhook – نشر يدوي فوري",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         -1376,
@@ -67,7 +67,7 @@
       },
       "id": "da43f711-843c-4452-9598-492effd28321",
       "name": "GSheets – سحب منشور ready_to_publish",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         -1184,
@@ -110,7 +110,7 @@
       },
       "id": "bbbc80f3-4b17-4b85-91e0-9f0abe2c362b",
       "name": "IF – هل توجد منشورات؟",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -1024,
@@ -123,7 +123,7 @@
       },
       "id": "bf82cb54-5e03-4e87-b18f-3e5ca46ba544",
       "name": "Code – تحضير المنشور للنشر",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -848,
@@ -136,7 +136,7 @@
       },
       "id": "1f045ffe-1350-4436-aedb-771040091383",
       "name": "Code – استخراج URL الصورة النهائية",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -96,
@@ -713,7 +713,7 @@
       },
       "id": "ea5dcac1-50c4-4b7c-bded-db2137796244",
       "name": "GSheets – تحديث URL الصورة",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         352,
@@ -759,7 +759,7 @@
       },
       "id": "54165593-3580-4e1c-bde0-595851e899c1",
       "name": "HTTP – نشر على TikTok (Buffer)",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         -416,
@@ -771,7 +771,7 @@
       "parameters": {},
       "id": "8ca40bfe-97c8-4bf5-8ed7-180c25fb91d3",
       "name": "Merge – تجميع نتائج النشر",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
         144,
@@ -784,7 +784,7 @@
       },
       "id": "60255f6d-0372-40e0-81fb-8dd21ce8a8ec",
       "name": "Code – تقييم النشر وبناء التقرير",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         320,
@@ -1014,7 +1014,7 @@
       },
       "id": "30fa6a2b-17cb-40b2-99c3-261cdc5e93d9",
       "name": "GSheets – تحديث حالة المنشور إلى published",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         544,
@@ -1159,7 +1159,7 @@
       },
       "id": "eb56bd9d-ead4-4290-bbcc-da1b6405b1f8",
       "name": "GSheets – تسجيل في publish_log",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         560,
@@ -1175,7 +1175,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `📣 *تقرير النشر اليومي – Flow #8*\n\n📌 *المنشور:* ${$json.ar_title}\n🖼 *الصورة:* ${$json.image_url ? '✅ تم التوليد (NanoBanana)' : '❌ فشل التوليد'}\n${$json.drive_web_link ? '📁 *Drive:* ' + $json.drive_web_link : ''}\n\n✅ *نُشر على:* ${$json.published_on || 'لا شيء'}\n${$json.failed_on ? '❌ *فشل في:* ' + $json.failed_on : ''}\n\n📊 *معدل النجاح:* ${$json.success_rate}%\n⏰ *وقت النشر:* ${new Date($json.published_at).toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}\n${$json.image_url ? '🔗 ' + $json.image_url : ''}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1183,7 +1183,7 @@
       },
       "id": "b63cea07-3587-4c61-ad2c-32e70d184cb3",
       "name": "Telegram – تقرير النشر اليومي",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         320,
@@ -1200,7 +1200,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "ℹ️ *Flow #8 – Publisher*\nلا توجد منشورات بحالة `ready_to_publish` اليوم.\n\n_تأكد من تشغيل Flow #7 أولاً لتوليد المحتوى._",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1208,7 +1208,7 @@
       },
       "id": "f8769d26-b3a4-4adf-ae72-1575cc79610e",
       "name": "Telegram – لا توجد منشورات اليوم",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -848,
@@ -1342,7 +1342,7 @@
       },
       "id": "1117edad-ae81-496d-af34-e66f5fd8961c",
       "name": "GSheets – تسجيل خطأ F8",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         -1120,
@@ -1358,7 +1358,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `❌ *خطأ في Flow #8 – Publisher*\n\n🔴 ${$json.error?.message || 'خطأ غير معروف'}\n📍 ${$json.execution?.lastNodeExecuted || 'Unknown'}\n⏰ ${new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1366,7 +1366,7 @@
       },
       "id": "aedcb0db-ef2c-4b4c-b3ff-5562ace2b886",
       "name": "Telegram – تنبيه خطأ F8",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -832,
@@ -1386,7 +1386,7 @@
         "text": "{{ $json.tw_final || $json.x_post || '' }}",
         "additionalFields": {}
       },
-      "type": "Bluevia-nodes-base.twitter",
+      "type": "n8n-nodes-base.twitter",
       "typeVersion": 2,
       "position": [
         -608,
@@ -1426,7 +1426,7 @@
           }
         }
       },
-      "type": "Bluevia-nodes-base.facebookGraphApi",
+      "type": "n8n-nodes-base.facebookGraphApi",
       "typeVersion": 1,
       "position": [
         16,
@@ -1451,7 +1451,7 @@
           "visibility": "PUBLIC"
         }
       },
-      "type": "Bluevia-nodes-base.linkedIn",
+      "type": "n8n-nodes-base.linkedIn",
       "typeVersion": 1,
       "position": [
         -608,
@@ -1512,7 +1512,7 @@
       },
       "id": "86dddc50-ae6c-4424-b27f-ac6de19f655c",
       "name": "HTTP – Snapchat Story + Post",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         -992,
@@ -1549,7 +1549,7 @@
       },
       "id": "bc9e0f18-292e-484c-9529-0e5d0ad1791a",
       "name": "HTTP – Video Generation (fal.ai)",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         -1200,
@@ -1576,7 +1576,7 @@
         "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Luxury hotel near Masjid al-Bosphorus Turkey, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"Bluevia_F8\"\n  }\n}",
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.googleGemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.1,
       "position": [
         -624,
@@ -1607,7 +1607,7 @@
         },
         "options": {}
       },
-      "type": "Bluevia-nodes-base.googleDrive",
+      "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
         -432,
@@ -1650,7 +1650,7 @@
           }
         }
       },
-      "type": "Bluevia-nodes-base.googleDrive",
+      "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
         -240,
@@ -1668,11 +1668,11 @@
     {
       "parameters": {
         "operation": "sendPhoto",
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "file": "={{ $json.image_url_thumbnail }}",
         "additionalFields": {}
       },
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -160,
@@ -1712,7 +1712,7 @@
         }
       },
       "name": "HTTP – WhatsApp صورة + نص1",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         -176,
@@ -1731,7 +1731,7 @@
       "parameters": {
         "jsCode": "// ═══════════════════════════════════════════════════════════\n// تنظيف وتوحيد أرقام الهواتف دولياً لواتساب\n// يدعم: اليمن (+967)، السعودية (+966)، مصر (+20)، الإمارات (+971)، إلخ.\n// ═══════════════════════════════════════════════════════════\n\nconst items = $input.all();\n\n// دالة تنظيف الرقم\nfunction normalizePhone(phone, defaultCountry = '966') {\n  if (!phone) return null;\n  \n  // إزالة كل ما عدا الأرقام و+\n  let clean = String(phone).replace(/[^\\d+]/g, '');\n  \n  // إزالة البادئات الشائعة\n  if (clean.startsWith('00')) clean = '+' + clean.slice(2);\n  if (clean.startsWith('0') && !clean.startsWith('+')) clean = '+' + defaultCountry + clean.slice(1);\n  \n  // إضافة + إذا لم توجد\n  if (!clean.startsWith('+')) clean = '+' + clean;\n  \n  // إزالة + وتحويل للصيغة الدولية الصرفة لواتساب\n  return clean.replace('+', '');\n}\n\n// دالة اكتشاف الدولة من الرقم\nfunction detectCountry(phone) {\n  const p = String(phone).replace(/[^\\d]/g, '');\n  if (p.startsWith('967')) return { code: 'YE', name: 'اليمن', prefix: '967' };\n  if (p.startsWith('966')) return { code: 'SA', name: 'السعودية', prefix: '966' };\n  if (p.startsWith('20')) return { code: 'EG', name: 'مصر', prefix: '20' };\n  if (p.startsWith('971')) return { code: 'AE', name: 'الإمارات', prefix: '971' };\n  if (p.startsWith('965')) return { code: 'KW', name: 'الكويت', prefix: '965' };\n  if (p.startsWith('974')) return { code: 'QA', name: 'قطر', prefix: '974' };\n  if (p.startsWith('973')) return { code: 'BH', name: 'البحرين', prefix: '973' };\n  if (p.startsWith('968')) return { code: 'OM', name: 'عُمان', prefix: '968' };\n  if (p.startsWith('962')) return { code: 'JO', name: 'الأردن', prefix: '962' };\n  if (p.startsWith('961')) return { code: 'LB', name: 'لبنان', prefix: '961' };\n  return { code: 'UNKNOWN', name: 'أخرى', prefix: null };\n}\n\nreturn items.map(item => {\n  const phone = item.json.phone || item.json.phone_normalized || '';\n  const country = detectPhone(phone);\n  const normalized = normalizePhone(phone, country.prefix || '966');\n  \n  return {\n    json: {\n      ...item.json,\n      phone_normalized: normalized,\n      phone_original: phone,\n      country_code: country.code,\n      country_name: country.name,\n      country_prefix: country.prefix,\n      is_valid_phone: normalized && normalized.length >= 10 && normalized.length <= 15\n    }\n  };\n});"
       },
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -432,
@@ -1744,7 +1744,7 @@
       "parameters": {
         "jsCode": "// ═══════════════════════════════════════════════════════════\n// تحويل رابط الصورة إلى Binary Data لـ Bluevia\n// ═══════════════════════════════════════════════════════════\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `turkey_post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
       },
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         160,
@@ -1759,7 +1759,7 @@
       },
       "id": "46b6c0ce-3875-434b-89af-5e3be75d9b6b",
       "name": "Canva Template (للتفعيل لاحقاً)",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -800,
@@ -1774,7 +1774,7 @@
         "width": 784,
         "color": 6
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         -1440,
         -448
@@ -1790,7 +1790,7 @@
         "width": 752,
         "color": 3
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         -656,
         -448
@@ -1806,7 +1806,7 @@
         "width": 624,
         "color": 4
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         96,
         -448
@@ -1822,7 +1822,7 @@
         "width": 624,
         "color": 6
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         96,
         -224
@@ -1834,7 +1834,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         -1360,
@@ -1849,7 +1849,7 @@
         "width": 784,
         "color": 4
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         -1440,
         -80
@@ -1865,7 +1865,7 @@
         "width": 784,
         "color": 7
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         -1440,
         112

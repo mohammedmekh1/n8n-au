@@ -14,7 +14,7 @@
       },
       "id": "5f602f23-2f48-4f6f-aaba-643b91af4bbd",
       "name": "Schedule – 6 صباحاً توليد أفكار",
-      "type": "Bluevia-nodes-base.scheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         2336,
@@ -31,7 +31,7 @@
       },
       "id": "6bb31908-2318-45ae-8040-97b907199906",
       "name": "Webhook – تشغيل يدوي",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         2336,
@@ -45,7 +45,7 @@
       },
       "id": "4ee6d9f9-5c29-4bbf-ad30-bbf908ab75a3",
       "name": "Code – إعداد سياق التوليد",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         2528,
@@ -58,7 +58,7 @@
       },
       "id": "bd9e01d1-2ac7-4f90-b96b-78886254f7e0",
       "name": "Code – تحليل أفكار Claude للشيت",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         2976,
@@ -294,7 +294,7 @@
       },
       "id": "60b68620-d146-496c-aaca-a18fe9c98479",
       "name": "GSheets – حفظ الأفكار (status=idea)",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         3152,
@@ -310,7 +310,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `💡 *أفكار جديدة – Flow #10*\\n\\n📅 ${$('Code – إعداد سياق التوليد').first().json.day_name} | ${$('Code – إعداد سياق التوليد').first().json.day_theme}\\n📌 آخر فكرة: ${$json.title_ar}\\n🔑 KW: ${$json.focus_keyword}\\n📊 أولوية: ${$json.priority}\\n\\n✅ محفوظة في الشيت بحالة idea` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -318,7 +318,7 @@
       },
       "id": "f3966ced-c455-4d45-b21a-b45d8d812257",
       "name": "Telegram – إشعار الأفكار الجديدة",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         3328,
@@ -346,7 +346,7 @@
       },
       "id": "898f90fd-fff2-46cc-8ce2-37f8af4b816a",
       "name": "Schedule – 7 صباحاً كتابة المحتوى",
-      "type": "Bluevia-nodes-base.scheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         2352,
@@ -382,7 +382,7 @@
       },
       "id": "1324f660-4f25-4b90-86e5-8a6c131fdbb5",
       "name": "GSheets – سحب الأفكار status=idea",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         2544,
@@ -421,7 +421,7 @@
       },
       "id": "5b9618cb-251b-4d0c-bd0b-6e6fd0d7a12e",
       "name": "IF – توجد أفكار للكتابة",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         2720,
@@ -434,7 +434,7 @@
       },
       "id": "f0d8695d-99f8-40df-aa8c-5d9cb22e3303",
       "name": "Split – مقالة واحدة للكتابة",
-      "type": "Bluevia-nodes-base.splitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
         2960,
@@ -447,7 +447,7 @@
       },
       "id": "8436d0a3-f34d-4d63-b318-0ed6ac87b210",
       "name": "Code – تحليل رد كتابة المحتوى",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         3360,
@@ -739,7 +739,7 @@
       },
       "id": "f0e45071-2716-4d13-aaca-dc7766959c93",
       "name": "GSheets – تحديث المحتوى status=ready",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
       "position": [
         3536,
@@ -759,7 +759,7 @@
       },
       "id": "c73c4d71-01b4-412e-8554-8af577e145e1",
       "name": "Split Loop – back",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         3168,
@@ -768,7 +768,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5555555555",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "ℹ️ *Flow #10*\\nلا أفكار بحالة `idea`. سيتم توليدها الساعة 6 صباحاً.",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -776,7 +776,7 @@
       },
       "id": "97022a11-bf0c-4d0a-b24b-fb83e151f0bf",
       "name": "Telegram – لا أفكار للكتابة",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         2944,
@@ -797,7 +797,7 @@
         "text": "=={{ `أنت استراتيجي محتوى SEO متخصص في Bluevia Travel.\\\\n\\\\nالفندق: ${$json.hotel.name} – ${$json.hotel.stars} نجوم – ${$json.hotel.usp}\\\\nرابط الحجز: ${$json.hotel.booking}\\\\nيوم اليوم: ${$json.day_name} | موضوع اليوم: ${$json.day_theme}\\\\nالموسم: ${$json.season_bonus || 'عادي'}\\\\n\\\\nأنشئ ${$json.articles_count} أفكار مقالات SEO مختلفة تماماً.\\\\n\\\\nلكل فكرة:\\\\n- title_ar: عنوان عربي (55-65 حرف)\\\\n- title_en: عنوان إنجليزي (40-55 حرف)\\\\n- slug: رابط URL (أحرف إنجليزية وأرقام وشرطات فقط)\\\\n- excerpt_ar: وصف (120-155 حرف)\\\\n- category: فئة من [خدمات Bluevia، دليل السياحة التركية، برامج الشمال التركي، تجارب العملاء، عروض حصرية، مقارنة فنادق، نصائح السفر، B2B وكالات]\\\\n- tags: 5-7 كلمات مفتاحية بفواصل\\\\n- meta_title: (50-60 حرف)\\\\n- meta_description: (140-160 حرف)\\\\n- focus_keyword: الكلمة الرئيسية\\\\n- content_outline: مصفوفة 5-6 عناوين H2 بالعربية\\\\n- target_word_count: 800-1200\\\\n- search_intent: informational|transactional|navigational\\\\n- priority: high|medium|low\\\\n\\\\nJSON فقط – مصفوفة:\\\\n[{...},{...}]` }}\"",
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
         2688,
@@ -810,7 +810,7 @@
       "parameters": {
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.lmChatGoogleGemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
         2592,
@@ -831,7 +831,7 @@
         "text": "=\"={{ `أنت كاتب محتوى SEO محترف متخصص في خدمات Bluevia.\\\\n\\\\nاكتب مقالة WordPress كاملة:\\\\nالعنوان: ${$json.title_ar}\\\\nالكلمة المفتاحية: ${$json.focus_keyword}\\\\nنية البحث: ${$json.search_intent}\\\\nالفئة: ${$json.category}\\\\nعدد الكلمات: ${$json.target_word_count||900}\\\\nمخطط المقالة: ${$json.content_outline}\\\\nالفندق: ${'Bluevia'}\\\\nرابط الحجز: ${'https://wa.me/966500000000'}\\\\n\\\\nالمتطلبات:\\\\n1. عربية فصحى مبسطة\\\\n2. الكلمة المفتاحية في أول 100 كلمة\\\\n3. عناوين H2 و H3\\\\n4. كثافة 1.5-2%\\\\n5. CTA للحجز في النهاية\\\\n6. HTML فقط (p, h2, h3, ul, strong, em)\\\\n\\\\nJSON فقط:\\\\n{\\\\\\\"content_html\\\\\\\":\\\\\\\"...\\\\\\\",\\\\\\\"word_count\\\\\\\":950,\\\\\\\"readability_score\\\\\\\":85,\\\\\\\"featured_image_prompt_en\\\\\\\":\\\\\\\"...\\\\\\\"}` }}\"",
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
         3120,
@@ -844,7 +844,7 @@
       "parameters": {
         "options": {}
       },
-      "type": "@Bluevia/Bluevia-nodes-langchain.lmChatGoogleGemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
         2736,
@@ -866,7 +866,7 @@
         "width": 624,
         "color": 3
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         2288,
         -368
@@ -882,7 +882,7 @@
         "width": 544,
         "color": 6
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         2912,
         -288
@@ -898,7 +898,7 @@
         "width": 512,
         "color": 6
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         2320,
         96
@@ -914,7 +914,7 @@
         "width": 768,
         "color": 4
       },
-      "type": "Bluevia-nodes-base.stickyNote",
+      "type": "n8n-nodes-base.stickyNote",
       "position": [
         2912,
         16

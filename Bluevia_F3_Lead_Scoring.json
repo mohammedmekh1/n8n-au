@@ -8,7 +8,7 @@
         "options": {}
       },
       "name": "Webhook – From Flow #2 (Capture)",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
         -4080,
@@ -24,7 +24,7 @@
         "options": {}
       },
       "name": "Webhook – From Flow #1 Radar",
-      "type": "Bluevia-nodes-base.webhook",
+      "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
       "position": [
         -4080,
@@ -36,7 +36,7 @@
     {
       "parameters": {},
       "name": "Merge Incoming Leads",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         -3840,
@@ -49,7 +49,7 @@
         "jsCode": "// ─── Normalize Lead for Scoring v2 ─────────────────────────────────────────\n// Accepts leads from Flow #2 (all channels) and Flow #1 (Radar)\nconst lead = $input.first().json;\n\n// ── Identify source type ─────────────────────────────────────────────────────\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\n// ── Base score by source ──────────────────────────────────────────────────────\n// Radar already pre-scored by AI; use that as base if available\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\n// ── Extract core fields ───────────────────────────────────────────────────────\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\n// ── Radar AI data (if available) ─────────────────────────────────────────────\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst travel_group = lead.travel_group || 'unknown';\nconst stars_preference = lead.stars_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst pax_hint = lead.pax_hint || 0;\n\n\n// Bluevia – Service Type Detection\nconst svcKeywords = {\n  family_trips: ['عائلي', 'عائلة', 'اطفال', 'برنامج عائلي', 'سياحة عائلية'],\n  honeymoon: ['شهر عسل', 'عرسان', 'رومانسية', 'honeymoon', 'جولة للعرسان'],\n  medical: ['زراعة شعر', 'تجميل', 'علاجية', 'مستشفى', 'اسنان', 'فحص طبي'],\n  transport: ['سيارة', 'سائق', 'توصيل', 'نقل', 'مطار', 'تأجير'],\n  hotels: ['فندق', 'شقة', 'سكن', 'فيلا', 'منتجع', 'hotel', 'اقامة'],\n  flights: ['طيران', 'تذكرة', 'رحلة جوية', 'flight', 'تذاكر'],\n  daily_tours: ['رحلة يومية', 'جولة', 'غروب', 'سهرة', 'بوسفور', 'جولات'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  travel_group,\n  stars_preference,\n  has_phone,\n  pax_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
       },
       "name": "Code – Normalize Lead for Scoring",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -3392,
@@ -85,7 +85,7 @@
       },
       "id": "f7eb6be4-0410-4ef7-8398-5fccf7b4bda7",
       "name": "GSheets – Get Interaction History",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -3152,
@@ -105,7 +105,7 @@
         "jsCode": "// ─── Base Score + Loyalty + Radar Urgency Bonus ──────────────────────────────\nconst data = $('Code – Normalize Lead for Scoring').first().json;\nconst history = $input.all().map(i => i.json).filter(h => h && h.phone);\n\n// ── Loyalty bonus (repeat interaction) ───────────────────────────────────────\nconst interaction_count = history.length;\nconst loyalty_bonus = Math.min(interaction_count * 5, 20); // max 20 pts\n\n// ── Radar AI urgency bonus ────────────────────────────────────────────────────\nlet urgency_bonus = 0;\nif (data.radar_urgency === 'immediate') urgency_bonus = 25;\nelse if (data.radar_urgency === 'soon') urgency_bonus = 12;\nelse if (data.radar_urgency === 'planned') urgency_bonus = 5;\n\n// ── Radar intent bonus ────────────────────────────────────────────────────────\nlet intent_bonus = 0;\nif (data.radar_intent === 'booking_ready') intent_bonus = 30;\nelse if (data.radar_intent === 'complaint_competitor') intent_bonus = 20;\nelse if (data.radar_intent === 'booking_research') intent_bonus = 10;\nelse if (data.radar_intent === 'travel_planning') intent_bonus = 5;\n\n// ── Phone signal bonus ────────────────────────────────────────────────────────\nconst phone_bonus = data.has_phone ? 15 : 0;\n\n// ── Budget/Stars bonus ────────────────────────────────────────────────────────\nlet budget_bonus = 0;\nif (data.budget_signal === 'luxury') budget_bonus = 8;\nelse if (data.budget_signal === 'mid') budget_bonus = 5;\n\nlet stars_bonus = 0;\nif (data.stars_preference === '5star') stars_bonus = 8;\nelse if (data.stars_preference === '4star') stars_bonus = 5;\n\n// ── Direct inbound bonus (WhatsApp / Telegram contact) ───────────────────────\nconst inbound_bonus = data.is_direct_inbound ? 20 : 0;\n\nconst subtotal = data.base_score + loyalty_bonus + urgency_bonus + intent_bonus + phone_bonus + budget_bonus + stars_bonus + inbound_bonus;\n\nreturn [{ json: {\n  ...data,\n  interaction_count,\n  loyalty_bonus,\n  urgency_bonus,\n  intent_bonus,\n  phone_bonus,\n  budget_bonus,\n  stars_bonus,\n  inbound_bonus,\n  subtotal\n} }];"
       },
       "name": "Code – Calculate Base & Bonuses",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -2912,
@@ -140,7 +140,7 @@
         }
       },
       "name": "If – Urgency Keywords in Message?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -2464,
@@ -153,7 +153,7 @@
         "jsCode": "// Add urgency keyword bonus (+15)\nreturn [{ json: { ...$json, kw_urgency_bonus: 15 } }];"
       },
       "name": "Code – Add Urgency KW Bonus",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -2224,
@@ -166,7 +166,7 @@
         "jsCode": "// Check for urgency keywords and set boolean flag\nconst items = $input.all();\nreturn items.map(item => {\n  const msg = (item.json.message || item.json.raw_text || '').toLowerCase();\n  const urgencyKWs = ['عاجل','حالا','الآن','اليوم','حجز فوري','متاح','فوراً','هذا الأسبوع','قريباً','سريع','urgent','now','today','asap'];\n  const has_urgency_kw = urgencyKWs.some(kw => msg.includes(kw));\n  return { json: { ...item.json, has_urgency_kw } };\n});\n"
       },
       "name": "Code – No Urgency KW",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -2224,
@@ -177,7 +177,7 @@
     {
       "parameters": {},
       "name": "Merge After Urgency Check",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         -1984,
@@ -213,7 +213,7 @@
         }
       },
       "name": "If – B2B Indicators?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -1536,
@@ -226,7 +226,7 @@
         "jsCode": "// B2B detected: +35 pts, classify as B2B\nconst msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/شركة|قروب|موظفين|وفد|business/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
       },
       "name": "Code – Add B2B Bonus",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1296,
@@ -239,7 +239,7 @@
         "jsCode": "// Not B2B – classify as B2C, check group size\nconst pax = $json.pax_hint || 0;\nconst tg = $json.travel_group || 'unknown';\nlet lead_category = 'B2C_solo';\nif (pax >= 10 || tg === 'group') lead_category = 'B2C_large_group';\nelse if (pax >= 4 || tg === 'family') lead_category = 'B2C_family';\nelse if (pax === 2 || tg === 'couple') lead_category = 'B2C_couple';\n\nreturn [{ json: { ...$json, b2b_bonus: 0, lead_category } }];"
       },
       "name": "Code – Set B2C Category",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -1296,
@@ -250,7 +250,7 @@
     {
       "parameters": {},
       "name": "Merge After B2B Check",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         -1056,
@@ -285,7 +285,7 @@
         }
       },
       "name": "If – Large Group (Pax > 8)?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         -816,
@@ -298,7 +298,7 @@
         "jsCode": "// ─── Add Group Bonus if Large Group (True branch) v2.3 ────────────────────────\n// هذه العقدة تُنفذ فقط إذا مرّ الشرط في IF السابقة\n// لكن نضيف تحقق إضافي للأمان (defense in depth)\n\nconst pax = $json.pax_hint || 0;\nconst groupType = $json.travel_group || 'unknown';\n\nconst isLarge = pax > 6 || groupType === 'group' || (groupType === 'family' && pax >= 4);\n\nreturn [{\n  json: {\n    ...$json,  // نحافظ على كل الحقول الأصلية\n    group_bonus: isLarge ? 20 : 0,  // فقط إذا كانت مجموعة كبيرة فعلاً\n    // تحديث lead_category إذا لم يكن موجوداً من قبل\n    lead_category: $json.lead_category || (isLarge ? 'B2C_large_group' : 'B2C')\n  }\n}];"
       },
       "name": "Code – Add Group Bonus",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -576,
@@ -311,7 +311,7 @@
         "jsCode": "// No large group bonus\nreturn [{ json: { ...$json, group_bonus: 0 } }];"
       },
       "name": "Code – No Group Bonus",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -560,
@@ -322,7 +322,7 @@
     {
       "parameters": {},
       "name": "Merge All Score Components",
-      "type": "Bluevia-nodes-base.merge",
+      "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
         -240,
@@ -335,7 +335,7 @@
         "jsCode": "// ─── Final Score Calculation & Classification ─────────────────────────────\nconst d = $input.first().json;\n\nconst total = Math.min(\n  (d.base_score || 0) +\n  (d.loyalty_bonus || 0) +\n  (d.urgency_bonus || 0) +\n  (d.intent_bonus || 0) +\n  (d.phone_bonus || 0) +\n  (d.budget_bonus || 0) +\n  (d.stars_bonus || 0) +\n  (d.inbound_bonus || 0) +\n  (d.kw_urgency_bonus || 0) +\n  (d.b2b_bonus || 0) +\n  (d.group_bonus || 0),\n  100\n);\n\n// ── Status classification ─────────────────────────────────────────────────────\nlet status = 'Cold';\nlet priority = 3;\nif (total >= 80) { status = 'Hot'; priority = 1; }\nelse if (total >= 55) { status = 'Warm'; priority = 2; }\n\n// ── Next action recommendation ────────────────────────────────────────────────\nlet recommended_action = 'nurture_sequence';\nif (status === 'Hot') {\n  if (d.lead_category?.startsWith('B2B')) recommended_action = 'b2b_sales_call';\n  else recommended_action = 'immediate_sales_call';\n} else if (status === 'Warm') {\n  recommended_action = 'whatsapp_followup_24h';\n}\n\n// ── Score breakdown for transparency ─────────────────────────────────────────\nconst breakdown = {\n  base: d.base_score || 0,\n  loyalty: d.loyalty_bonus || 0,\n  urgency_ai: d.urgency_bonus || 0,\n  urgency_kw: d.kw_urgency_bonus || 0,\n  intent: d.intent_bonus || 0,\n  phone: d.phone_bonus || 0,\n  budget: d.budget_bonus || 0,\n  stars: d.stars_bonus || 0,\n  inbound: d.inbound_bonus || 0,\n  b2b: d.b2b_bonus || 0,\n  group: d.group_bonus || 0\n};\n\nreturn [{ json: {\n  ...d,\n  final_score: total,\n  status,\n  priority,\n  lead_category: d.lead_category || 'B2C_solo',\n  recommended_action,\n  score_breakdown: breakdown,\n  scored_at: new Date().toISOString()\n} }];"
       },
       "name": "Code – Final Score & Classification",
-      "type": "Bluevia-nodes-base.code",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         80,
@@ -1086,7 +1086,7 @@
       },
       "id": "9fbb5f03-1404-428f-8116-5caadeba843e",
       "name": "GSheets – Save Final Score",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         352,
@@ -1125,7 +1125,7 @@
         "options": {}
       },
       "name": "If – Is Hot Lead?",
-      "type": "Bluevia-nodes-base.if",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
         592,
@@ -1135,14 +1135,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "=*🔥 طلب سياحي VIP – استجابة سريعة\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.travel_group || \"غير معروف\" }}* ({{ $json.pax_hint || \"?\" }} أفراد)\n🏨 *{{ $json.stars_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#سياحة_تركيا #BlueviaTravel #hot-lead",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
       },
       "name": "Telegram – Hot Lead Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         832,
@@ -1170,7 +1170,7 @@
         }
       },
       "name": "HTTP – Push Hot to Sales Handoff (Flow #6)",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         832,
@@ -1181,14 +1181,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#سياحة_تركيا #BlueviaTravel\"\n}}",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
       },
       "name": "Telegram – Warm/Cold Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         832,
@@ -1216,7 +1216,7 @@
         }
       },
       "name": "HTTP – Send to Journey (Flow #4)",
-      "type": "Bluevia-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         736,
@@ -1228,7 +1228,7 @@
     {
       "parameters": {},
       "name": "Error Trigger",
-      "type": "Bluevia-nodes-base.errorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
         -4080,
@@ -1294,7 +1294,7 @@
       },
       "id": "93b38fa6-9d1b-4b9d-962b-b50b0cfc8141",
       "name": "GSheets – Log Flow Error",
-      "type": "Bluevia-nodes-base.googleSheets",
+      "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
         -3840,
@@ -1310,14 +1310,14 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #3 – Lead Scoring*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "name": "Telegram – Scoring Error Alert",
-      "type": "Bluevia-nodes-base.telegram",
+      "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
         -3600,
@@ -1473,7 +1473,7 @@
         },
         "options": {}
       },
-      "type": "Bluevia-nodes-base.set",
+      "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
         -3600,
