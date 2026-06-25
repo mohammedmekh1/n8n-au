@@ -1,0 +1,240 @@
+{
+  "name": "F7 Legal Negotiator - الوكيل الشرعي الذكي",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f7-legal-negotiator",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-node-f7",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "أنت وكيل شرعي ذكي متخصص في فتاوى الحج والعمرة بالإنابة. تدريبك يشمل:\n\n1. المذاهب الأربعة (حنفي، مالكي، شافعي، حنبلي)\n2. فتاوى معاصرة من هيئات كبار العلماء\n3. أحكام النيابة في الحج والعمرة\n4. شروط صحة الإنابة وأنواعها\n\nمهامك:\n- الإجابة على الاستفسارات الشرعية بدقة وأمانة\n- توضيح الأحكام مع ذكر الدليل عند الإمكان\n- التمييز بين الحالات المختلفة (وفاة، مرض مؤقت، عجز دائم)\n- تحويل الأسئلة المعقدة إلى علماء بشريين عند الحاجة\n- استخدام لغة واضحة وميسرة مع الحفاظ على الدقة الشرعية\n\nتحذيرات:\n- لا تفتِ في مسائل اختلف فيها العلماء إلا بذكر الخلاف\n- لا تجزم في مسألة فيها احتمال إلا بقرينة قوية\n- أحلْ إلى عالم بشري إذا كانت المسألة دقيقة أو فيها نزاع\n\nأجب باللغة التي يسأل بها المستخدم."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1000,
+          "systemMessage": "أنت وكيل شرعي ذكي متخصص في فتاوى الحج والعمرة بالإنابة."
+        }
+      },
+      "id": "openai-node-f7",
+      "name": "OpenAI Sharia Scholar",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "أنت مدقق شرعي. مهمتك مراجعة الإجابة السابقة والتأكد من:\n1. عدم وجود أخطاء شرعية واضحة\n2. مناسبة الإجابة للسؤال\n3. وضوح العبارة\n\nإذا وجدت خطأً، صححه. إذا كانت الإجابة صحيحة، أعد صياغتها بشكل أوضح.\nأجب بصيغة JSON:\n{\n  \"reviewed_answer\": \"الإجابة المراجعة\",\n  \"confidence_score\": 0-100,\n  \"needs_human_review\": true/false,\n  \"notes\": \"ملاحظات إن وجدت\"\n}"
+            },
+            {
+              "role": "user",
+              "content": "السؤال: {{ $json.question }}\n\nالإجابة: {{ $json.answer }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 800
+        }
+      },
+      "id": "openai-node-f7-review",
+      "name": "Sharia Reviewer AI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "legal_queries",
+        "columns": "question_raw, ai_answer, reviewed_answer, confidence_score, needs_human_review, created_at, user_language",
+        "values": "={{ [$json.originalQuestion, $json.initialAnswer, $json.reviewed_answer, $json.confidence_score, $json.needs_human_review, new Date().toISOString(), $json.language] }}"
+      },
+      "id": "postgres-node-f7",
+      "name": "PostgreSQL Save Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Hajj PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.needs_human_review }}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-node-f7",
+      "name": "Check Human Review Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $env.TELEGRAM_ADMIN_CHAT_ID }}\",\n  \"text\": \"⚠️ استفتاء يحتاج مراجعة بشرية\\n\\nالسؤال: {{ $json.originalQuestion }}\\n\\nإجابة AI: {{ $json.initialAnswer }}\\n\\nدرجة الثقة: {{ $json.confidence_score }}%\"\n}",
+        "options": {}
+      },
+      "id": "telegram-node-f7",
+      "name": "Telegram Alert Scholar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"answer\": \"={{ $json.reviewed_answer }}\",\n  \"confidence\": \"={{ $json.confidence_score }}\",\n  \"disclaimer\": \"هذه إجابة آلية بناءً على الفتاوى المعتمدة. للاستفسارات المعقدة يرجى التواصل مع عالم شرعي.\"\n}",
+        "options": {}
+      },
+      "id": "respond-node-f7",
+      "name": "Return Answer to User",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Sharia Scholar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Sharia Scholar": {
+      "main": [
+        [
+          {
+            "node": "Sharia Reviewer AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sharia Reviewer AI": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL Save Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL Save Query": {
+      "main": [
+        [
+          {
+            "node": "Check Human Review Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Human Review Needed": {
+      "main": [
+        [
+          [
+            {
+              "node": "Telegram Alert Scholar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "node": "Return Answer to User",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      ]
+    },
+    "Telegram Alert Scholar": {
+      "main": [
+        [
+          {
+            "node": "Return Answer to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f7-legal-negotiator-v1",
+  "meta": {
+    "instanceId": "hajj-umrah-system",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "id": "legal",
+      "name": "Legal & Sharia",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
