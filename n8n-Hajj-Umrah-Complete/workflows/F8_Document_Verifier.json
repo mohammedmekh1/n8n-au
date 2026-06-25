@@ -1,0 +1,272 @@
+{
+  "name": "F8_Document_Verifier",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f8-document-verifier",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $json.document_url }}",
+        "options": {}
+      },
+      "id": "download-doc",
+      "name": "Download Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "tesseract {{ $json.file_path }} stdout --psm 6 -l ara+eng",
+        "options": {}
+      },
+      "id": "ocr-process",
+      "name": "Tesseract OCR",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// استخراج البيانات المهمة من النص\nconst text = $input.first().json.ocr_text || '';\n\n// أنماط للاستخراج\nconst patterns = {\n  name: /الاسم[:\\s]+([\\u0600-\\u06FF\\s]+)/i,\n  dateOfBirth: /تاريخ الميلاد[:\\s]+([\\d\\/\\-]+)/i,\n  dateOfDeath: /تاريخ الوفاة[:\\s]+([\\d\\/\\-]+)/i,\n  documentNumber: /رقم[:\\s]+([\\dA-Za-z]+)/i,\n  issuingAuthority: /الجهة المصدرة[:\\s]+([\\u0600-\\u06FF\\s]+)/i\n};\n\nconst extractedData = {};\n\nfor (const [field, pattern] of Object.entries(patterns)) {\n  const match = text.match(pattern);\n  extractedData[field] = match ? match[1].trim() : null;\n}\n\nreturn {\n  original_text: text,\n  extracted_data: extractedData,\n  has_name: !!extractedData.name,\n  has_dates: !!(extractedData.dateOfBirth || extractedData.dateOfDeath),\n  confidence: Object.values(extractedData).filter(v => v !== null).length / Object.keys(patterns).length\n};"
+      },
+      "id": "data-extractor",
+      "name": "Extract Key Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "أنت محقق شرعي متخصص في التحقق من وثائق الوفاة والتقارير الطبية.\nمهمتك:\n1. التحقق من صحة البيانات المستخرجة\n2. كشف أي تناقضات أو شكوك\n3. تحديد ما إذا كانت الوثيقة مقبولة شرعياً للحج بالإنابة\n4. تقدير مستوى الثقة (0-100)\n\nأخرج النتيجة بصيغة JSON فقط مع الحقول التالية:\n- is_valid (boolean)\n- confidence_score (number 0-100)\n- issues (array of strings)\n- recommendation (string: \"approve\", \"manual_review\", \"reject\")\n- reasoning (string)"
+            },
+            {
+              "role": "user",
+              "content": "حلل هذه البيانات المستخرجة من وثيقة: {{ JSON.stringify($json.extracted_data) }}\n\nالنص الأصلي: {{ $json.original_text.substring(0, 500) }}"
+            }
+          ]
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "ai-verifier",
+      "name": "AI Sharia Verification",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_cred_id",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "document_verifications",
+        "columns": "lead_id, document_type, ocr_text, extracted_data, verification_result, confidence_score, status, created_at",
+        "values": "={{ [\n  {\n    \"lead_id\": $json.lead_id || 'unknown',\n    \"document_type\": $json.document_type || 'death_certificate',\n    \"ocr_text\": $json.original_text,\n    \"extracted_data\": JSON.stringify($json.extracted_data),\n    \"verification_result\": JSON.stringify($json.ai_response),\n    \"confidence_score\": $json.ai_response.confidence_score || 0,\n    \"status\": $json.ai_response.recommendation || 'manual_review',\n    \"created_at\": new Date().toISOString()\n  }\n] }}"
+      },
+      "id": "save-verification",
+      "name": "Save Verification Result",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_cred_id",
+          "name": "Hajj DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": [
+          {
+            "value1": "={{ $json.ai_response.recommendation }}",
+            "operation": "equal",
+            "value2": "approve"
+          }
+        ]
+      },
+      "id": "approval-check",
+      "name": "Check Auto-Approval",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.client_telegram_id || $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "✅ **تم التحقق من الوثيقة بنجاح**\n\n📄 نوع الوثيقة: شهادة وفاة\n🔍 درجة الثقة: {{ $json.ai_response.confidence_score }}%\n⚖️ الحالة: مقبولة شرعاً\n\nيمكنك المتابعة لإجراءات الحج بالإنابة.\n\n#F8_Document_Verifier"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "success-notify",
+      "name": "Send Approval Notice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "⚠️ **تنبيه: وثيقة تحتاج مراجعة يدوية**\n\n📄 نوع الوثيقة: {{ $json.document_type }}\n🔍 درجة الثقة: {{ $json.ai_response.confidence_score }}%\n❌ المشاكل: {{ $json.ai_response.issues.join(', ') }}\n💡 التوصية: {{ $json.ai_response.reasoning }}\n\nيرجى المراجعة اليدوية.\n\n#F8_Document_Verifier"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "manual-review-notify",
+      "name": "Send Manual Review Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1650, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Document": {
+      "main": [
+        [
+          {
+            "node": "Tesseract OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tesseract OCR": {
+      "main": [
+        [
+          {
+            "node": "Extract Key Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Key Data": {
+      "main": [
+        [
+          {
+            "node": "AI Sharia Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Sharia Verification": {
+      "main": [
+        [
+          {
+            "node": "Save Verification Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Verification Result": {
+      "main": [
+        [
+          {
+            "node": "Check Auto-Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Auto-Approval": {
+      "main": [
+        [
+          {
+            "node": "Send Approval Notice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Manual Review Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f8-v1-doc-verifier",
+  "meta": {
+    "instanceId": "hajj-umrah-system"
+  },
+  "tags": [
+    {
+      "name": "F8",
+      "color": "#FFD700"
+    },
+    {
+      "name": "Verification",
+      "color": "#008000"
+    }
+  ]
+}

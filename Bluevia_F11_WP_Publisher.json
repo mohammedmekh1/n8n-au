@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F11 – WordPress Publisher",
+  "name": "Bluevia – F11 – WordPress Publisher",
   "nodes": [
     {
       "parameters": {
@@ -36,7 +36,7 @@
         -992,
         -96
       ],
-      "webhookId": "makkah-wp-publish"
+      "webhookId": "turkey-wp-publish"
     },
     {
       "parameters": {
@@ -324,7 +324,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `${$json.success?'✅':'❌'} *WordPress Publisher – Flow #10*\\n\\n📌 ${$json.title}\\n${$json.success?'🔗 '+$json.page_url+'\\n🆔 Post ID: '+$json.site_post_id+'\\n🖼 الصورة: '+($json.wp_media_id>0?'✅':'⚠️ بدون صورة')+'\\n📝 '+$json.word_count+' كلمة':'🔴 '+$json.error_msg}\\n\\n⏰ ${new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -349,7 +349,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "ℹ️ *Flow #10*\\nلا مقالات بحالة `ready` الآن.",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -390,7 +390,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -520,7 +520,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `❌ *خطأ Flow #10*\\n${$json.error?.message||'?'}\\n${$json.execution?.lastNodeExecuted||'?'}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"

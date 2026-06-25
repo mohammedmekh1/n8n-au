@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F9 – Performance Dashboard",
+  "name": "Bluevia – F9 – Performance Dashboard",
   "nodes": [
     {
       "parameters": {
@@ -67,7 +67,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -107,7 +107,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -147,7 +147,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -187,7 +187,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -227,7 +227,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -294,7 +294,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -545,7 +545,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -791,8 +791,8 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "={{ \n  (() => {\n    const k = $json || {};\n    \n    // 🔧 دالة مساعدة للأرقام\n    const num = (val, def = 0) => {\n      const n = parseFloat(val);\n      return (n != null && !isNaN(n)) ? n : def;\n    };\n    \n    // ✅ حماية من rating غير موجود\n    const rating = k.overall_rating || 'جديد';\n    const ratingBg = rating.includes('ممتاز') ? '🟢' : rating.includes('تنبيه') ? '🔴' : '🟡';\n    \n    let report = `📊 *تقرير الأداء اليومي – SaaSAI*\\n`;\n    report += `📅 ${k.report_date_ar || 'غير متاح'}\\n`;\n    report += `${ratingBg} التقييم: *${rating}*\\n\\n`;\n\n    report += `━━━ 👥 *العملاء المحتملون* ━━━\\n`;\n    report += `📥 إجمالي: *${num(k.total_leads)}* | 🔥 Hot: *${num(k.hot_leads)}* | 🌿 Warm: *${num(k.warm_leads)}*\\n`;\n    report += `📡 Radar: ${num(k.from_radar)} | 💬 WA: ${num(k.from_whatsapp)} | 🌐 Form: ${num(k.from_form)} | ✈️ TG: ${num(k.from_telegram)}\\n`;\n    report += `📈 متوسط الدرجة: *${num(k.avg_score, '0')}/100*\\n\\n`;\n\n    report += `━━━ 💰 *الحجوزات والتحويل* ━━━\\n`;\n    report += `✅ حجوزات: *${num(k.bookings)}* (B2C: ${num(k.b2c_booked, 0)} | B2B: ${num(k.b2b_booked, 0)})\\n`;\n    report += `📊 Lead → حجز: *${num(k.lead_to_booking_rate, '0')}%* | Hot → حجز: *${num(k.hot_to_booking_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 📨 *الإرسال* ━━━\\n`;\n    report += `📤 إجمالي: ${num(k.total_deliveries)} | ✅ ناجح: ${num(k.delivered, 0)} | ❌ فشل: ${num(k.failed, 0)}\\n`;\n    report += `معدل النجاح: *${num(k.delivery_rate, '0')}%* | WA: ${num(k.wa_delivered, 0)} | TG: ${num(k.tg_delivered, 0)}\\n\\n`;\n\n    report += `━━━ 📋 *مهام المبيعات* ━━━\\n`;\n    report += `🟢 مغلقة: ${num(k.closed_tasks)} | 🟡 مفتوحة: ${num(k.open_tasks)} | 🔴 مصعّدة: ${num(k.escalated, 0)}\\n`;\n    if (k.avg_close_min > 0) report += `⏱️ متوسط الإغلاق: ${k.avg_close_min} دقيقة\\n`;\n    report += `\\n━━━ 📅 *آخر 7 أيام* ━━━\\n`;\n    report += `👥 ${num(k.week_leads)} lead | 🔥 ${num(k.week_hot, 0)} hot | ✅ ${num(k.week_booked, 0)} حجز | نسبة: *${num(k.week_conv_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 💡 *التحليل* ━━━\\n`;\n    report += k.insights || '📊 جاري تحليل البيانات...';\n    \n    if (k.action_items) {\n      report += `\\n\\n${k.action_items}`;\n    }\n    \n    // ✅ السطر الأهم: إرجاع النص النهائي\n    return report;\n  })()\n}}",
+        "chatId": "REDACTED_CHAT_ID",
+        "text": "={{ \n  (() => {\n    const k = $json || {};\n    \n    // 🔧 دالة مساعدة للأرقام\n    const num = (val, def = 0) => {\n      const n = parseFloat(val);\n      return (n != null && !isNaN(n)) ? n : def;\n    };\n    \n    // ✅ حماية من rating غير موجود\n    const rating = k.overall_rating || 'جديد';\n    const ratingBg = rating.includes('ممتاز') ? '🟢' : rating.includes('تنبيه') ? '🔴' : '🟡';\n    \n    let report = `📊 *تقرير الأداء اليومي – Bluevia Travel*\\n`;\n    report += `📅 ${k.report_date_ar || 'غير متاح'}\\n`;\n    report += `${ratingBg} التقييم: *${rating}*\\n\\n`;\n\n    report += `━━━ 👥 *العملاء المحتملون* ━━━\\n`;\n    report += `📥 إجمالي: *${num(k.total_leads)}* | 🔥 Hot: *${num(k.hot_leads)}* | 🌿 Warm: *${num(k.warm_leads)}*\\n`;\n    report += `📡 Radar: ${num(k.from_radar)} | 💬 WA: ${num(k.from_whatsapp)} | 🌐 Form: ${num(k.from_form)} | ✈️ TG: ${num(k.from_telegram)}\\n`;\n    report += `📈 متوسط الدرجة: *${num(k.avg_score, '0')}/100*\\n\\n`;\n\n    report += `━━━ 💰 *الحجوزات والتحويل* ━━━\\n`;\n    report += `✅ حجوزات: *${num(k.bookings)}* (B2C: ${num(k.b2c_booked, 0)} | B2B: ${num(k.b2b_booked, 0)})\\n`;\n    report += `📊 Lead → حجز: *${num(k.lead_to_booking_rate, '0')}%* | Hot → حجز: *${num(k.hot_to_booking_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 📨 *الإرسال* ━━━\\n`;\n    report += `📤 إجمالي: ${num(k.total_deliveries)} | ✅ ناجح: ${num(k.delivered, 0)} | ❌ فشل: ${num(k.failed, 0)}\\n`;\n    report += `معدل النجاح: *${num(k.delivery_rate, '0')}%* | WA: ${num(k.wa_delivered, 0)} | TG: ${num(k.tg_delivered, 0)}\\n\\n`;\n\n    report += `━━━ 📋 *مهام المبيعات* ━━━\\n`;\n    report += `🟢 مغلقة: ${num(k.closed_tasks)} | 🟡 مفتوحة: ${num(k.open_tasks)} | 🔴 مصعّدة: ${num(k.escalated, 0)}\\n`;\n    if (k.avg_close_min > 0) report += `⏱️ متوسط الإغلاق: ${k.avg_close_min} دقيقة\\n`;\n    report += `\\n━━━ 📅 *آخر 7 أيام* ━━━\\n`;\n    report += `👥 ${num(k.week_leads)} lead | 🔥 ${num(k.week_hot, 0)} hot | ✅ ${num(k.week_booked, 0)} حجز | نسبة: *${num(k.week_conv_rate, '0')}%*\\n\\n`;\n\n    report += `━━━ 💡 *التحليل* ━━━\\n`;\n    report += k.insights || '📊 جاري تحليل البيانات...';\n    \n    if (k.action_items) {\n      report += `\\n\\n${k.action_items}`;\n    }\n    \n    // ✅ السطر الأهم: إرجاع النص النهائي\n    return report;\n  })()\n}}",
         "additionalFields": {
           "disable_notification": true,
           "parse_mode": "Markdown"
@@ -833,7 +833,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -963,7 +963,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #9 – Performance Dashboard*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"

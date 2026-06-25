@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F3 – Lead Scoring التقييم",
+  "name": "Bluevia – F3 – Lead Scoring التقييم",
   "nodes": [
     {
       "parameters": {
@@ -46,7 +46,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Normalize Lead for Scoring v2 ─────────────────────────────────────────\n// Accepts leads from Flow #2 (all channels) and Flow #1 (Radar)\nconst lead = $input.first().json;\n\n// ── Identify source type ─────────────────────────────────────────────────────\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\n// ── Base score by source ──────────────────────────────────────────────────────\n// Radar already pre-scored by AI; use that as base if available\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\n// ── Extract core fields ───────────────────────────────────────────────────────\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\n// ── Radar AI data (if available) ─────────────────────────────────────────────\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst travel_group = lead.travel_group || 'unknown';\nconst stars_preference = lead.stars_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst pax_hint = lead.pax_hint || 0;\n\n\n// SaaSAI – Service Type Detection\nconst svcKeywords = {\n  automation: ['أتمتة','n8n','workflow','make','zapier','اوتوماشن'],\n  ai_solutions: ['ذكاء اصطناعي','ai','chatgpt','claude','gemini'],\n  web_dev: ['موقع','website','wordpress','تطبيق','متجر'],\n  seo: ['seo','محركات البحث','جوجل','ترتيب'],\n  design: ['تصميم','جرافيك','هوية','لوجو','شعار'],\n  video: ['فيديو','موشن','reels','مونتاج'],\n  marketing: ['تسويق','marketing','إعلان','ads','سوشيال'],\n  content: ['محتوى','مقال','كتابة','content'],\n  training: ['تدريب','كورس','دورة','training'],\n  wedding: ['زفاف','دعوة','عرس','wedding','مناسبة','invitation'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  travel_group,\n  stars_preference,\n  has_phone,\n  pax_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
+        "jsCode": "// ─── Normalize Lead for Scoring v2 ─────────────────────────────────────────\n// Accepts leads from Flow #2 (all channels) and Flow #1 (Radar)\nconst lead = $input.first().json;\n\n// ── Identify source type ─────────────────────────────────────────────────────\nconst rawSource = lead.source || 'Form';\nconst isRadar = rawSource.startsWith('Radar_') || rawSource === 'Radar';\nconst isWhatsApp = rawSource === 'WhatsApp';\nconst isTelegram = rawSource === 'Telegram_Bot';\nconst isForm = rawSource === 'Website_Form' || rawSource === 'Form';\n\n// ── Base score by source ──────────────────────────────────────────────────────\n// Radar already pre-scored by AI; use that as base if available\nlet base_score = 5;\nif (isRadar) {\n  base_score = Math.min(lead.lead_quality || 20, 50); // cap Radar base at 50\n} else if (isWhatsApp || isTelegram) {\n  base_score = 20; // direct inbound = strong intent signal\n} else if (isForm) {\n  base_score = 15;\n}\n\n// ── Extract core fields ───────────────────────────────────────────────────────\nconst phone = lead.phone || 'unknown';\nconst name = lead.full_name || 'غير معروف';\nconst message = lead.message || lead.raw_text || lead.clean_text || '';\nconst email = lead.email || '';\n\n// ── Radar AI data (if available) ─────────────────────────────────────────────\nconst radar_intent = lead.intent || lead.radar_intent || '';\nconst radar_urgency = lead.urgency || lead.radar_urgency || '';\nconst radar_quality = lead.lead_quality || lead.radar_quality || 0;\nconst budget_signal = lead.budget_signal || 'unknown';\nconst travel_group = lead.travel_group || 'unknown';\nconst stars_preference = lead.stars_preference || 'unknown';\nconst has_phone = lead.has_phone || (lead.phones_found || []).length > 0;\nconst pax_hint = lead.pax_hint || 0;\n\n\n// Bluevia – Service Type Detection\nconst svcKeywords = {\n  family_trips: ['عائلي', 'عائلة', 'اطفال', 'برنامج عائلي', 'سياحة عائلية'],\n  honeymoon: ['شهر عسل', 'عرسان', 'رومانسية', 'honeymoon', 'جولة للعرسان'],\n  medical: ['زراعة شعر', 'تجميل', 'علاجية', 'مستشفى', 'اسنان', 'فحص طبي'],\n  transport: ['سيارة', 'سائق', 'توصيل', 'نقل', 'مطار', 'تأجير'],\n  hotels: ['فندق', 'شقة', 'سكن', 'فيلا', 'منتجع', 'hotel', 'اقامة'],\n  flights: ['طيران', 'تذكرة', 'رحلة جوية', 'flight', 'تذاكر'],\n  daily_tours: ['رحلة يومية', 'جولة', 'غروب', 'سهرة', 'بوسفور', 'جولات'],\n};\nconst msgLower = message.toLowerCase();\nlet service_type = lead.service_type || lead.radar_intent || 'general';\nfor (const [svc, kws] of Object.entries(svcKeywords)) {\n  if (kws.some(k => msgLower.includes(k))) { service_type = svc; break; }\n}\n\nreturn [{ json: { service_type,\n  phone,\n  name,\n  email,\n  message,\n  source: rawSource,\n  is_radar: isRadar,\n  is_direct_inbound: isWhatsApp || isTelegram,\n  base_score,\n  radar_intent,\n  radar_urgency,\n  radar_quality,\n  budget_signal,\n  travel_group,\n  stars_preference,\n  has_phone,\n  pax_hint,\n  phones_found: lead.phones_found || [],\n  content_hash: lead.content_hash || '',\n  received_at: lead.received_at || new Date().toISOString(),\n  raw: lead\n} }];"
       },
       "name": "Code – Normalize Lead for Scoring",
       "type": "n8n-nodes-base.code",
@@ -63,7 +63,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -223,7 +223,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// B2B detected: +35 pts, classify as B2B\nconst msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/حكوم|وزار|هيئة|government/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
+        "jsCode": "// B2B detected: +35 pts, classify as B2B\nconst msg = $json.message || '';\nlet b2b_type = 'B2B_agency';\nif (msg.match(/شركة|قروب|موظفين|وفد|business/i)) b2b_type = 'B2B_government';\nelse if (msg.match(/مؤتمر|conference/i)) b2b_type = 'B2B_conference';\n\nreturn [{ json: { ...$json, b2b_bonus: 35, lead_category: b2b_type } }];"
       },
       "name": "Code – Add B2B Bonus",
       "type": "n8n-nodes-base.code",
@@ -350,7 +350,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1135,8 +1135,8 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "=*🔥 HOT LEAD – إجراء فوري مطلوب\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.travel_group || \"غير معروف\" }}* ({{ $json.pax_hint || \"?\" }} أفراد)\n🏨 *{{ $json.stars_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#عمرة_2026 #فنادق_مكة #hot-lead",
+        "chatId": "REDACTED_CHAT_ID",
+        "text": "=*🔥 طلب سياحي VIP – استجابة سريعة\\!*\n🏢 *{{ $json.lead_category || \"غير مصنف\" }}*  {{ $json.radar_urgency === \"immediate\" ? \"🔥\" : $json.radar_urgency === \"soon\" ? \"🟠\" : $json.radar_urgency === \"planned\" ? \"🟢\" : \"⚪\" }}\n\n👤 *{{ $json.name || $json.username || \"مجهول\" }}*\n📞 *{{ $json.phone || \"غير موجود\" }}*{{ $json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\" }}\n\n👥 *{{ $json.travel_group || \"غير معروف\" }}* ({{ $json.pax_hint || \"?\" }} أفراد)\n🏨 *{{ $json.stars_preference || \"غير معروف\" }}*\n💰 *{{ $json.budget_signal || \"غير معروف\" }}*\n\n📊 الدرجة: *{{ $json.final_score || 0 }}/100*\n⏰ الإلحاح: *{{ $json.radar_urgency || \"غير محدد\" }}*\n🎯 الإجراء: *{{ $json.recommended_action || \"متابعة\" }}*\n\n💬 الرسالة:\n{{ ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + (($json.message || \"\").length > 300 ? \"...\" : \"\") }}\n\n🕒 وقت التقاط: {{ $json.scored_at || $json.captured_at || $now }}\n\n#سياحة_تركيا #BlueviaTravel #hot-lead",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
@@ -1161,7 +1161,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/makkah-sales-handoff",
+        "url": "=https://Bluevia.srv1332143.hstgr.cloud/webhook/bluevia-sales-handoff",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"phone\": \"{{ $json.phone }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"score\": {{ $json.final_score }},\n  \"category\": \"{{ $json.lead_category }}\",\n  \"action\": \"{{ $json.recommended_action }}\",\n  \"urgency\": \"{{ $json.radar_urgency }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"priority\": {{ $json.priority }},\n  \"message\": \"{{ $json.message?.substring(0,400) }}\",\n  \"phones_found\": \"{{ $json.phones_found }}\",\n  \"source\": \"{{ $json.source }}\",\n  \"scored_at\": \"{{ $json.scored_at }}\",\n  \"budget_signal\": \"{{ $json.raw.budget_signal }}\",\n  \"travel_group\": \"{{ $json.travel_group }}\",\n  \"stars_preference\": \"{{ $json.stars_preference }}\",\n  \"pax_hint\": {{ $json.pax_hint }},\n  \"lead_id\": \"{{ $json.content_hash || '' }}\",\n  \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"profile_url\": \"{{ $json.raw.profile_url }}\",\n \"radar_intent\": \"{{ $json.radar_intent }}\",\n  \"radar_quality\": \"{{ $json.raw.radar_quality }}\",\n  \"lead_quality\": \"{{ $json.raw.lead_quality }}\",\n  \"post_url\": \"{{ $json.raw.post_url }}\",\n  \"username\": \"{{ $json.raw.username }}\",\n  \"full_name\": \"{{ $json.raw.full_name }}\",\n  \"platform\": \"{{ $json.raw.platform }}\",\n  \"bonus_breakdown\": {\n    \"budget\": {{ $json.budget_bonus }},\n    \"group\": {{ $json.group_bonus }},\n    \"b2b\": {{ $json.b2b_bonus }}\n  }\n}",
@@ -1181,8 +1181,8 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
-        "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#عمرة_2026 #فنادق_مكة\"\n}}",
+        "chatId": "REDACTED_CHAT_ID",
+        "text": "={{ \n  \"🔥 *HOT LEAD – إجراء فوري مطلوب!*\\n\\n\" +\n  ($json.lead_category ? \"🏢 \" + $json.lead_category + \"\\n\" : \"\") +\n  ($json.radar_urgency ? \"⏰ \" + $json.radar_urgency + \"\\n\" : \"\") +\n  \"👤 \" + ($json.name || $json.username || \"مجهول\") + \"\\n\" +\n  \"📞 \" + ($json.phone || \"غير موجود\") + \n  ($json.phones_found && $json.phones_found.length > 0 ? \" (\" + $json.phones_found.join(\", \") + \")\" : \"\") + \"\\n\" +\n  \"📊 الدرجة: *\" + ($json.final_score || 0) + \"/100*\\n\" +\n  \"🎯 الإجراء: \" + ($json.recommended_action || \"متابعة\") + \"\\n\\n\" +\n  \"💬 \" + ($json.message || $json.normalized_message || $json.raw_text || \"لا يوجد نص\").substring(0, 300) + \n  (($json.message || \"\").length > 300 ? \"...\" : \"\") + \"\\n\\n\" +\n  \"🕒 \" + ($json.scored_at || $now) + \"\\n\" +\n  \"#سياحة_تركيا #BlueviaTravel\"\n}}",
         "additionalFields": {
           "parse_mode": "MarkdownV2"
         }
@@ -1207,7 +1207,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/marketing-journey",
+        "url": "=https://Bluevia.srv1332143.hstgr.cloud/webhook/marketing-journey",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ phone: $json.phone, name: $json.name, score: $json.final_score, status: $json.status, category: $json.lead_category, recommended_action: $json.recommended_action, radar_intent: $json.radar_intent, budget_signal: $json.budget_signal, travel_group: $json.travel_group, stars_preference: $json.stars_preference, source: $json.source, scored_at: $json.scored_at }) }}",
@@ -1243,7 +1243,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1257,7 +1257,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ $json.error_id }}",
-            "flow_name": "SaaSAI_F3",
+            "flow_name": "Bluevia_F3",
             "node_name": "={{ $json.node_name || \"Unknown\" }}",
             "error_msg": "={{ $json.error_msg || $json.error_message || $json.message || \"\" }}",
             "severity": "high",
@@ -1310,7 +1310,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #3 – Lead Scoring*\\n\\n❌ ${$json.error?.message || 'خطأ غير معروف'}\\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || 'Unknown'}\\n⏱️ ${new Date().toLocaleString('ar-SA', {timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1488,14 +1488,14 @@
       {
         "json": {
           "headers": {
-            "host": "n8n.srv1332143.hstgr.cloud",
+            "host": "Bluevia.srv1332143.hstgr.cloud",
             "user-agent": "axios/1.13.5",
             "content-length": "1123",
             "accept": "application/json,text/*;q=0.99",
             "accept-encoding": "gzip, compress, deflate, br",
             "content-type": "application/json",
             "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-host": "Bluevia.srv1332143.hstgr.cloud",
             "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
             "x-forwarded-server": "f81c42443d27",
@@ -1524,7 +1524,7 @@
             "ai_reason": "المستخدم طالب حجز فندق 5 نجوم بإطلالة على الحرم وأرفق رقم جوال، يدل على استعداد فوري للحجز.",
             "archived_at": "2026-03-18T19:12:34.802Z",
             "profile_url": "https://tiktok.com/@faisal_luxury",
-            "post_url": "https://tiktok.com/@makkahvlog/video/111222",
+            "post_url": "https://tiktok.com/@turkeyvlog/video/111222",
             "username": "faisal_luxury_travel",
             "full_name": "فيصل العمري",
             "platform": "TikTok",
@@ -1534,7 +1534,7 @@
             "lead_quality": "95",
             "phone": "+966534455667"
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
+          "webhookUrl": "https://Bluevia.srv1332143.hstgr.cloud/webhook/radar-hot-lead",
           "executionMode": "production"
         },
         "pairedItem": {

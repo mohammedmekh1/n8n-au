@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F10 – WordPress Pipeline",
+  "name": "Bluevia – F10 – WordPress Pipeline",
   "nodes": [
     {
       "parameters": {
@@ -37,11 +37,11 @@
         2336,
         -160
       ],
-      "webhookId": "makkah-wp-pipeline"
+      "webhookId": "turkey-wp-pipeline"
     },
     {
       "parameters": {
-        "jsCode": "const now=new Date(),day=now.getDay(),month=now.getMonth()+1;\nconst dayThemes={0:{theme:'عروض وخصومات',type:'promotional'},1:{theme:'دليل وتعليم',type:'educational'},2:{theme:'تجارب ومراجعات',type:'review'},3:{theme:'موسمي وحج/عمرة',type:'seasonal'},4:{theme:'B2B ووكالات سفر',type:'b2b'},5:{theme:'روحاني وإلهامي',type:'inspirational'},6:{theme:'عروض نهاية أسبوع',type:'offer'}};\nconst dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];\nconst ctx=dayThemes[day]||dayThemes[0];\nconst seasonBonus=month>=3&&month<=5?'رمضان والعمرة':month>=4&&month<=7?'موسم الحج 2026':'';\nconst hotel={name:'SaaSAI للأتمتة'||'SaaSAI للأتمتة',stars:'5',location:'قريب من المسجد الحرام',booking:'https://wa.me/966500000000',usp:'إطلالة على الكعبة المشرفة وخدمات راقية'};\nconst count=parseInt('3');\nconst manualTopics=$input.first().json?.topics||[];\nreturn [{json:{day_theme:ctx.theme,content_type:ctx.type,season_bonus:seasonBonus,hotel,articles_count:manualTopics.length||count,manual_topics:manualTopics,day_name:dayNames[day],today:now.toISOString().split('T')[0],run_at:now.toISOString()}}];\n"
+        "jsCode": "const now=new Date(),day=now.getDay(),month=now.getMonth()+1;\nconst dayThemes={0:{theme:'عروض وخصومات',type:'promotional'},1:{theme:'دليل وتعليم',type:'educational'},2:{theme:'تجارب ومراجعات',type:'review'},3:{theme:'موسمي وحج/عمرة',type:'seasonal'},4:{theme:'B2B ووكالات سفر',type:'b2b'},5:{theme:'روحاني وإلهامي',type:'inspirational'},6:{theme:'عروض نهاية أسبوع',type:'offer'}};\nconst dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];\nconst ctx=dayThemes[day]||dayThemes[0];\nconst seasonBonus=month>=3&&month<=5?'رمضان والعمرة':month>=4&&month<=7?'موسم الحج 2026':'';\nconst hotel={name:'Bluevia Travel'||'Bluevia Travel',stars:'5',location:'قريب من البوسفور',booking:'https://wa.me/966500000000',usp:'إطلالة على آيا صوفيا وخدمات راقية'};\nconst count=parseInt('3');\nconst manualTopics=$input.first().json?.topics||[];\nreturn [{json:{day_theme:ctx.theme,content_type:ctx.type,season_bonus:seasonBonus,hotel,articles_count:manualTopics.length||count,manual_topics:manualTopics,day_name:dayNames[day],today:now.toISOString().split('T')[0],run_at:now.toISOString()}}];\n"
       },
       "id": "4ee6d9f9-5c29-4bbf-ad30-bbf908ab75a3",
       "name": "Code – إعداد سياق التوليد",
@@ -54,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ctx=$('Code – إعداد سياق التوليد').first().json;\nconst aiRaw=$input.first().json;\nlet ideas=[];\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\[[\\s\\S]*\\]/);if(m)ideas=JSON.parse(m[0]);}catch(e){ideas=[];}\nif(!ideas.length)ideas=[{title_ar:'أفضل SaaSAI للأتمتة 2026',title_en:'best-hotels-makkah-2026',slug:'best-hotels-makkah-2026',excerpt_ar:'دليل شامل لأفضل خدمات SaaSAI 2026.',category:'خدمات SaaSAI',tags:'خدمات SaaSAI,عمرة 2026',meta_title:'أفضل خدمات SaaSAI 2026 | احجز الآن',meta_description:'اكتشف أفضل SaaSAI للأتمتة 2026 بأسعار مميزة قريبة من الحرم.',focus_keyword:'SaaSAI للأتمتة 2026',content_outline:['مقدمة','معايير الاختيار','أفضل الفنادق','الأسعار','الحجز','خلاصة'],target_word_count:1000,search_intent:'transactional',priority:'high'}];\nconst now=new Date().toISOString();\nreturn ideas.map((idea,i)=>({json:{article_id:`ART-${ctx.today.replace(/-/g,'')}-${String(i+1).padStart(2,'0')}`,title_ar:idea.title_ar||'',title_en:idea.title_en||'',slug:(idea.slug||idea.title_en||'').toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''),excerpt_ar:idea.excerpt_ar||'',category:idea.category||'خدمات SaaSAI',tags:idea.tags||'',meta_title:idea.meta_title||'',meta_description:idea.meta_description||'',focus_keyword:idea.focus_keyword||'',content_outline:JSON.stringify(idea.content_outline||[]),target_word_count:idea.target_word_count||1000,search_intent:idea.search_intent||'informational',priority:idea.priority||'medium',content_type:ctx.content_type,author:'AI – Claude Sonnet',status:'idea',content_ar:'',featured_image_url:'',site_post_id:'',page_url:'',views:'0',publish_date:'',published_at:'',created_at:now,notes:`مولَّد تلقائياً | ${ctx.day_name} | ${ctx.day_theme}`}}));\n"
+        "jsCode": "const ctx=$('Code – إعداد سياق التوليد').first().json;\nconst aiRaw=$input.first().json;\nlet ideas=[];\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\[[\\s\\S]*\\]/);if(m)ideas=JSON.parse(m[0]);}catch(e){ideas=[];}\nif(!ideas.length)ideas=[{title_ar:'أفضل Bluevia Travel 2026',title_en:'best-hotels-turkey-2026',slug:'best-hotels-turkey-2026',excerpt_ar:'دليل شامل لأفضل خدمات Bluevia 2026.',category:'خدمات Bluevia',tags:'خدمات Bluevia,عمرة 2026',meta_title:'أفضل خدمات Bluevia 2026 | احجز الآن',meta_description:'اكتشف أفضل Bluevia Travel 2026 بأسعار مميزة قريبة من الحرم.',focus_keyword:'Bluevia Travel 2026',content_outline:['مقدمة','معايير الاختيار','أفضل الفنادق','الأسعار','الحجز','خلاصة'],target_word_count:1000,search_intent:'transactional',priority:'high'}];\nconst now=new Date().toISOString();\nreturn ideas.map((idea,i)=>({json:{article_id:`ART-${ctx.today.replace(/-/g,'')}-${String(i+1).padStart(2,'0')}`,title_ar:idea.title_ar||'',title_en:idea.title_en||'',slug:(idea.slug||idea.title_en||'').toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''),excerpt_ar:idea.excerpt_ar||'',category:idea.category||'خدمات Bluevia',tags:idea.tags||'',meta_title:idea.meta_title||'',meta_description:idea.meta_description||'',focus_keyword:idea.focus_keyword||'',content_outline:JSON.stringify(idea.content_outline||[]),target_word_count:idea.target_word_count||1000,search_intent:idea.search_intent||'informational',priority:idea.priority||'medium',content_type:ctx.content_type,author:'AI – Claude Sonnet',status:'idea',content_ar:'',featured_image_url:'',site_post_id:'',page_url:'',views:'0',publish_date:'',published_at:'',created_at:now,notes:`مولَّد تلقائياً | ${ctx.day_name} | ${ctx.day_theme}`}}));\n"
       },
       "id": "bd9e01d1-2ac7-4f90-b96b-78886254f7e0",
       "name": "Code – تحليل أفكار Claude للشيت",
@@ -72,7 +72,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -310,7 +310,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `💡 *أفكار جديدة – Flow #10*\\n\\n📅 ${$('Code – إعداد سياق التوليد').first().json.day_name} | ${$('Code – إعداد سياق التوليد').first().json.day_theme}\\n📌 آخر فكرة: ${$json.title_ar}\\n🔑 KW: ${$json.focus_keyword}\\n📊 أولوية: ${$json.priority}\\n\\n✅ محفوظة في الشيت بحالة idea` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -443,7 +443,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idea=$('Split – مقالة واحدة للكتابة').first().json;\nconst aiRaw=$input.first().json;\nlet result={};\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\{[\\s\\S]*\\}/);if(m)result=JSON.parse(m[0]);}catch(e){result={};}\nconst content=result.content_html||'<p>المحتوى قيد الإنشاء</p>';\nreturn [{json:{...idea,content_ar:content,word_count:result.word_count||0,readability_score:result.readability_score||0,featured_image_prompt_en:result.featured_image_prompt_en||'Luxury hotel near Masjid al-Haram Makkah, golden hour, professional photography, 16:9',status:'ready',content_ready_at:new Date().toISOString()}}];\n"
+        "jsCode": "const idea=$('Split – مقالة واحدة للكتابة').first().json;\nconst aiRaw=$input.first().json;\nlet result={};\ntry{let txt=aiRaw?.text||aiRaw?.content?.[0]?.text||aiRaw?.output||JSON.stringify(aiRaw);txt=txt.replace(/```json\\s*/gi,'').replace(/```\\s*/gi,'').trim();const m=txt.match(/\\{[\\s\\S]*\\}/);if(m)result=JSON.parse(m[0]);}catch(e){result={};}\nconst content=result.content_html||'<p>المحتوى قيد الإنشاء</p>';\nreturn [{json:{...idea,content_ar:content,word_count:result.word_count||0,readability_score:result.readability_score||0,featured_image_prompt_en:result.featured_image_prompt_en||'Luxury hotel near Masjid al-Bosphorus Turkey, golden hour, professional photography, 16:9',status:'ready',content_ready_at:new Date().toISOString()}}];\n"
       },
       "id": "8436d0a3-f34d-4d63-b318-0ed6ac87b210",
       "name": "Code – تحليل رد كتابة المحتوى",
@@ -461,7 +461,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -768,7 +768,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5555555555",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "ℹ️ *Flow #10*\\nلا أفكار بحالة `idea`. سيتم توليدها الساعة 6 صباحاً.",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -794,7 +794,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=={{ `أنت استراتيجي محتوى SEO متخصص في SaaSAI للأتمتة.\\\\n\\\\nالفندق: ${$json.hotel.name} – ${$json.hotel.stars} نجوم – ${$json.hotel.usp}\\\\nرابط الحجز: ${$json.hotel.booking}\\\\nيوم اليوم: ${$json.day_name} | موضوع اليوم: ${$json.day_theme}\\\\nالموسم: ${$json.season_bonus || 'عادي'}\\\\n\\\\nأنشئ ${$json.articles_count} أفكار مقالات SEO مختلفة تماماً.\\\\n\\\\nلكل فكرة:\\\\n- title_ar: عنوان عربي (55-65 حرف)\\\\n- title_en: عنوان إنجليزي (40-55 حرف)\\\\n- slug: رابط URL (أحرف إنجليزية وأرقام وشرطات فقط)\\\\n- excerpt_ar: وصف (120-155 حرف)\\\\n- category: فئة من [خدمات SaaSAI، دليل العمرة، باقات الحج، تجارب العملاء، عروض حصرية، مقارنة فنادق، نصائح السفر، B2B وكالات]\\\\n- tags: 5-7 كلمات مفتاحية بفواصل\\\\n- meta_title: (50-60 حرف)\\\\n- meta_description: (140-160 حرف)\\\\n- focus_keyword: الكلمة الرئيسية\\\\n- content_outline: مصفوفة 5-6 عناوين H2 بالعربية\\\\n- target_word_count: 800-1200\\\\n- search_intent: informational|transactional|navigational\\\\n- priority: high|medium|low\\\\n\\\\nJSON فقط – مصفوفة:\\\\n[{...},{...}]` }}\"",
+        "text": "=={{ `أنت استراتيجي محتوى SEO متخصص في Bluevia Travel.\\\\n\\\\nالفندق: ${$json.hotel.name} – ${$json.hotel.stars} نجوم – ${$json.hotel.usp}\\\\nرابط الحجز: ${$json.hotel.booking}\\\\nيوم اليوم: ${$json.day_name} | موضوع اليوم: ${$json.day_theme}\\\\nالموسم: ${$json.season_bonus || 'عادي'}\\\\n\\\\nأنشئ ${$json.articles_count} أفكار مقالات SEO مختلفة تماماً.\\\\n\\\\nلكل فكرة:\\\\n- title_ar: عنوان عربي (55-65 حرف)\\\\n- title_en: عنوان إنجليزي (40-55 حرف)\\\\n- slug: رابط URL (أحرف إنجليزية وأرقام وشرطات فقط)\\\\n- excerpt_ar: وصف (120-155 حرف)\\\\n- category: فئة من [خدمات Bluevia، دليل السياحة التركية، برامج الشمال التركي، تجارب العملاء، عروض حصرية، مقارنة فنادق، نصائح السفر، B2B وكالات]\\\\n- tags: 5-7 كلمات مفتاحية بفواصل\\\\n- meta_title: (50-60 حرف)\\\\n- meta_description: (140-160 حرف)\\\\n- focus_keyword: الكلمة الرئيسية\\\\n- content_outline: مصفوفة 5-6 عناوين H2 بالعربية\\\\n- target_word_count: 800-1200\\\\n- search_intent: informational|transactional|navigational\\\\n- priority: high|medium|low\\\\n\\\\nJSON فقط – مصفوفة:\\\\n[{...},{...}]` }}\"",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -828,7 +828,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=\"={{ `أنت كاتب محتوى SEO محترف متخصص في خدمات SaaSAI.\\\\n\\\\nاكتب مقالة WordPress كاملة:\\\\nالعنوان: ${$json.title_ar}\\\\nالكلمة المفتاحية: ${$json.focus_keyword}\\\\nنية البحث: ${$json.search_intent}\\\\nالفئة: ${$json.category}\\\\nعدد الكلمات: ${$json.target_word_count||900}\\\\nمخطط المقالة: ${$json.content_outline}\\\\nالفندق: ${'SaaSAI'}\\\\nرابط الحجز: ${'https://wa.me/966500000000'}\\\\n\\\\nالمتطلبات:\\\\n1. عربية فصحى مبسطة\\\\n2. الكلمة المفتاحية في أول 100 كلمة\\\\n3. عناوين H2 و H3\\\\n4. كثافة 1.5-2%\\\\n5. CTA للحجز في النهاية\\\\n6. HTML فقط (p, h2, h3, ul, strong, em)\\\\n\\\\nJSON فقط:\\\\n{\\\\\\\"content_html\\\\\\\":\\\\\\\"...\\\\\\\",\\\\\\\"word_count\\\\\\\":950,\\\\\\\"readability_score\\\\\\\":85,\\\\\\\"featured_image_prompt_en\\\\\\\":\\\\\\\"...\\\\\\\"}` }}\"",
+        "text": "=\"={{ `أنت كاتب محتوى SEO محترف متخصص في خدمات Bluevia.\\\\n\\\\nاكتب مقالة WordPress كاملة:\\\\nالعنوان: ${$json.title_ar}\\\\nالكلمة المفتاحية: ${$json.focus_keyword}\\\\nنية البحث: ${$json.search_intent}\\\\nالفئة: ${$json.category}\\\\nعدد الكلمات: ${$json.target_word_count||900}\\\\nمخطط المقالة: ${$json.content_outline}\\\\nالفندق: ${'Bluevia'}\\\\nرابط الحجز: ${'https://wa.me/966500000000'}\\\\n\\\\nالمتطلبات:\\\\n1. عربية فصحى مبسطة\\\\n2. الكلمة المفتاحية في أول 100 كلمة\\\\n3. عناوين H2 و H3\\\\n4. كثافة 1.5-2%\\\\n5. CTA للحجز في النهاية\\\\n6. HTML فقط (p, h2, h3, ul, strong, em)\\\\n\\\\nJSON فقط:\\\\n{\\\\\\\"content_html\\\\\\\":\\\\\\\"...\\\\\\\",\\\\\\\"word_count\\\\\\\":950,\\\\\\\"readability_score\\\\\\\":85,\\\\\\\"featured_image_prompt_en\\\\\\\":\\\\\\\"...\\\\\\\"}` }}\"",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",

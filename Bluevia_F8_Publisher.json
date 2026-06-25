@@ -1,5 +1,5 @@
 {
-  "name": "SaaSAI – F8 – Publisher النشر",
+  "name": "Bluevia – F8 – Publisher النشر",
   "nodes": [
     {
       "parameters": {
@@ -119,7 +119,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─── Prepare Post for Publishing – B2B AWARE v3 ───────────────────────────\nconst d = $input.first().json;\nconst baseHashtags = '#فنادق_مكة #حجز_فندق_مكة #عمرة2026 #حج2026 #MakkahHotel #HotelNearHaram';\nconst b2bHashtags = '#وكالات_سفر #حجوزات_فنادق #KaabaView #MakkahHotels #LuxuryTravel #Umrah2026';\n\n// ═══════════════════════════════════════════════════════════════════════\n// 🔍 تحديد المنصات المستهدفة — مع دعم B2B\n// ═══════════════════════════════════════════════════════════════════════\nlet platformsStr = '';\n\n// الأولوية 1: حقل platforms لو موجود (للمنشورات المتعددة المنصات)\nif (d.platforms) {\n  platformsStr = d.platforms;\n}\n// الأولوية 2: تحويل platform + channel إلى اسم معياري\nelse if (d.platform && d.channel) {\n  const p = (d.platform || '').toLowerCase().trim();\n  const c = (d.channel || '').toLowerCase().trim();\n  \n  if (p === 'x' || p === 'twitter' || c === 'twitter') platformsStr = 'x_twitter';\n  else if (p === 'instagram' || c === 'instagram') platformsStr = 'instagram';\n  else if (p === 'facebook' || c === 'facebook') platformsStr = 'facebook';\n  else if (p === 'whatsapp' || c === 'whatsapp') platformsStr = 'whatsapp';\n  else if (p === 'telegram' || c === 'telegram') platformsStr = 'telegram';\n  else if (p === 'tiktok' || c === 'tiktok') platformsStr = 'tiktok';\n  else if (p === 'linkedin' || c === 'linkedin') platformsStr = 'linkedin';\n}\n// الأولوية 3: إذا كان المحتوى B2B، استهدف قنوات B2B فقط\nelse if (d.content_type === 'b2b' || d.نوع_المحتوى === 'b2b') {\n  platformsStr = 'linkedin,facebook,whatsapp,telegram';\n}\n// الأولوية 4: fallback عام (كل المنصات)\nelse {\n  platformsStr = 'x_twitter,instagram,facebook,whatsapp,telegram,tiktok';\n}\n\nconst platforms = platformsStr.split(',').map(p => p.trim()).filter(p => p);\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📝 تجهيز النصوص — مع fallback متعدد المستويات\n// ═══════════════════════════════════════════════════════════════════════\n\n// استخراج العنوان العربي من أي حقل متاح (أولوية متعددة)\nconst arTitle = d.ar_title \n  || d.source_title \n  || d.post_text?.split('\\n')[0]?.substring(0, 60) \n  || d.x_post?.split('#')[0]?.trim()\n  || d.instagram_post?.split('\\n')[0]?.substring(0, 60)\n  || 'منشور خدمات SaaSAI';\n\n// استخراج النص الرئيسي (للجسم)\nconst arBody = d.ar_body \n  || d.post_text \n  || d.whatsapp_broadcast \n  || d.instagram_post \n  || d.x_post \n  || '';\n\n// اختيار الهاشتاجات حسب نوع المحتوى\nconst hashtags = d.content_type === 'b2b' ? b2bHashtags : baseHashtags;\n\nreturn [{\n  json: {\n    ...d,\n    \n    // نصوص جاهزة مع ضمان عدم تجاوز حدود المنصات\n    x_final:        (d.x_post || arTitle || '').substring(0, 270),\n    ig_final:       (d.instagram_post || arTitle || '') + '\\n\\n' + hashtags,\n    fb_final:       d.facebook_post || d.post_text || arTitle || '',\n    wa_final:       d.whatsapp_broadcast || arBody || '',\n    tg_final:       (d.telegram_post || arTitle || '') + '\\n\\n' + hashtags,\n    tt_final:       (d.tiktok_caption || d.instagram_post || arTitle || '').substring(0, 200),\n    li_final:       d.linkedin_post || d.facebook_post || arBody || '',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 🖼 بيانات الصورة — fallback ذكي للنصوص العربية\n    // ═══════════════════════════════════════════════════════════════════\n    \n    // النص الرئيسي بالعربية (للصورة) — استخراج من أي نص متاح\n    img_text_ar: d.template_text_ar \n      || d.ar_title \n      || d.source_title \n      || (d.post_text || '').split('\\n')[0]?.substring(0, 40)\n      || (d.x_post || '').split('#')[0]?.trim()?.substring(0, 40)\n      || 'SaaSAI للأتمتة',\n    \n    // النص الثانوي (رابط الحجز أو عرض) \n    img_subtext_ar: d.template_subtext_ar \n      || d.booking_link \n      || (d.source_url || '').replace('https://', '').split('/')[0]\n      || (d.whatsapp_broadcast || '').match(/wa\\.me\\/(\\d+)/)?.[1]\n      || '',\n    \n    // وصف الصورة بالإنجليزي لتوليد AI\n    img_prompt_en: d.image_prompt_en \n      || d.image_prompt \n      || 'Luxury hotel near Masjid al-Haram Makkah, golden hour, photorealistic, 16:9',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 📊 بيانات التتبع والحالة\n    // ═══════════════════════════════════════════════════════════════════\n    post_row_number: d.row_number,\n    platforms: platforms,\n    publish_start: new Date().toISOString(),\n    \n    // Debug info\n    _debug: {\n      content_type: d.content_type,\n      original_platform: d.platform,\n      original_channel: d.channel,\n      detected_platforms: platforms,\n      ar_title_used: arTitle.substring(0, 30) + '...',\n      hashtags_used: hashtags.substring(0, 20) + '...'\n    }\n  }\n}];"
+        "jsCode": "// ─── Prepare Post for Publishing – B2B AWARE v3 ───────────────────────────\nconst d = $input.first().json;\nconst baseHashtags = '#فنادق_تركيا #حجز_فندق_تركيا #سياحة_تركيا2026 #تركيا2026 #TurkeyHotel #HotelNearBosphorus';\nconst b2bHashtags = '#وكالات_سفر #حجوزات_فنادق #TurkeyView #TurkeyHotels #LuxuryTravel #Tourism2026';\n\n// ═══════════════════════════════════════════════════════════════════════\n// 🔍 تحديد المنصات المستهدفة — مع دعم B2B\n// ═══════════════════════════════════════════════════════════════════════\nlet platformsStr = '';\n\n// الأولوية 1: حقل platforms لو موجود (للمنشورات المتعددة المنصات)\nif (d.platforms) {\n  platformsStr = d.platforms;\n}\n// الأولوية 2: تحويل platform + channel إلى اسم معياري\nelse if (d.platform && d.channel) {\n  const p = (d.platform || '').toLowerCase().trim();\n  const c = (d.channel || '').toLowerCase().trim();\n  \n  if (p === 'x' || p === 'twitter' || c === 'twitter') platformsStr = 'x_twitter';\n  else if (p === 'instagram' || c === 'instagram') platformsStr = 'instagram';\n  else if (p === 'facebook' || c === 'facebook') platformsStr = 'facebook';\n  else if (p === 'whatsapp' || c === 'whatsapp') platformsStr = 'whatsapp';\n  else if (p === 'telegram' || c === 'telegram') platformsStr = 'telegram';\n  else if (p === 'tiktok' || c === 'tiktok') platformsStr = 'tiktok';\n  else if (p === 'linkedin' || c === 'linkedin') platformsStr = 'linkedin';\n}\n// الأولوية 3: إذا كان المحتوى B2B، استهدف قنوات B2B فقط\nelse if (d.content_type === 'b2b' || d.نوع_المحتوى === 'b2b') {\n  platformsStr = 'linkedin,facebook,whatsapp,telegram';\n}\n// الأولوية 4: fallback عام (كل المنصات)\nelse {\n  platformsStr = 'x_twitter,instagram,facebook,whatsapp,telegram,tiktok';\n}\n\nconst platforms = platformsStr.split(',').map(p => p.trim()).filter(p => p);\n\n// ═══════════════════════════════════════════════════════════════════════\n// 📝 تجهيز النصوص — مع fallback متعدد المستويات\n// ═══════════════════════════════════════════════════════════════════════\n\n// استخراج العنوان العربي من أي حقل متاح (أولوية متعددة)\nconst arTitle = d.ar_title \n  || d.source_title \n  || d.post_text?.split('\\n')[0]?.substring(0, 60) \n  || d.x_post?.split('#')[0]?.trim()\n  || d.instagram_post?.split('\\n')[0]?.substring(0, 60)\n  || 'منشور خدمات Bluevia';\n\n// استخراج النص الرئيسي (للجسم)\nconst arBody = d.ar_body \n  || d.post_text \n  || d.whatsapp_broadcast \n  || d.instagram_post \n  || d.x_post \n  || '';\n\n// اختيار الهاشتاجات حسب نوع المحتوى\nconst hashtags = d.content_type === 'b2b' ? b2bHashtags : baseHashtags;\n\nreturn [{\n  json: {\n    ...d,\n    \n    // نصوص جاهزة مع ضمان عدم تجاوز حدود المنصات\n    x_final:        (d.x_post || arTitle || '').substring(0, 270),\n    ig_final:       (d.instagram_post || arTitle || '') + '\\n\\n' + hashtags,\n    fb_final:       d.facebook_post || d.post_text || arTitle || '',\n    wa_final:       d.whatsapp_broadcast || arBody || '',\n    tg_final:       (d.telegram_post || arTitle || '') + '\\n\\n' + hashtags,\n    tt_final:       (d.tiktok_caption || d.instagram_post || arTitle || '').substring(0, 200),\n    li_final:       d.linkedin_post || d.facebook_post || arBody || '',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 🖼 بيانات الصورة — fallback ذكي للنصوص العربية\n    // ═══════════════════════════════════════════════════════════════════\n    \n    // النص الرئيسي بالعربية (للصورة) — استخراج من أي نص متاح\n    img_text_ar: d.template_text_ar \n      || d.ar_title \n      || d.source_title \n      || (d.post_text || '').split('\\n')[0]?.substring(0, 40)\n      || (d.x_post || '').split('#')[0]?.trim()?.substring(0, 40)\n      || 'Bluevia Travel',\n    \n    // النص الثانوي (رابط الحجز أو عرض) \n    img_subtext_ar: d.template_subtext_ar \n      || d.booking_link \n      || (d.source_url || '').replace('https://', '').split('/')[0]\n      || (d.whatsapp_broadcast || '').match(/wa\\.me\\/(\\d+)/)?.[1]\n      || '',\n    \n    // وصف الصورة بالإنجليزي لتوليد AI\n    img_prompt_en: d.image_prompt_en \n      || d.image_prompt \n      || 'Luxury hotel near Masjid al-Bosphorus Turkey, golden hour, photorealistic, 16:9',\n    \n    // ═══════════════════════════════════════════════════════════════════\n    // 📊 بيانات التتبع والحالة\n    // ═══════════════════════════════════════════════════════════════════\n    post_row_number: d.row_number,\n    platforms: platforms,\n    publish_start: new Date().toISOString(),\n    \n    // Debug info\n    _debug: {\n      content_type: d.content_type,\n      original_platform: d.platform,\n      original_channel: d.channel,\n      detected_platforms: platforms,\n      ar_title_used: arTitle.substring(0, 30) + '...',\n      hashtags_used: hashtags.substring(0, 20) + '...'\n    }\n  }\n}];"
       },
       "id": "bf82cb54-5e03-4e87-b18f-3e5ca46ba544",
       "name": "Code – تحضير المنشور للنشر",
@@ -150,7 +150,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -798,7 +798,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1035,7 +1035,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1175,7 +1175,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `📣 *تقرير النشر اليومي – Flow #8*\n\n📌 *المنشور:* ${$json.ar_title}\n🖼 *الصورة:* ${$json.image_url ? '✅ تم التوليد (NanoBanana)' : '❌ فشل التوليد'}\n${$json.drive_web_link ? '📁 *Drive:* ' + $json.drive_web_link : ''}\n\n✅ *نُشر على:* ${$json.published_on || 'لا شيء'}\n${$json.failed_on ? '❌ *فشل في:* ' + $json.failed_on : ''}\n\n📊 *معدل النجاح:* ${$json.success_rate}%\n⏰ *وقت النشر:* ${new Date($json.published_at).toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}\n${$json.image_url ? '🔗 ' + $json.image_url : ''}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1200,7 +1200,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "ℹ️ *Flow #8 – Publisher*\nلا توجد منشورات بحالة `ready_to_publish` اليوم.\n\n_تأكد من تشغيل Flow #7 أولاً لتوليد المحتوى._",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1230,7 +1230,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1244,7 +1244,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR8-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F8",
+            "flow_name": "Bluevia_F8",
             "node_name": "={{ $json.execution?.lastNodeExecuted || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "high",
@@ -1358,7 +1358,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `❌ *خطأ في Flow #8 – Publisher*\n\n🔴 ${$json.error?.message || 'خطأ غير معروف'}\n📍 ${$json.execution?.lastNodeExecuted || 'Unknown'}\n⏰ ${new Date().toLocaleString('ar-SA', {timeZone: 'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -1473,7 +1473,7 @@
         "caption": "={{ $json.ig_final || $json.instagram_post || '' }}",
         "additionalFields": {}
       },
-      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "type": "@mookielianhd/Bluevia-nodes-instagram.instagram",
       "typeVersion": 1,
       "position": [
         576,
@@ -1542,7 +1542,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"prompt\": \"{{ $json.video_concept_ar || 'فندق فاخر في مكة المكرمة، حركة بطيئة ناعمة، إضاءة ذهبية، تصوير سينمائي احترافي' }}\",\n  \"duration\": \"5\",\n  \"aspect_ratio\": \"16:9\",\n  \"negative_prompt\": \"blur, distortion, low quality, text, watermark\",\n  \"cfg_scale\": 7.5\n}",
+        "jsonBody": "{\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"prompt\": \"{{ $json.video_concept_ar || 'فندق فاخر في تركيا، حركة بطيئة ناعمة، إضاءة ذهبية، تصوير سينمائي احترافي' }}\",\n  \"duration\": \"5\",\n  \"aspect_ratio\": \"16:9\",\n  \"negative_prompt\": \"blur, distortion, low quality, text, watermark\",\n  \"cfg_scale\": 7.5\n}",
         "options": {
           "timeout": 300000
         }
@@ -1573,7 +1573,7 @@
           "mode": "list",
           "cachedResultName": "models/gemini-3-pro-image-preview (Nano Banana Pro)"
         },
-        "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Luxury hotel near Masjid al-Haram Makkah, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"SaaSAI_F8\"\n  }\n}",
+        "prompt": "={\n  \"language\": \"ar\",\n  \"background_prompt\": \"Luxury hotel near Masjid al-Bosphorus Turkey, golden hour warm lighting, ultra-HD professional photography, photorealistic, no text, no people faces, 16:9 ratio\",\n  \"overlay_text\": {\n    \"main_text\": \"{{ $json.img_text_ar || $json.template_text_ar || '' }}\",\n    \"sub_text\": \"{{ $json.img_subtext_ar || $json.template_subtext_ar || '' }}\",\n    \"text_language\": \"ar\",\n    \"text_direction\": \"rtl\"\n  },\n  \"dimensions\": { \"width\": 1920, \"height\": 1080, \"aspect_ratio\": \"16:9\" },\n  \"quality\": \"hd\",\n  \"output_format\": \"png\",\n  \"metadata\": {\n    \"post_id\": \"{{ $json.post_row_number || $json.row_number }}\",\n    \"topic\": \"{{ $json.ar_title || '' }}\",\n    \"source\": \"Bluevia_F8\"\n  }\n}",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
@@ -1668,7 +1668,7 @@
     {
       "parameters": {
         "operation": "sendPhoto",
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "file": "={{ $json.image_url_thumbnail }}",
         "additionalFields": {}
       },
@@ -1706,7 +1706,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"🧪 *رسالة اختبار من نظام SaaSAI*\\n\\nمرحباً! هذه رسالة تجريبية للتأكد من أن نظام البث عبر واتساب يعمل بشكل صحيح.\\n\\n✅ إذا وصلت هذه الرسالة، فالنظام جاهز للإرسال!\\n\\n🔗 للحجز: wa.me/966XXXXXXXXX\\n🏨 SaaSAI للأتمتة\",\n  \"chat_name\": \"اختبار النظام\",\n  \"label\": \"test_broadcast\",\n  \"metadata\": {\n    \"lead_id\": \"TEST-{{ $now.format('YYYYMMDDHHmm') }}\",\n    \"journey_step\": \"test\",\n    \"campaign\": \"system_check\",\n    \"priority\": \"high\",\n    \"content_score\": 100,\n    \"platform_source\": \"n8n_manual_test\",\n    \"image_url\": \"\",\n    \"booking_link\": \"wa.me/966XXXXXXXXX\"\n  }\n}",
+        "jsonBody": "={\n  \"phone\": \"967776078383\",\n  \"text\": \"🧪 *رسالة اختبار من نظام Bluevia*\\n\\nمرحباً! هذه رسالة تجريبية للتأكد من أن نظام البث عبر واتساب يعمل بشكل صحيح.\\n\\n✅ إذا وصلت هذه الرسالة، فالنظام جاهز للإرسال!\\n\\n🔗 للحجز: wa.me/966XXXXXXXXX\\n🏨 Bluevia Travel\",\n  \"chat_name\": \"اختبار النظام\",\n  \"label\": \"test_broadcast\",\n  \"metadata\": {\n    \"lead_id\": \"TEST-{{ $now.format('YYYYMMDDHHmm') }}\",\n    \"journey_step\": \"test\",\n    \"campaign\": \"system_check\",\n    \"priority\": \"high\",\n    \"content_score\": 100,\n    \"platform_source\": \"Bluevia_manual_test\",\n    \"image_url\": \"\",\n    \"booking_link\": \"wa.me/966XXXXXXXXX\"\n  }\n}",
         "options": {
           "timeout": 15000
         }
@@ -1742,7 +1742,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تحويل رابط الصورة إلى Binary Data لـ n8n\n// ═══════════════════════════════════════════════════════════\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `makkah_post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
+        "jsCode": "// ═══════════════════════════════════════════════════════════\n// تحويل رابط الصورة إلى Binary Data لـ Bluevia\n// ═══════════════════════════════════════════════════════════\n\nconst item = $input.first().json;\nconst imageUrl = item.image_url || `https://drive.google.com/uc?export=view&id=${item.image_file_id}`;\n\nreturn [{\n  json: item,\n  binary: {\n    linkedin_image: {  // ← هذا هو اسم الحقل الذي سنستخدمه\n      url: imageUrl,\n      fileName: `turkey_post_${item.topic_id || Date.now()}.jpg`,\n      mimeType: 'image/jpeg'\n    }\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

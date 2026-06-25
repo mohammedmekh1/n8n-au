@@ -1,0 +1,278 @@
+{
+  "name": "F13 Golden Chain - التوثيق الشامل للعمرة",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f13-golden-chain-start",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-node-f13",
+      "name": "Webhook Start Umrah",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "active_umrah_sessions",
+        "where": "session_id = {{ $json.session_id }}",
+        "limit": 1
+      },
+      "id": "postgres-node-f13-get",
+      "name": "PostgreSQL Get Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Hajj PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $json.client_telegram_id }}\",\n  \"text\": \"🕋 بدأت عمرة {{ $json.deceased_name }}\\n\\nالمنفذ: {{ $json.executor_name }}\\nالتوقيت: {{ new Date().toLocaleString('ar-SA') }}\\n\\nسنتابع معك كل خطوة بإذن الله\"\n}",
+        "options": {}
+      },
+      "id": "telegram-node-f13-start",
+      "name": "Telegram Notify Client Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendLocation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $json.client_telegram_id }}\",\n  \"latitude\": {{ $json.executor_lat }},\n  \"longitude\": {{ $json.executor_lng }},\n  \"live_period\": 900\n}",
+        "options": {}
+      },
+      "id": "telegram-node-f13-location",
+      "name": "Telegram Send Live Location",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "waitMode": "interval",
+        "interval": "5m"
+      },
+      "id": "wait-node-f13",
+      "name": "Wait 5 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $json.client_telegram_id }}\",\n  \"text\": \"📍 تحديث الموقع\\n\\nالمنفذ لا يزال في المنطقة\\nالوقت المنقضي: {{ $json.elapsed_minutes }} دقيقة\"\n}",
+        "options": {}
+      },
+      "id": "telegram-node-f13-update",
+      "name": "Telegram Status Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.current_step }}",
+              "operation": "equals",
+              "value2": "tawaf_completed"
+            }
+          ]
+        }
+      },
+      "id": "if-node-f13-tawaf",
+      "name": "Check Tawaf Complete",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $json.client_telegram_id }}\",\n  \"photo\": \"{{ $json.kaaba_photo_url }}\",\n  \"caption\": \"✅ اكتمل الطواف\\n\\nعدد الأشواط: 7\\nالوقت: {{ new Date().toLocaleString('ar-SA') }}\\n\\nاللهم تقبل منّا ومن موكلينا\"\n}",
+        "options": {}
+      },
+      "id": "telegram-node-f13-tawaf",
+      "name": "Telegram Send Tawaf Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "umrah_documentation_log",
+        "columns": "session_id, step_name, media_url, location_lat, location_lng, timestamp, verified",
+        "values": "={{ [$json.session_id, 'tawaf', $json.kaaba_photo_url, $json.executor_lat, $json.executor_lng, new Date().toISOString(), true] }}"
+      },
+      "id": "postgres-node-f13-log",
+      "name": "PostgreSQL Log Evidence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [1850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Hajj PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"تم توثيق الطواف وإرساله للموكل\",\n  \"evidence_id\": \"={{ $json.evidence_id }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-node-f13",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Start Umrah": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL Get Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL Get Session": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notify Client Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Notify Client Start": {
+      "main": [
+        [
+          {
+            "node": "Telegram Send Live Location",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Send Live Location": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Telegram Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Status Update": {
+      "main": [
+        [
+          {
+            "node": "Check Tawaf Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Tawaf Complete": {
+      "main": [
+        [
+          [
+            {
+              "node": "Telegram Send Tawaf Photo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      ]
+    },
+    "Telegram Send Tawaf Photo": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL Log Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL Log Evidence": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f13-golden-chain-v1",
+  "meta": {
+    "instanceId": "hajj-umrah-system",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "id": "execution",
+      "name": "Execution & Transparency",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

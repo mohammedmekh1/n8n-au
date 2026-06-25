@@ -1,0 +1,221 @@
+{
+  "name": "F1 Global Radar - اكتشاف العملاء العالميين",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f1-global-radar-trigger",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-node-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~instagram-scraper/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "searchTerms",
+              "value": "={{ $json.searchTerms }}"
+            },
+            {
+              "name": "resultsLimit",
+              "value": "50"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "apify-node-1",
+      "name": "Apify Instagram Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "apify-credentials",
+          "name": "Apify API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "أنت محلل نوايا شرعي متخصص في الحج والعمرة بالإنابة. مهمتك تحليل المنشورات الاجتماعية وتصنيفها إلى:\n1. حاجة حقيقية (وفاة، مرض، عجز)\n2. فضول عام\n3. بحث عن معلومات\n\nاستخرج من كل منشور:\n- النية (نية حقيقية/فضول)\n- السبب المحتمل (وفاة/مرض/عجز/آخر)\n- اللغة\n- الموقع الجغرافي إن وجد\n- درجة الجدية (0-100)\n\nأجب بصيغة JSON فقط."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.content }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500
+        }
+      },
+      "id": "openai-node-1",
+      "name": "OpenAI Intent Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "potential_clients",
+        "columns": "source_platform, content_raw, intent_classification, seriousness_score, detected_language, detected_location, created_at",
+        "values": "={{ [$json.source, $json.originalContent, $json.intent, $json.seriousnessScore, $json.language, $json.location, new Date().toISOString()] }}"
+      },
+      "id": "postgres-node-1",
+      "name": "PostgreSQL Save Lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Hajj PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.seriousnessScore }}",
+              "operation": "greaterEqual",
+              "value2": 70
+            }
+          ]
+        }
+      },
+      "id": "if-node-1",
+      "name": "Filter High-Intent Leads",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"chat_id\": \"{{ $env.TELEGRAM_ADMIN_CHAT_ID }}\",\n  \"text\": \"🎯 عميل محتمل عالي الجودة\\n\\nالمنصة: {{ $json.source }}\\nالنية: {{ $json.intent }}\\nدرجة الجدية: {{ $json.seriousnessScore }}\\nاللغة: {{ $json.language }}\\n\\nالمحتوى الأصلي:\\n{{ $json.originalContent }}\"\n}",
+        "options": {}
+      },
+      "id": "telegram-node-1",
+      "name": "Telegram Alert Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Apify Instagram Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Instagram Scraper": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Intent Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Intent Analyzer": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL Save Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL Save Lead": {
+      "main": [
+        [
+          {
+            "node": "Filter High-Intent Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High-Intent Leads": {
+      "main": [
+        [
+          [
+            {
+              "node": "Telegram Alert Admin",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1-global-radar-v1",
+  "meta": {
+    "instanceId": "hajj-umrah-system",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "id": "radar",
+      "name": "Radar System",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

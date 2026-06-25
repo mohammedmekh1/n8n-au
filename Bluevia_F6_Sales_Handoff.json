@@ -1,10 +1,10 @@
 {
-  "name": "SaaSAI – F6 – Sales Handoff المبيعات",
+  "name": "Bluevia – F6 – Sales Handoff المبيعات",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "makkah-sales-handoff",
+        "path": "bluevia-sales-handoff",
         "options": {}
       },
       "name": "Webhook – Sales Handoff Entry",
@@ -15,7 +15,7 @@
         -400
       ],
       "id": "fe540d9c-581a-4f80-ae5e-979371f9e913",
-      "webhookId": "makkah-sales-handoff"
+      "webhookId": "bluevia-sales-handoff"
     },
     {
       "parameters": {
@@ -129,7 +129,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -494,7 +494,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Prepare B2C Family Task | نظام رادار SaaSAI v4.0 — مُصحح\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── توليد task_id فريد ─────────────────────────────────────────────────\nconst ts = Date.now().toString().slice(-6);\nconst rnd = Math.floor(Math.random() * 1000).toString().padStart(3, '0');\nconst task_id = `TSK-${ts}${rnd}`;\n\n// ── تحديد نوع المهمة ──────────────────────────────────────────────────\nconst task_type = 'b2c_family_booking';\n\n// ── تحديد الأولوية بناءً على الدرجة ───────────────────────────────────\nlet priority = 'normal';\nif (d.final_score >= 90) priority = 'urgent';\nelse if (d.final_score >= 70) priority = 'high';\n\n// ── تحديد المندوب (فارغ افتراضياً لفريق المبيعات) ─────────────────────\nconst assigned_to = 'sales_team';\n\n// ── حالة المهمة (ليست تصنيف العميل!) ──────────────────────────────────\nconst status = 'open';  // ✅ open / closed / converted / escalated\n\n// ── توحيد صيغة الهاتف ─────────────────────────────────────────────────\nconst phone = d.phone?.startsWith('+') ? d.phone : `+${d.phone}`;\n\n// ── ملء lead_name ─────────────────────────────────────────────────────\nconst lead_name = d.name || d.full_name || 'غير معروف';\n\n// ── ملاحظات مفصلة لفريق المبيعات ─────────────────────────────────────\nconst notes = `عميل يطلب خدمة SaaSAI ${d.stars_preference || '5 نجوم'} قريب الحرم ليوم ${d.check_in_hint || 'غير محدد'} لعائلة من ${d.pax || 4} أشخاص. ميزانية ${d.budget_signal || 'unknown'}. رقم الهاتف: ${phone}. مصدر: ${d.source}. الرسالة: ${d.message || d.last_message || ''}`.substring(0, 500);\n\n// ── عنوان المهمة ──────────────────────────────────────────────────────\nconst task_title = `👨‍👩‍👧 حجز عائلي – ${lead_name}`;\n\n// ── الإجراء المطلوب ───────────────────────────────────────────────────\nconst action_required = 'تواصل وأرسل عروض الغرف العائلية';\n\n// ─ـ ملاحظات المهمة المختصرة ───────────────────────────────────────────\nconst task_notes = `عائلة | نجوم: ${d.stars_preference} | ميزانية: ${d.budget_signal} | درجة: ${d.final_score || d.score}/100`;\n\n// ── personalization للرسائل ──────────────────────────────────────────\nconst personalization = {\n  name: lead_name,\n  group_size: d.pax || 4,\n  budget: d.budget_signal || 'unknown',\n  stars: d.stars_preference || 'unknown'\n};\n\n// ── الإخراج النهائي — جميع الحقول المطلوبة ───────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // حقول المهمة الأساسية\n    task_id: task_id,\n    task_type: task_type,\n    priority: priority,\n    assigned_to: assigned_to,\n    status: status,  // ✅ حالة المهمة: open\n    sla_minutes: d.sla_minutes || 30,\n    created_at: new Date().toISOString(),\n    \n    // حقول الهوية الموحدة\n    lead_name: lead_name,\n    lead_score: d.final_score || d.score || 100,\n    phone: phone,\n    \n    // حقول العرض\n    task_title: task_title,\n    action_required: action_required,\n    task_notes: task_notes,\n    personalization: personalization,\n    \n    // حالة التخزين\n    stored_status: 'new',\n    \n    // طوابع زمنية إضافية\n    handoff_at: new Date().toISOString(),\n    scored_at: d.scored_at || new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Prepare B2C Family Task | نظام رادار Bluevia Travel v4.0 — مُصحح\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── توليد task_id فريد ─────────────────────────────────────────────────\nconst ts = Date.now().toString().slice(-6);\nconst rnd = Math.floor(Math.random() * 1000).toString().padStart(3, '0');\nconst task_id = `TSK-${ts}${rnd}`;\n\n// ── تحديد نوع المهمة ──────────────────────────────────────────────────\nconst task_type = 'b2c_family_booking';\n\n// ── تحديد الأولوية بناءً على الدرجة ───────────────────────────────────\nlet priority = 'normal';\nif (d.final_score >= 90) priority = 'urgent';\nelse if (d.final_score >= 70) priority = 'high';\n\n// ── تحديد المندوب (فارغ افتراضياً لفريق المبيعات) ─────────────────────\nconst assigned_to = 'sales_team';\n\n// ── حالة المهمة (ليست تصنيف العميل!) ──────────────────────────────────\nconst status = 'open';  // ✅ open / closed / converted / escalated\n\n// ── توحيد صيغة الهاتف ─────────────────────────────────────────────────\nconst phone = d.phone?.startsWith('+') ? d.phone : `+${d.phone}`;\n\n// ── ملء lead_name ─────────────────────────────────────────────────────\nconst lead_name = d.name || d.full_name || 'غير معروف';\n\n// ── ملاحظات مفصلة لفريق المبيعات ─────────────────────────────────────\nconst notes = `عميل يطلب خدمة Bluevia Travel ${d.stars_preference || '5 نجوم'} قريب الحرم ليوم ${d.check_in_hint || 'غير محدد'} لعائلة من ${d.pax || 4} أشخاص. ميزانية ${d.budget_signal || 'unknown'}. رقم الهاتف: ${phone}. مصدر: ${d.source}. الرسالة: ${d.message || d.last_message || ''}`.substring(0, 500);\n\n// ── عنوان المهمة ──────────────────────────────────────────────────────\nconst task_title = `👨‍👩‍👧 حجز عائلي – ${lead_name}`;\n\n// ── الإجراء المطلوب ───────────────────────────────────────────────────\nconst action_required = 'تواصل وأرسل عروض الغرف العائلية';\n\n// ─ـ ملاحظات المهمة المختصرة ───────────────────────────────────────────\nconst task_notes = `عائلة | نجوم: ${d.stars_preference} | ميزانية: ${d.budget_signal} | درجة: ${d.final_score || d.score}/100`;\n\n// ── personalization للرسائل ──────────────────────────────────────────\nconst personalization = {\n  name: lead_name,\n  group_size: d.pax || 4,\n  budget: d.budget_signal || 'unknown',\n  stars: d.stars_preference || 'unknown'\n};\n\n// ── الإخراج النهائي — جميع الحقول المطلوبة ───────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // حقول المهمة الأساسية\n    task_id: task_id,\n    task_type: task_type,\n    priority: priority,\n    assigned_to: assigned_to,\n    status: status,  // ✅ حالة المهمة: open\n    sla_minutes: d.sla_minutes || 30,\n    created_at: new Date().toISOString(),\n    \n    // حقول الهوية الموحدة\n    lead_name: lead_name,\n    lead_score: d.final_score || d.score || 100,\n    phone: phone,\n    \n    // حقول العرض\n    task_title: task_title,\n    action_required: action_required,\n    task_notes: task_notes,\n    personalization: personalization,\n    \n    // حالة التخزين\n    stored_status: 'new',\n    \n    // طوابع زمنية إضافية\n    handoff_at: new Date().toISOString(),\n    scored_at: d.scored_at || new Date().toISOString()\n  }\n}];"
       },
       "name": "Code – Prepare B2C Family Task",
       "type": "n8n-nodes-base.code",
@@ -562,7 +562,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -1503,7 +1503,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -2255,7 +2255,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ \n  (() => {\n    const d = $json;\n    \n    // 🎨 أيقونات الأولوية\n    const prioIcon = { \n      'urgent': '🔴', 'high': '🟠', 'normal': '🔵',\n      '1': '🔴', '2': '🟠', '3': '🔵'\n    };\n    \n    // 🎨 أيقونات نوع العميل\n    const typeIcon = { \n      'b2c_solo_hot_booking': '👤🔥', \n      'b2c_family_booking': '👨‍👩‍👧‍👦✨', \n      'b2c_group_booking': '👥🎯', \n      'b2b_partnership': '🏢💼', \n      'general_followup': '📋⏳',\n      'b2c_solo': '👤',\n      'b2c_family': '👨‍👩‍👧‍👦',\n      'b2c_group': '👥'\n    };\n    \n    // 🎨 أيقونات النجوم والميزانية\n    const starsIcon = {\n      '5star': '⭐⭐⭐⭐⭐', '4star': '⭐⭐⭐⭐', \n      '3star': '⭐⭐⭐', 'unknown': '⭐❓'\n    };\n    const budgetIcon = {\n      'luxury': '💎 فاخر', 'mid': '💰 متوسط', \n      'budget': '🎯 اقتصادي', 'unknown': '❓ غير محدد'\n    };\n    \n    // 📦 استخراج البيانات (مع تنظيف المسافات)\n    const taskType = d.category ? d.category + '_hot_booking' : 'b2c_solo_hot_booking';\n    const urgency = d.radar_urgency || 'عادي';\n    const urgencyText = { 'immediate': 'فوري 🔥', 'soon': 'قريب ⏱️', 'normal': 'عادي 📅' }[urgency] || urgency;\n    const sla = d.sla_minutes || (d.score >= 90 ? 15 : d.score >= 75 ? 30 : 60);\n    const action = 'اتصال فوري 📞';\n    const notes = 'عميل جديد - درجة عالية';\n    const score = d.score || d.final_score || 0;\n    const qualityBadge = score >= 90 ? '🏆 ممتاز' : score >= 75 ? '✅ جيد' : score >= 55 ? '⚠️ متوسط' : '🔻 منخفض';\n    const phone = d.phone || 'غير متاح';\n    const budgetRaw = (d.budget_signal || '').trim();\n    const paxRaw = Number(d.pax_hint) || d.pax_hint || 'غير محدد';\n    \n    // 🎨 بناء الرسالة (بدون تكرار)\n    return `${prioIcon[d.priority] || prioIcon[d.priority + ''] || '🔵'} *طلب جديد للمبيعات*\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n\\n` +\n      `${typeIcon[taskType] || '👤'} *بيانات العميل*\\n` +\n      `👤 *الاسم:* ${d.name || 'مجهول'}\\n` +\n      `📱 *الجوال:* ${phone}\\n` +\n      `🌐 *المصدر:* ${d.source || d.platform || 'غير معروف'}\\n\\n` +\n      `📊 *تقييم الفرصة*\\n` +\n      `🎯 *الدرجة:* ${score}/100 — ${qualityBadge}\\n` +\n      `⚡ *العاجلية:* ${urgencyText}\\n` +\n      `⏱️ *مهلة الرد:* ${sla} دقيقة كحد أقصى\\n` +\n      `🏷️ *التصنيف:* ${taskType.replace(/_/g, ' ')}\\n\\n` +\n      `🏨 *تفضيلات الإقامة*\\n` +\n      `✨ *النجوم:* ${starsIcon[d.stars_preference] || d.stars_preference || 'غير محدد'}\\n` +\n      `💵 *الميزانية:* ${budgetIcon[budgetRaw] || budgetRaw || 'غير محدد'}\\n` +\n      `👥 *عدد الأشخاص:* ${paxRaw}\\n\\n` +\n      `✅ *الإجراء المطلوب*\\n` +\n      `🎬 ${action}\\n` +\n      `📝 *ملاحظات:* ${notes}\\n\\n` +\n      `━━━━━━━━━━━━━━━━━━\\n` +\n      `🆔 *معرف العميل:* \\`${d.lead_id}\\`\\n` +\n      `🕐 *وقت التسليم:* ${new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'})}`;\n  })()\n}}",
         "additionalFields": {
           "appendAttribution": false,
@@ -2282,10 +2282,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://n8n.srv1332143.hstgr.cloud/webhook/makkah-delivery-engine",
+        "url": "=https://Bluevia.srv1332143.hstgr.cloud/webhook/bluevia-delivery-engine",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"lead_phone\": \"{{ $json.phone }}\",\n  \"lead_name\": \"{{ $json.name }}\",\n  \"channel\": \"{{ $json.platform || 'whatsapp' }}\",\n  \"custom_message\": \"أهلاً وسهلاً بك يا {{ $json.name || 'عزيزي' }} 👋🌹\\n\\nنشكر ثقتك الغالية في خدماتنا لحجوزات SaaSAI للأتمتة.\\n\\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }} دقيقة على الأكثر.\\n\\n🕌 نعدك بتجربة إقامة مميزة، ونسأل الله أن يجعلها رحلة مباركة لك ولأسرتك.\\n\\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.\",\n  \"personalization\": {\n    \"name\": \"{{ $json.name }}\",\n    \"lead_id\": \"{{ $json.lead_id }}\",\n    \"score\": {{ $json.score || 0 }}\n  },\n  \"action_type\": \"transactional\",\n  \"template_id\": \"sales_handoff_confirm\",\n  \"priority\": \"{{ $json.score >= 90 || $json.radar_urgency == 'immediate' ? 'urgent' : $json.score >= 75 || $json.budget_signal == 'luxury' ? 'high' : 'normal' }}\",\n  \"metadata\": {\n    \"score\": {{ $json.score || 0 }},\n    \"sla_minutes\": {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }},\n    \"source\": \"{{ $json.source }}\",\n    \"category\": \"{{ $json.category }}\",\n    \"stars_preference\": \"{{ $json.stars_preference }}\",\n    \"budget_signal\": \"{{ ($json.budget_signal||'').trim() }}\",\n    \"sent_at\": \"{{ $now }}\"\n  }\n}",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"lead_phone\": \"{{ $json.phone }}\",\n  \"lead_name\": \"{{ $json.name }}\",\n  \"channel\": \"{{ $json.platform || 'whatsapp' }}\",\n  \"custom_message\": \"أهلاً وسهلاً بك يا {{ $json.name || 'عزيزي' }} 👋🌹\\n\\nنشكر ثقتك الغالية في خدماتنا لحجوزات Bluevia Travel.\\n\\n✨ يسعدنا إعلامك أن فريق المبيعات المختص يراجع طلبك الآن بعناية، وسيتم التواصل معك خلال {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }} دقيقة على الأكثر.\\n\\n🕌 نعدك بتجربة إقامة مميزة، ونسأل الله أن يجعلها رحلة مباركة لك ولأسرتك.\\n\\nلأي استفسار عاجل، نحن هنا لخدمتك دائماً.\",\n  \"personalization\": {\n    \"name\": \"{{ $json.name }}\",\n    \"lead_id\": \"{{ $json.lead_id }}\",\n    \"score\": {{ $json.score || 0 }}\n  },\n  \"action_type\": \"transactional\",\n  \"template_id\": \"sales_handoff_confirm\",\n  \"priority\": \"{{ $json.score >= 90 || $json.radar_urgency == 'immediate' ? 'urgent' : $json.score >= 75 || $json.budget_signal == 'luxury' ? 'high' : 'normal' }}\",\n  \"metadata\": {\n    \"score\": {{ $json.score || 0 }},\n    \"sla_minutes\": {{ $json.sla_minutes || ($json.score >= 90 ? 15 : $json.score >= 75 ? 30 : 60) }},\n    \"source\": \"{{ $json.source }}\",\n    \"category\": \"{{ $json.category }}\",\n    \"stars_preference\": \"{{ $json.stars_preference }}\",\n    \"budget_signal\": \"{{ ($json.budget_signal||'').trim() }}\",\n    \"sent_at\": \"{{ $now }}\"\n  }\n}",
         "options": {
           "timeout": 10000
         }
@@ -2407,7 +2407,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⏰ *تذكير مبيعات – SLA تجاوز ${$json.sla_minutes} دقيقة!*\\n\\n🔴 العميل لم يُتابَع بعد:\\n👤 ${$json.name}\\n📞 ${$json.phone}\\n📋 ${$json.task_title}\\n⚡ الإجراء: ${$json.action_required}\\n\\n→ يرجى المتابعة الفورية!` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -2491,7 +2491,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Check Still Open After 2h | نظام رادار SaaSAI v4.0 — تشخيصي\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── حساب الوقت المنقضي بدقة ───────────────────────────────────────────\nconst createdAt = new Date(d.created_at || d.handoff_at || Date.now());\nconst now = new Date();\nconst diffMs = now - createdAt;\nconst hoursElapsed = diffMs / (1000 * 60 * 60); // تحويل لـ ساعات\n\n// ── التحقق من حالة المهمة ─────────────────────────────────────────────\nconst taskStatus = (d.status || d.task_status || 'open').toLowerCase().trim();\nconst isOpen = taskStatus === 'open';\nconst isEscalated = taskStatus === 'escalated';\nconst isClosed = ['closed', 'converted', 'cancelled'].includes(taskStatus);\n\n// ── الحساب النهائي لـ still_open_2h ───────────────────────────────────\nconst still_open = isOpen && !isEscalated && !isClosed;\nconst still_open_2h = still_open && hoursElapsed >= 2;\n\n// ── تسجيلات تشخيصية (للتتبع في اللوج) ─────────────────────────────────\nconst debug_info = {\n  created_at: d.created_at,\n  now: now.toISOString(),\n  hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n  task_status: taskStatus,\n  is_open: isOpen,\n  is_escalated: isEscalated,\n  is_closed: isClosed,\n  still_open: still_open,\n  still_open_2h: still_open_2h\n};\n\n// ── الإخراج النهائي ──────────────────────────────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // ✅ الحقول المطلوبة للعقدة الشرطية (boolean صريح)\n    still_open_2h: Boolean(still_open_2h),\n    still_open: Boolean(still_open),\n    \n    // حقول التشخيص (تظهر في اللوج للمراجعة)\n    _debug_hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n    _debug_task_status: taskStatus,\n    _debug_still_open_calc: debug_info,\n    \n    // حقول التصعيد\n    needs_escalation: Boolean(still_open_2h),\n    escalation_priority: d.sla_minutes <= 15 ? 'urgent' : \n                         d.sla_minutes <= 30 ? 'high' : 'normal',\n    checked_at: now.toISOString(),\n    \n    // ضمان وجود task_id\n    task_id: d.task_id || `TSK-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`\n  }\n}];"
+        "jsCode": "// ════════════════════════════════════════════════════════════════════════\n// Flow #6 › Code – Check Still Open After 2h | نظام رادار Bluevia Travel v4.0 — تشخيصي\n// ════════════════════════════════════════════════════════════════════════\n\nconst d = $input.first()?.json || {};\n\n// ── حساب الوقت المنقضي بدقة ───────────────────────────────────────────\nconst createdAt = new Date(d.created_at || d.handoff_at || Date.now());\nconst now = new Date();\nconst diffMs = now - createdAt;\nconst hoursElapsed = diffMs / (1000 * 60 * 60); // تحويل لـ ساعات\n\n// ── التحقق من حالة المهمة ─────────────────────────────────────────────\nconst taskStatus = (d.status || d.task_status || 'open').toLowerCase().trim();\nconst isOpen = taskStatus === 'open';\nconst isEscalated = taskStatus === 'escalated';\nconst isClosed = ['closed', 'converted', 'cancelled'].includes(taskStatus);\n\n// ── الحساب النهائي لـ still_open_2h ───────────────────────────────────\nconst still_open = isOpen && !isEscalated && !isClosed;\nconst still_open_2h = still_open && hoursElapsed >= 2;\n\n// ── تسجيلات تشخيصية (للتتبع في اللوج) ─────────────────────────────────\nconst debug_info = {\n  created_at: d.created_at,\n  now: now.toISOString(),\n  hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n  task_status: taskStatus,\n  is_open: isOpen,\n  is_escalated: isEscalated,\n  is_closed: isClosed,\n  still_open: still_open,\n  still_open_2h: still_open_2h\n};\n\n// ── الإخراج النهائي ──────────────────────────────────────────────────\nreturn [{\n  json: {\n    ...d,\n    // ✅ الحقول المطلوبة للعقدة الشرطية (boolean صريح)\n    still_open_2h: Boolean(still_open_2h),\n    still_open: Boolean(still_open),\n    \n    // حقول التشخيص (تظهر في اللوج للمراجعة)\n    _debug_hours_elapsed: Math.round(hoursElapsed * 100) / 100,\n    _debug_task_status: taskStatus,\n    _debug_still_open_calc: debug_info,\n    \n    // حقول التصعيد\n    needs_escalation: Boolean(still_open_2h),\n    escalation_priority: d.sla_minutes <= 15 ? 'urgent' : \n                         d.sla_minutes <= 30 ? 'high' : 'normal',\n    checked_at: now.toISOString(),\n    \n    // ضمان وجود task_id\n    task_id: d.task_id || `TSK-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`\n  }\n}];"
       },
       "name": "Code – Check Still Open After 2h",
       "type": "n8n-nodes-base.code",
@@ -2539,7 +2539,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `🚨 *تصعيد إداري – عميل بلا متابعة منذ 2+ ساعة!*\\n\\n⚠️ الحالة حرجة:\\n👤 ${$json.name}\\n📞 ${$json.phone}\\n📋 ${$json.task_title}\\n📊 الدرجة: ${$json.score}/100\\n\\n🔴 المطلوب: تدخل إداري فوري\\n⚡ ${$json.action_required}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -2569,7 +2569,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -3600,7 +3600,7 @@
           "__rl": true,
           "value": "1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA",
           "mode": "list",
-          "cachedResultName": "SaaSAI_MasterSheets",
+          "cachedResultName": "Bluevia_MasterSheets",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FOp8T6YvD1qg6XXnCg7RJopHG_uOAr8A74q2tFu26HA/edit?usp=drivesdk"
         },
         "sheetName": {
@@ -3614,7 +3614,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "error_id": "={{ 'ERR6-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase() }}",
-            "flow_name": "SaaSAI_F6",
+            "flow_name": "Bluevia_F6",
             "node_name": "={{ $json.execution?.lastNodeExecuted || $json.node?.name || 'Unknown' }}",
             "error_msg": "={{ $json.error?.message || $json.message || JSON.stringify($json).substring(0,400) }}",
             "severity": "={{ /timeout|429|503/i.test($json.error?.message||'') ? 'high' : 'medium' }}",
@@ -3736,7 +3736,7 @@
     },
     {
       "parameters": {
-        "chatId": "=5292626260",
+        "chatId": "REDACTED_CHAT_ID",
         "text": "={{ `⚠️ *خطأ في Flow #6 – Sales Handoff*\n\n🆔 ${$json.error_id || 'ERR-?'}\n❌ ${$json.error?.message || $json.error_msg || 'خطأ غير معروف'}\n🔧 العقدة: ${$json.execution?.lastNodeExecuted || $json.node_name || 'Unknown'}\n📞 Phone: ${$json.phone || 'N/A'}\n🆔 Task: ${$json.task_id || 'N/A'}\n⏱️ ${new Date().toLocaleString('ar-SA',{timeZone:'Asia/Riyadh'})}` }}",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -3844,14 +3844,14 @@
       {
         "json": {
           "headers": {
-            "host": "n8n.srv1332143.hstgr.cloud",
+            "host": "Bluevia.srv1332143.hstgr.cloud",
             "user-agent": "axios/1.13.5",
             "content-length": "759",
             "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
             "accept-encoding": "gzip, compress, deflate, br",
             "content-type": "application/json",
             "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n.srv1332143.hstgr.cloud",
+            "x-forwarded-host": "Bluevia.srv1332143.hstgr.cloud",
             "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
             "x-forwarded-server": "f81c42443d27",
@@ -3886,7 +3886,7 @@
             "lead_quality": 95,
             "journey_step": "cold_info"
           },
-          "webhookUrl": "https://n8n.srv1332143.hstgr.cloud/webhook/makkah-sales-handoff",
+          "webhookUrl": "https://Bluevia.srv1332143.hstgr.cloud/webhook/bluevia-sales-handoff",
           "executionMode": "production"
         },
         "pairedItem": {
