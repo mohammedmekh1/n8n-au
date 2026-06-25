@@ -1,0 +1,286 @@
+{
+  "name": "F9_Intent_Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f9-intent-analyzer",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "أنت محلل نوايا متخصص في خدمات الحج والعمرة بالإنابة.\nمهمتك تحليل نص المستخدم وتحديد:\n\n1. **intent_type**: نوع النية (hajj_substitute, umrah_substitute, inquiry, casual, spam)\n2. **urgency_level**: مستوى الاستعجال (high, medium, low)\n3. **case_type**: نوع الحالة (deceased, sick, elderly_disabled, other)\n4. **sincerity_score**: درجة الجدية (0-100)\n5. **emotional_state**: الحالة العاطفية (grief, hope, curiosity, neutral, suspicious)\n6. **conversion_probability**: احتمال التحويل لعميل حقيقي (0-100)\n7. **recommended_action**: الإجراء الموصى به (immediate_contact, nurture, information, ignore)\n8. **red_flags**: أي علامات تحذيرية\n9. **reasoning**: شرح التحليل\n\nأخرج النتيجة بصيغة JSON فقط."
+            },
+            {
+              "role": "user",
+              "content": "حلل هذا النص: {{ $json.text }}\n\nالسياق الإضافي: {{ $json.context || 'لا يوجد' }}"
+            }
+          ]
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "ai-intent-analysis",
+      "name": "AI Intent Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_cred_id",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// تحليل متقدم للنوايا مع نظام نقاط\nconst analysis = $input.first().json.ai_response;\n\n// حساب درجة أولوية شاملة\nlet priorityScore = 0;\n\n// إضافة نقاط بناءً على نوع النية\nconst intentScores = {\n  'hajj_substitute': 30,\n  'umrah_substitute': 25,\n  'inquiry': 10,\n  'casual': 5,\n  'spam': 0\n};\npriorityScore += intentScores[analysis.intent_type] || 0;\n\n// إضافة نقاط للاستعجال\nconst urgencyScores = {\n  'high': 25,\n  'medium': 15,\n  'low': 5\n};\npriorityScore += urgencyScores[analysis.urgency_level] || 0;\n\n// إضافة نقاط للجدية\npriorityScore += (analysis.sincerity_score || 0) * 0.3;\n\n// إضافة نقاط لاحتمال التحويل\npriorityScore += (analysis.conversion_probability || 0) * 0.2;\n\n// خصم نقاط للعلامات التحذيرية\nif (analysis.red_flags && analysis.red_flags.length > 0) {\n  priorityScore -= analysis.red_flags.length * 10;\n}\n\n// تحديد التصنيف النهائي\nlet classification;\nif (priorityScore >= 70) {\n  classification = 'HOT_LEAD';\n} else if (priorityScore >= 50) {\n  classification = 'WARM_LEAD';\n} else if (priorityScore >= 30) {\n  classification = 'COLD_LEAD';\n} else {\n  classification = 'NOT_QUALIFIED';\n}\n\nreturn {\n  ...analysis,\n  priority_score: Math.min(100, Math.max(0, priorityScore)),\n  classification,\n  analyzed_at: new Date().toISOString()\n};"
+      },
+      "id": "priority-calculator",
+      "name": "Priority Score Calculator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "intent_analyses",
+        "columns": "lead_id, original_text, intent_type, urgency_level, case_type, sincerity_score, emotional_state, conversion_probability, recommended_action, red_flags, priority_score, classification, created_at",
+        "values": "={{ [\n  {\n    \"lead_id\": $json.lead_id || 'unknown',\n    \"original_text\": $json.text,\n    \"intent_type\": $json.intent_type,\n    \"urgency_level\": $json.urgency_level,\n    \"case_type\": $json.case_type,\n    \"sincerity_score\": $json.sincerity_score,\n    \"emotional_state\": $json.emotional_state,\n    \"conversion_probability\": $json.conversion_probability,\n    \"recommended_action\": $json.recommended_action,\n    \"red_flags\": JSON.stringify($json.red_flags || []),\n    \"priority_score\": $json.priority_score,\n    \"classification\": $json.classification,\n    \"created_at\": new Date().toISOString()\n  }\n] }}"
+      },
+      "id": "save-analysis",
+      "name": "Save Analysis Result",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_cred_id",
+          "name": "Hajj DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": [
+          {
+            "value1": "={{ $json.classification }}",
+            "operation": "equal",
+            "value2": "HOT_LEAD"
+          }
+        ]
+      },
+      "id": "hot-lead-check",
+      "name": "Check HOT LEAD",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": [
+          {
+            "value1": "={{ $json.classification }}",
+            "operation": "equal",
+            "value2": "WARM_LEAD"
+          }
+        ]
+      },
+      "id": "warm-lead-check",
+      "name": "Check WARM LEAD",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🔥 **تنبيه: عميل محتمل عالي الجودة (HOT LEAD)**\n\n📝 النص: {{ $json.original_text.substring(0, 150) }}...\n\n🎯 نوع النية: {{ $json.intent_type }}\n⚡ الاستعجال: {{ $json.urgency_level }}\n💚 الحالة: {{ $json.case_type }}\n📊 درجة الجدية: {{ $json.sincerity_score }}/100\n🔄 احتمال التحويل: {{ $json.conversion_probability }}%\n🏷️ التصنيف: {{ $json.classification }}\n⭐ درجة الأولوية: {{ $json.priority_score }}\n\n💡 الإجراء الموصى به: {{ $json.recommended_action }}\n\n{{ $json.red_flags && $json.red_flags.length > 0 ? '⚠️ علامات تحذيرية: ' + $json.red_flags.join(', ') : '' }}\n\n#F9_Intent_Analyzer #HOT_LEAD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hot-lead-notify",
+      "name": "Notify HOT LEAD",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🌡️ **تنبيه: عميل محتمل متوسط الجودة (WARM LEAD)**\n\n📝 النص: {{ $json.original_text.substring(0, 100) }}...\n\n🎯 نوع النية: {{ $json.intent_type }}\n📊 درجة الجدية: {{ $json.sincerity_score }}/100\n🏷️ التصنيف: {{ $json.classification }}\n⭐ درجة الأولوية: {{ $json.priority_score }}\n\n💡 الإجراء الموصى به: {{ $json.recommended_action }}\n\n#F9_Intent_Analyzer #WARM_LEAD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "warm-lead-notify",
+      "name": "Notify WARM LEAD",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.client_telegram_id || $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🤝 **شكراً لاهتمامك بخدمات الحج والعمرة بالإنابة**\n\nلقد استقبلنا استفسارك وسنقوم بالرد عليك خلال 24 ساعة.\n\nفي حالة الاستعجال، يرجى التواصل مباشرة عبر:\n📞 الهاتف: {{ $env.SUPPORT_PHONE }}\n💬 واتساب: {{ $env.SUPPORT_WHATSAPP }}\n\nبارك الله فيكم وجعلها في ميزان حسناتكم.\n\n#F9_Intent_Analyzer #AutoResponse"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "auto-response",
+      "name": "Send Auto Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 500]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Intent Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Intent Analysis": {
+      "main": [
+        [
+          {
+            "node": "Priority Score Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priority Score Calculator": {
+      "main": [
+        [
+          {
+            "node": "Save Analysis Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Analysis Result": {
+      "main": [
+        [
+          {
+            "node": "Check HOT LEAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check HOT LEAD": {
+      "main": [
+        [
+          {
+            "node": "Notify HOT LEAD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check WARM LEAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check WARM LEAD": {
+      "main": [
+        [
+          {
+            "node": "Notify WARM LEAD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Auto Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f9-v1-intent-analyzer",
+  "meta": {
+    "instanceId": "hajj-umrah-system"
+  },
+  "tags": [
+    {
+      "name": "F9",
+      "color": "#FF6347"
+    },
+    {
+      "name": "Analysis",
+      "color": "#4169E1"
+    }
+  ]
+}

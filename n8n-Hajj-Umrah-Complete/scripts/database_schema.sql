@@ -1,5 +1,6 @@
 -- ============================================
 -- قاعدة بيانات المنظومة العالمية للحج والعمرة
+-- الإصدار: 2.0 - مع دعم الأنظمة F1, F2, F7, F8, F9, F13
 -- ============================================
 
 -- جدول العملاء المحتملين (من الرادار العالمي)
@@ -98,6 +99,173 @@ CREATE TABLE IF NOT EXISTS referrals (
     id SERIAL PRIMARY KEY,
     referrer_id INTEGER,
     referred_client_id INTEGER,
+    referral_code VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'pending',
+    reward_amount DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (referrer_id) REFERENCES clients(id),
+    FOREIGN KEY (referred_client_id) REFERENCES clients(id)
+);
+
+-- ============================================
+-- جداول جديدة للأنظمة F2, F8, F9
+-- ============================================
+
+-- جدول العملاء الخام من جميع المصادر (F1, F2)
+CREATE TABLE IF NOT EXISTS leads_raw (
+    id SERIAL PRIMARY KEY,
+    source_platform VARCHAR(100) NOT NULL,
+    content_text TEXT,
+    analysis_result JSONB,
+    confidence_score INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed BOOLEAN DEFAULT FALSE,
+    converted_to_lead BOOLEAN DEFAULT FALSE
+);
+
+-- إنشاء فهرس لتحسين الأداء
+CREATE INDEX IF NOT EXISTS idx_leads_source ON leads_raw(source_platform);
+CREATE INDEX IF NOT EXISTS idx_leads_created ON leads_raw(created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_confidence ON leads_raw(confidence_score);
+
+-- جدول تحليل النوايا (F9)
+CREATE TABLE IF NOT EXISTS intent_analyses (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER,
+    original_text TEXT,
+    intent_type VARCHAR(50),
+    urgency_level VARCHAR(20),
+    case_type VARCHAR(50),
+    sincerity_score INTEGER,
+    emotional_state VARCHAR(50),
+    conversion_probability INTEGER,
+    recommended_action VARCHAR(50),
+    red_flags JSONB,
+    priority_score INTEGER,
+    classification VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (lead_id) REFERENCES leads_raw(id)
+);
+
+-- إنشاء فهارس لتحسين الأداء
+CREATE INDEX IF NOT EXISTS idx_intent_type ON intent_analyses(intent_type);
+CREATE INDEX IF NOT EXISTS idx_intent_classification ON intent_analyses(classification);
+CREATE INDEX IF NOT EXISTS idx_intent_priority ON intent_analyses(priority_score DESC);
+
+-- جدول التحقق من الوثائق (F8)
+CREATE TABLE IF NOT EXISTS document_verifications (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER,
+    document_type VARCHAR(100),
+    ocr_text TEXT,
+    extracted_data JSONB,
+    verification_result JSONB,
+    confidence_score INTEGER,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_by INTEGER,
+    reviewed_at TIMESTAMP,
+    FOREIGN KEY (lead_id) REFERENCES leads_raw(id)
+);
+
+-- إنشاء فهارس لتحسين الأداء
+CREATE INDEX IF NOT EXISTS idx_doc_verification_status ON document_verifications(status);
+CREATE INDEX IF NOT EXISTS idx_doc_confidence ON document_verifications(confidence_score);
+CREATE INDEX IF NOT EXISTS idx_doc_type ON document_verifications(document_type);
+
+-- ============================================
+-- Views للوحات التحكم (Metabase)
+-- ============================================
+
+-- عرض ملخص النظام اليومي
+CREATE OR REPLACE VIEW daily_system_summary AS
+SELECT 
+    DATE(created_at) as report_date,
+    (SELECT COUNT(*) FROM leads_raw WHERE DATE(created_at) = DATE(now())) as new_leads_today,
+    (SELECT COUNT(*) FROM intent_analyses WHERE DATE(created_at) = DATE(now()) AND classification = 'HOT_LEAD') as hot_leads_today,
+    (SELECT COUNT(*) FROM document_verifications WHERE DATE(created_at) = DATE(now()) AND status = 'approved') as docs_approved_today,
+    (SELECT COUNT(*) FROM legal_queries WHERE DATE(created_at) = DATE(now())) as legal_queries_today,
+    (SELECT COUNT(*) FROM active_umrah_sessions WHERE DATE(started_at) = DATE(now())) as umrahs_started_today,
+    (SELECT COUNT(*) FROM umrah_documentation_log WHERE DATE(timestamp) = DATE(now())) as documentation_entries_today;
+
+-- عرض أفضل المصادر
+CREATE OR REPLACE VIEW leads_by_source AS
+SELECT 
+    source_platform,
+    COUNT(*) as total_leads,
+    AVG(confidence_score) as avg_confidence,
+    COUNT(CASE WHEN processed = TRUE THEN 1 END) as processed_count
+FROM leads_raw
+GROUP BY source_platform
+ORDER BY total_leads DESC;
+
+-- عرض توزيع النوايا
+CREATE OR REPLACE VIEW intent_distribution AS
+SELECT 
+    intent_type,
+    classification,
+    COUNT(*) as count,
+    AVG(sincerity_score) as avg_sincerity,
+    AVG(conversion_probability) as avg_conversion_prob
+FROM intent_analyses
+GROUP BY intent_type, classification
+ORDER BY count DESC;
+
+-- عرض حالة التحقق من الوثائق
+CREATE OR REPLACE VIEW document_verification_stats AS
+SELECT 
+    status,
+    COUNT(*) as count,
+    AVG(confidence_score) as avg_confidence,
+    document_type
+FROM document_verifications
+GROUP BY status, document_type
+ORDER BY count DESC;
+
+-- ============================================
+-- دوال مساعدة
+-- ============================================
+
+-- دالة تحديث حالة العميل المحتمل
+CREATE OR REPLACE FUNCTION update_lead_status(p_lead_id INTEGER, p_processed BOOLEAN, p_converted BOOLEAN)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE leads_raw
+    SET processed = p_processed, converted_to_lead = p_converted
+    WHERE id = p_lead_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- دالة إضافة عميل محتمل جديد مع التحليل التلقائي
+CREATE OR REPLACE FUNCTION add_new_lead(
+    p_source VARCHAR(100),
+    p_content TEXT,
+    p_confidence INTEGER
+) RETURNS INTEGER AS $$
+DECLARE
+    v_lead_id INTEGER;
+BEGIN
+    INSERT INTO leads_raw (source_platform, content_text, confidence_score)
+    VALUES (p_source, p_content, p_confidence)
+    RETURNING id INTO v_lead_id;
+    
+    RETURN v_lead_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- بيانات أولية للتجربة
+-- ============================================
+
+INSERT INTO executors (name, telegram_id, phone, location_city, location_lat, location_lng)
+VALUES 
+    ('أحمد محمد', 'executor_001', '+966501234567', 'مكة المكرمة', 21.4225, 39.8262),
+    ('محمد عبدالله', 'executor_002', '+966502345678', 'المدينة المنورة', 24.5247, 39.5692)
+ON CONFLICT DO NOTHING;
+
+-- منح صلاحيات الوصول
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO hajj_admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO hajj_admin;
     referral_code VARCHAR(50),
     status VARCHAR(50) DEFAULT 'pending',
     reward_points INTEGER DEFAULT 0,

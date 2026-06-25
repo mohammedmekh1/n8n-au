@@ -1,0 +1,205 @@
+{
+  "name": "F2_Insta_Deep_Miner",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f2-insta-deep-miner",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "trigger-node",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "actor": "apify/instagram-scraper",
+        "input": {
+          "search": "={{ $json.query }}",
+          "resultsLimit": 50,
+          "searchType": "hashtag"
+        },
+        "options": {
+          "proxyConfiguration": {
+            "useApifyProxy": true
+          }
+        }
+      },
+      "id": "scraper-node",
+      "name": "Instagram Deep Scraper",
+      "type": "n8n-nodes-base.apify",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "apifyApi": {
+          "id": "apify_cred_id",
+          "name": "Apify Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// فلترة النتائج بناءً على الكلمات المفتاحية العميقة\nconst keywords = ['حج', 'عمرة', 'متوفي', 'مريض', 'عاجز', 'نيابة', 'بدل'];\nconst posts = $input.all();\n\nconst qualifiedPosts = posts.filter(post => {\n  const caption = post.json.caption || '';\n  const location = post.json.location || '';\n  \n  // التحقق من وجود كلمات مفتاحية متعددة\n  const matchCount = keywords.filter(k => caption.includes(k)).length;\n  \n  // قبول المنشور إذا احتوى على كلمتين مفتاحيتين على الأقل\n  return matchCount >= 2;\n});\n\nreturn qualifiedPosts;"
+      },
+      "id": "filter-node",
+      "name": "Deep Content Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "message": [
+            {
+              "role": "system",
+              "content": "أنت خبير في تحليل نوايا المستخدمين على إنستغرام. مهمتك تحليل التعليق أو الوصف وتحديد:\n1. هل النية حقيقية للحج بالإنابة؟\n2. ما نوع الحالة (وفاة، مرض، عجز)؟\n3. تقدير مستوى الاستعجال.\nأخرج النتيجة بصيغة JSON فقط."
+            },
+            {
+              "role": "user",
+              "content": "حلل هذا النص: {{ $json.caption }}"
+            }
+          ]
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "ai-analyzer-node",
+      "name": "AI Intent Deep Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_cred_id",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "leads_raw",
+        "columns": "source_platform, content_text, analysis_result, confidence_score, created_at",
+        "values": "={{ [\n  {\n    \"source_platform\": \"instagram\",\n    \"content_text\": $json.caption,\n    \"analysis_result\": JSON.stringify($json.ai_response),\n    \"confidence_score\": $json.ai_response.confidence || 0,\n    \"created_at\": new Date().toISOString()\n  }\n] }}"
+      },
+      "id": "db-save-node",
+      "name": "Save Qualified Leads",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_cred_id",
+          "name": "Hajj DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🔍 **تنبيه عميق من إنستغرام**\n\n📝 النص: {{ $json.caption.substring(0, 100) }}...\n🎯 التحليل: {{ $json.ai_response.intent }}\n🔗 الرابط: {{ $json.shortUrl }}\n\n#F2_Deep_Miner"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-node",
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Instagram Deep Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram Deep Scraper": {
+      "main": [
+        [
+          {
+            "node": "Deep Content Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deep Content Filter": {
+      "main": [
+        [
+          {
+            "node": "AI Intent Deep Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Intent Deep Analysis": {
+      "main": [
+        [
+          {
+            "node": "Save Qualified Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Qualified Leads": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f2-v1-deep-miner",
+  "meta": {
+    "instanceId": "hajj-umrah-system"
+  },
+  "tags": [
+    {
+      "name": "F2",
+      "color": "#FFA500"
+    },
+    {
+      "name": "Discovery",
+      "color": "#0000FF"
+    }
+  ]
+}

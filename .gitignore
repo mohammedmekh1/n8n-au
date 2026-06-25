@@ -6,35 +6,14 @@
 
 # Dependencies
 node_modules/
-venv/
-.venv/
-__pycache__/
-*.egg-info/
-dist/
-build/
-target/
-.gradle/
 
 # Logs and temporary files
 *.log
 *.tmp
-*.swp
-*.swo
 
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# IDE specific
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# OS specific
-.DS_Store
-Thumbs.db
 
 # Python specific
 __pycache__/
@@ -43,28 +22,38 @@ __pycache__/
 *.pyd
 .Python
 *.so
+*.egg-info/
+.eggs/
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Build outputs
+dist/
+build/
+target/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# IDE specific
+.nyc_output/
+.mypy_cache/
+.pytest_cache/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# n8n specific
+.n8n/
 ```
