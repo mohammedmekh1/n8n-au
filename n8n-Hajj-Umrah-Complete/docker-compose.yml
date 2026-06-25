@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # قاعدة البيانات الرئيسية
+  postgres:
+    image: postgres:15-alpine
+    container_name: hajj_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: hajj_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_change_me}
+      POSTGRES_DB: hajj_umrah_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hajj_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hajj_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # منصة الأتمتة n8n
+  n8n:
+    image: n8n/n8n:latest
+    container_name: hajj_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=hajj_umrah_db
+      - DB_POSTGRESDB_USER=hajj_admin
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-secure_password_change_me}
+      - GENERIC_TIMEZONE=Asia/Riyadh
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - APIFY_API_KEY=${APIFY_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hajj_network
+
+  # لوحة التحليلات Metabase
+  metabase:
+    image: metabase/metabase:latest
+    container_name: hajj_metabase
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=hajj_umrah_db
+      - MB_DB_PORT=5432
+      - MB_DB_USER=hajj_admin
+      - MB_DB_PASS=${DB_PASSWORD:-secure_password_change_me}
+      - MB_DB_HOST=postgres
+      - JAVA_TIMEZONE=Asia/Riyadh
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      - postgres
+    networks:
+      - hajj_network
+
+  # تخزين الملفات المحلي (بديل S3)
+  minio:
+    image: minio/minio:latest
+    container_name: hajj_minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minio_secure_password}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - hajj_network
+
+  # أداة OCR مفتوحة المصدر (Tesseract in a container)
+  tesseract-ocr:
+    image: tesseractshadow/tesseract4re
+    container_name: hajj_tesseract
+    restart: always
+    volumes:
+      - ./data/ocr_input:/input
+      - ./data/ocr_output:/output
+    networks:
+      - hajj_network
+    profiles:
+      - ocr-tools
+
+volumes:
+  postgres_data:
+  n8n_data:
+  metabase_data:
+  minio_data:
+
+networks:
+  hajj_network:
+    driver: bridge
